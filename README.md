@@ -1,4 +1,4 @@
 gce
 ===
 
-Cloudscaling GCE API compatability
+Cloudscaling GCE API compatibility
