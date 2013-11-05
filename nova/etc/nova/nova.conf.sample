@@ -188,7 +188,7 @@
 #periodic_fuzzy_delay=60
 
 # a list of APIs to enable by default (list value)
-#enabled_apis=ec2,osapi_compute,metadata
+#enabled_apis=ec2,gce,osapi_compute,metadata
 
 # a list of APIs with enabled SSL (list value)
 #enabled_ssl_apis=
@@ -242,6 +242,12 @@
 # maximum time since last check-in for up service (integer
 # value)
 #service_down_time=60
+
+# IP address for GCE API to listen (string value)
+#gce_listen=0.0.0.0
+
+# port for gce api to listen (integer value)
+#gce_listen_port=8777
 
 
 #
@@ -350,6 +356,14 @@
 
 # Time in seconds before ec2 timestamp expires (integer value)
 #ec2_timestamp_expiry=300
+
+
+#
+# Options defined in nova.api.gce
+#
+
+# Url of keystone for GCE server implementation in nova
+#keystone_gce_url=http://localhost:5000/v2.0
 
 
 #

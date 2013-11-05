@@ -124,6 +124,8 @@ man_pages = [
      [u'OpenStack'], 1),
     ('man/nova-api-ec2', 'nova-api-ec2', u'Cloud controller fabric',
      [u'OpenStack'], 1),
+    ('man/nova-api-gce', 'nova-api-gce', u'Cloud controller fabric',
+     [u'OpenStack'], 1),
     ('man/nova-api-metadata', 'nova-api-metadata', u'Cloud controller fabric',
      [u'OpenStack'], 1),
     ('man/nova-api-os-compute', 'nova-api-os-compute',

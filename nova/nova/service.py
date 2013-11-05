@@ -53,7 +53,7 @@ service_opts = [
                     ' periodic task scheduler to reduce stampeding.'
                     ' (Disable by setting to 0)'),
     cfg.ListOpt('enabled_apis',
-                default=['ec2', 'osapi_compute', 'metadata'],
+                default=['ec2', 'gce', 'osapi_compute', 'metadata'],
                 help='a list of APIs to enable by default'),
     cfg.ListOpt('enabled_ssl_apis',
                 default=[],
@@ -103,6 +103,12 @@ service_opts = [
     cfg.IntOpt('service_down_time',
                default=60,
                help='maximum time since last check-in for up service'),
+    cfg.StrOpt('gce_listen',
+               default="0.0.0.0",
+               help='IP address for gce api to listen'),
+    cfg.IntOpt('gce_listen_port',
+               default=8777,
+               help='port for gce api to listen'),
     ]
 
 CONF = cfg.CONF
