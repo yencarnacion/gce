@@ -1,4 +1,4 @@
-#    Copyright 2012 Cloudscaling Group, Inc
+#    Copyright 2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -12,8 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova import context
 from nova.api.openstack import wsgi as os_wsgi
+from nova import context
 
 
 class HTTPRequest(os_wsgi.Request):
@@ -21,7 +21,6 @@ class HTTPRequest(os_wsgi.Request):
     @classmethod
     def blank(cls, url, has_body=False, *args, **kwargs):
         kwargs['base_url'] = 'http://localhost/compute/v1beta15/projects'
-        use_admin_context = kwargs.pop('use_admin_context', False)
         if has_body:
             kwargs.setdefault("content_type", "application/json")
         out = os_wsgi.Request.blank(url, *args, **kwargs)

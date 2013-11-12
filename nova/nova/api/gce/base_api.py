@@ -1,4 +1,4 @@
-#    Copyright 2012 Cloudscaling Group, Inc
+#    Copyright 2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -22,7 +22,7 @@ from nova import exception
 
 
 class Singleton(type):
-    """Singleton metaclass"""
+    """Singleton metaclass."""
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -59,27 +59,27 @@ class API(object):
         self._callbacks = []
 
     def get_item(self, context, name, zone_id=None):
-        """Returns fully filled item for particular inherited API"""
+        """Returns fully filled item for particular inherited API."""
 
         raise exception.NotFound
 
     def get_items(self, context, zone_id=None):
-        """Returns list of items"""
+        """Returns list of items."""
 
         return []
 
     def delete_item(self, context, name, zone_id=None):
-        """Deletes an item"""
+        """Deletes an item."""
 
         raise exception.NotFound
 
     def add_item(self, context, name, body, zone_id=None):
-        """Creates an item"""
+        """Creates an item."""
 
         raise exception.NotFound
 
     def get_zones(self, context, item):
-        """Returns which zones the item belongs too"""
+        """Returns which zones the item belongs too."""
 
         return []
 
@@ -93,7 +93,8 @@ class API(object):
 
         Callbacks can be registered by one API to be called by another before
         some action for checking possibility of the action or to process
-        pre-actions"""
+        pre-actions
+        """
 
         self._callbacks.append((reason, func))
 

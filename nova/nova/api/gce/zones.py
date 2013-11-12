@@ -1,4 +1,4 @@
-#    Copyright 2012 Cloudscaling Group, Inc
+#    Copyright 2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -12,8 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova.api.gce import wsgi as gce_wsgi
 from nova.api.gce import common as gce_common
+from nova.api.gce import wsgi as gce_wsgi
 from nova.api.gce import zone_api
 
 

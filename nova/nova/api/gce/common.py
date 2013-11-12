@@ -1,4 +1,4 @@
-#    Copyright 2012 Cloudscaling Group, Inc
+#    Copyright 2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -17,12 +17,11 @@
 import os.path
 from webob import exc
 
-from nova.openstack.common.gettextutils import _
+from nova.api.gce import zone_api
 from nova import exception
+from nova.openstack.common.gettextutils import _
 from nova.openstack.common.rpc import common as rpc_common
 from nova.openstack.common import timeutils
-
-from nova.api.gce import zone_api
 
 
 AGGREGATED = "*"
@@ -33,7 +32,7 @@ class Controller(object):
 
     Implements base CRUD methods.
     Individual GCE controllers should inherit this and:
-    - implement basic() method,
+    - implement format_item() method,
     - override _get_type() method,
     - add necessary specific request handlers,
     - use _api to hold instance of related GCE API (see base_api.py).
@@ -41,7 +40,7 @@ class Controller(object):
 
     _api = None
 
-# Initialization
+    # Initialization
     def __init__(self):
         """Base initialization.
 
@@ -55,10 +54,10 @@ class Controller(object):
         self._list_kind = "compute#%sList" % self._type_name
         self._aggregated_kind = "compute#%sAggregatedList" % self._type_name
 
-# Base methods, should be overriden
+    # Base methods, should be overriden
 
     def _get_type(self):
-        """ Controller type method. Should be overriden"""
+        """Controller type method. Should be overriden."""
 
         return ""
 
@@ -66,11 +65,12 @@ class Controller(object):
         """Main item resource conversion routine
 
         Overriden in inherited classes should implement conversion of
-        OpenStack resource into GCE resource."""
+        OpenStack resource into GCE resource.
+        """
 
         raise exc.HTTPNotImplemented
 
-# Utility
+    # Utility
     def _get_context(self, req):
         return req.environ['nova.context']
 
@@ -93,9 +93,9 @@ class Controller(object):
 
         return [item for item in result_list if item["name"] == filter_def[2]]
 
-# Actions
+    # Actions
     def index(self, req, zone_id=None):
-        """GCE list requests, global or with zone specified"""
+        """GCE list requests, global or with zone specified."""
 
         context = self._get_context(req)
         self._check_zone(context, zone_id)
@@ -107,7 +107,7 @@ class Controller(object):
         return self._format_list(req, result_list, zone_id)
 
     def show(self, req, id=None, zone_id=None):
-        """GCE get requests, global or zone specified"""
+        """GCE get requests, global or zone specified."""
 
         context = self._get_context(req)
         self._check_zone(context, zone_id)
@@ -115,13 +115,13 @@ class Controller(object):
             item = self._api.get_item(context, id, zone_id)
             return self.basic(req, item, zone_id)
         except (exception.NotFound, KeyError, IndexError):
-            msg = _("Resource '%s' could not be found" % id)
+            msg = _("Resource '%s' could not be found") % id
             if zone_id is not None:
-                msg += _(" in zone '%s'" % zone_id)
+                msg += _(" in zone '%s'") % zone_id
             raise exc.HTTPNotFound(explanation=msg)
 
     def aggregated_list(self, req):
-        """GCE aggregated list requests for all zones"""
+        """GCE aggregated list requests for all zones."""
 
         items = self._api.get_items(self._get_context(req))
         items_by_zones = {}
@@ -136,20 +136,20 @@ class Controller(object):
         return self._format_list(req, items_by_zones, AGGREGATED)
 
     def delete(self, req, id, zone_id=None):
-        """ GCE delete requests"""
+        """GCE delete requests."""
 
         try:
             self._api.delete_item(self._get_context(req), id, zone_id)
         except (exception.NotFound, KeyError, IndexError):
-            msg = _("Resource '%s' could not be found" % id)
+            msg = _("Resource '%s' could not be found") % id
             if zone_id is not None:
-                msg += _(" in zone '%s'" % zone_id)
+                msg += _(" in zone '%s'") % zone_id
             raise exc.HTTPNotFound(explanation=msg)
 
         return self._format_operation(req, id, "delete", zone_id)
 
     def create(self, req, body, zone_id=None):
-        """GCE add requests"""
+        """GCE add requests."""
 
         name = body['name']
         try:
@@ -159,9 +159,9 @@ class Controller(object):
 
         return self._format_operation(req, name, "insert", zone_id)
 
-# Result formatting
+    # Result formatting
     def _format_date(self, date_string):
-        """Return standard format for given date."""
+        """Returns standard format for given date."""
         if date_string is None:
             return None
         if isinstance(date_string, basestring):
@@ -170,6 +170,7 @@ class Controller(object):
 
     def _get_path(self, request, controller, identifier, zone_id):
         """Generates a path for resources.
+
         For projects and zones we have specific formatting
         For global resources we have 'global' prefix
         For zone resources we have 'zones/zone_id' prefix
@@ -202,7 +203,7 @@ class Controller(object):
     def _qualify(self, request, controller, identifier, zone_id):
         """Creates fully qualified selfLink for an item or collection
 
-        specific formatting for projects and zones,
+        Specific formatting for projects and zones,
         'global' prefix For global resources,
         'zones/zone_id' prefix for zone resources.
         """

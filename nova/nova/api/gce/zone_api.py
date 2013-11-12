@@ -1,4 +1,4 @@
-#    Copyright 2012 Cloudscaling Group, Inc
+#    Copyright 2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -14,18 +14,17 @@
 
 from oslo.config import cfg
 
-from nova import exception
+from nova.api.gce import base_api
 from nova import availability_zones
 from nova import context as ctxt
-
-from nova.api.gce import base_api
+from nova import exception
 
 
 CONF = cfg.CONF
 
 
 class API(base_api.API):
-    """GCE Zones API"""
+    """GCE Zones API."""
 
     def get_item(self, context, name, dummy=None):
         zones = self.get_items(context)

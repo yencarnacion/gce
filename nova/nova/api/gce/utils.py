@@ -1,4 +1,4 @@
-#    Copyright 2012 Cloudscaling Group, Inc
+#    Copyright 2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -24,6 +24,7 @@ def _parse_slash(string):
 
 
 def split_by_comma(string):
+    """Extracts string from braces and splits it by comma."""
     between = 0
     last_split = 0
     sp = []
@@ -71,7 +72,7 @@ def _parse_template(string):
 
 
 def apply_template(template_string, json):
-
+    """Apllies template if exists provided by user."""
     def apply_recursive(template, json):
         res = {}
         if template == '':

@@ -1,4 +1,4 @@
-#    Copyright 2012 Cloudscaling Group, Inc
+#    Copyright 2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -14,12 +14,12 @@
 
 import webob
 
-from nova.openstack.common.gettextutils import _
-from nova import exception
 from nova.api.gce import utils
 from nova.api.openstack import wsgi as openstack_wsgi
-from nova.openstack.common import log as logging
+from nova import exception
+from nova.openstack.common.gettextutils import _
 from nova.openstack.common import jsonutils
+from nova.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
@@ -95,10 +95,6 @@ class GCEResourceExceptionHandler(object):
             msg = unicode(ex_value)
             raise GCEFault(exception.ConvertedException(
                     code=ex_value.code, explanation=msg))
-
-        # Under python 2.6, TypeError's exception value is actually a string,
-        # so test # here via ex_type instead:
-        # http://bugs.python.org/issue7853
         elif issubclass(ex_type, TypeError):
             exc_info = (ex_type, ex_value, ex_traceback)
             LOG.error(_('Exception handling resource: %s') % ex_value,
@@ -114,7 +110,6 @@ class GCEResourceExceptionHandler(object):
             LOG.info(_("Nova exception thrown: %s"), unicode(ex_value))
             raise GCEFault(ex_value)
 
-        # We didn't handle the exception
         return False
 
 
@@ -149,19 +144,18 @@ class GCEResource(openstack_wsgi.Resource):
 
     def _check_requested_project(self, project_id, context):
         if (not context or project_id is None
-            or (project_id not in [context.project_id, context.project_name])):
-            msg = _("Project '%s' could not be found" % project_id) \
+        or (project_id not in [context.project_id, context.project_name])):
+            msg = _("Project '%s' could not be found") % project_id \
                 if project_id is not None \
                 else _("Project hasn`t been provided")
 
-            # NOTE(apavlov): return empty if such projects(provided by gcutil) 
-            # are not exist
+            # NOTE(Alex) gcutil is used to ask various information for Google
             if project_id in ['debian-cloud', 'centos-cloud', 'google']:
                 return {}
-            
+
             # TODO(Alex): The following results in empty "Error:" for client
             # even though the message is provided. This error throwing should
-            # be reworked in the next version.    
+            # be reworked in the next version.
             raise GCEFault(webob.exc.HTTPBadRequest(
                 explanation=msg))
 

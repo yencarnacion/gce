@@ -243,7 +243,7 @@
 # value)
 #service_down_time=60
 
-# IP address for GCE API to listen (string value)
+# IP address for gce api to listen (string value)
 #gce_listen=0.0.0.0
 
 # port for gce api to listen (integer value)
@@ -359,14 +359,6 @@
 
 
 #
-# Options defined in nova.api.gce
-#
-
-# Url of keystone for GCE server implementation in nova
-#keystone_gce_url=http://localhost:5000/v2.0
-
-
-#
 # Options defined in nova.api.ec2.cloud
 #
 
@@ -389,6 +381,31 @@
 
 # list of region=fqdn pairs separated by commas (list value)
 #region_list=
+
+
+#
+# Options defined in nova.api.gce
+#
+
+# Keystone URL (string value)
+#keystone_gce_url=http://127.0.0.1:5000/v2.0
+
+# the ip of the gce api server (string value)
+#gce_host=$my_ip
+
+# the internal ip of the gce api server (string value)
+#gce_dmz_host=$my_ip
+
+# the port of the gce api server (integer value)
+#gce_port=8777
+
+# the protocol to use when connecting to the gce api server
+# (http, https) (string value)
+#gce_scheme=http
+
+# the path prefix used to call the gce api server (string
+# value)
+#gce_path=/compute/v1beta15/projects
 
 
 #
@@ -3369,3 +3386,36 @@
 #keymap=en-us
 
 
+[keystone_authtoken]
+
+#
+# Options defined in keystoneclient's authtoken middleware
+#
+
+# Host providing the admin Identity API endpoint
+auth_host = 127.0.0.1
+
+# Port of the admin Identity API endpoint
+auth_port = 35357
+
+# Protocol of the admin Identity API endpoint
+auth_protocol = http
+
+# Keystone service account tenant name to validate user tokens
+admin_tenant_name = %SERVICE_TENANT_NAME%
+
+# Keystone account username
+admin_user = %SERVICE_USER%
+
+# Keystone account password
+admin_password = %SERVICE_PASSWORD%
+
+# Directory used to cache files related to PKI tokens
+# signing_dir is configurable, but the default behavior of the authtoken
+# middleware should be sufficient.  It will create a temporary directory
+# in the home directory for the user the nova process is running as.
+#signing_dir = /var/lib/nova/keystone-signing
+
+# API version of the admin Identity API endpoint
+# Workaround for https://bugs.launchpad.net/nova/+bug/1154809
+auth_version = v2.0
