@@ -15,8 +15,6 @@ Changed Nova with the following changes:
 * ``nova/service.py`` Services configuration file
 * ``setup.cfg`` GCE API binary setup
 
-Custom gcutil supporting keystone authentication/authorization
-
 Configuration
 ==============
 
@@ -33,15 +31,11 @@ Usage
 Run ``/usr/local/bin/nova-api-gce``
 or add ``gce`` to parameter ``enabled_apis`` in nova.conf and restart nova-api
 
-Custom ``gcutil`` should be used if accessed via command-line. Set
-``export GCE_KEYSTONE=1`` to make ``gcutil`` use Keystone.
-
-Make gcutil use your GCE API endpoint using '--api_host' flag.
+Make gcutil use your GCE API endpoint using '--api_host' flag and your GCE API
+authorization endpoint using 'authorization_uri_base' flag.
 So the command would look like that::
 
-    gcutil --api_host "http://localhost:8777" --project_id demo listmachinetypes
-
-Without it not all of the commands will work correctly.
+    gcutil --api_host "http://localhost:8777" --authorization_uri_base="http://localhost:8777" --project_id demo listzones
 
 If it doesn't work by some reason check that your PYTHONPATH is exported and set correctly to something like
 ``/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages``.
@@ -59,6 +53,16 @@ now, 8-byte hashes are generated and returned for any ID to report.
 * GCE allows per-user SSH key specification, but Nova supports only one key.
 Solution: Nova GCE API just uses first key.
 
+Authentication specifics
+========================
+
+GCE API uses OAuth2.0 for authentication. Simple sufficient implementation of this protocol
+was added into GCE API service in nova because of its absence in keystone.
+Current implementation allows operation with several OpenStack projects for
+one authenticated user as Google allows. For this initial token returned during
+authentication doesn't contain information about project required by keystone.
+Instead another authentication happens with each request when incoming project
+information is added to existing user info and new token is acquired in keystone.
 
 Supported Features
 ==================
@@ -169,6 +173,7 @@ In the lists below:
 +reset  POST  /project/zones/zone/instances/instance/reset
 +setMetadata  POST  /project/zones/zone/instances/instance/setMetadata
 -setTags  POST  /project/zones/zone/instances/instance/setTags
+-setScheduling  POST  /project/zones/zone/instances/instance/setScheduling
 
 +Kernels
 
@@ -229,6 +234,7 @@ In the lists below:
 -list  GET  /project/regions/region/targetPools
 -removeHealthCheck  POST /project/regions/region/targetPools/targetPool/removeHealthCheck
 -removeInstance  POST /project/regions/region/targetPools/targetPool/removeInstance
+-setBackup  POST  /project/regions/region/targetPools/targetPool/setBackup
 
 -ZoneOperations
 

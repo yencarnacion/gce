@@ -18,6 +18,10 @@ import webob
 import webob.dec
 import webob.exc
 
+from nova.api.gce import discovery
+from nova.api.gce import oauth
+from nova.api.gce import discovery
+from nova.api.gce import oauth
 from nova.api.gce import disks
 from nova.api.gce import images
 from nova.api.gce import instances
@@ -159,3 +163,69 @@ class APIRouter(wsgi.Router):
                 controller=self.resources['projects'],
                 action="set_common_instance_metadata",
                 conditions={"method": ["POST"]})
+
+
+class APIRouterOAuth(wsgi.Router):
+    """
+    Routes requests on the OAuth2.0 to the appropriate controller
+    and method.
+    """
+
+    @classmethod
+    def factory(cls, global_config, **local_config):
+        """Simple paste factory, :class:`nova.wsgi.Router` doesn't have one."""
+
+        return cls()
+
+    def __init__(self):
+        mapper = openstack_api.ProjectMapper()
+        self.resources = {}
+        self._setup_routes(mapper)
+        super(APIRouterOAuth, self).__init__(mapper)
+
+    def _setup_routes(self, mapper):
+        mapper.redirect("", "/")
+
+        self.resources['oauth'] = oauth.create_resource()
+
+        mapper.connect("/auth",
+            controller=self.resources['oauth'],
+            action="auth",
+            conditions={"method": ["GET"]})
+        mapper.connect("/approval",
+            controller=self.resources['oauth'],
+            action="approval",
+            conditions={"method": ["POST"]})
+        mapper.connect("/token",
+            controller=self.resources['oauth'],
+            action="token",
+            conditions={"method": ["POST"]})
+
+
+class APIRouterDiscovery(wsgi.Router):
+    """
+    Routes requests on the GCE discovery API to the appropriate controller
+    and method.
+    """
+
+    @classmethod
+    def factory(cls, global_config, **local_config):
+        """Simple paste factory, :class:`nova.wsgi.Router` doesn't have one."""
+
+        return cls()
+
+    def __init__(self):
+        mapper = openstack_api.ProjectMapper()
+        self.resources = {}
+        self._setup_routes(mapper)
+        super(APIRouterDiscovery, self).__init__(mapper)
+
+    def _setup_routes(self, mapper):
+        mapper.redirect("", "/")
+
+        self.resources['rest'] = discovery.create_resource()
+
+        mapper.connect("/{version}/rest",
+                controller=self.resources['rest'],
+                action="rest",
+                conditions={"method": ["GET"]})
