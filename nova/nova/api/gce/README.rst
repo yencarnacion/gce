@@ -204,10 +204,10 @@ In the lists below:
 -get  GET  /project/regions/region/operations/operation
 -list  GET  /project/regions/region/operations
 
-=Regions
++Regions
 
-=get  GET  /project/regions/region
-=list  GET  /project/regions
++get  GET  /project/regions/region
++list  GET  /project/regions
 
 -Routes
 
