@@ -1,0 +1,22 @@
+*.pyc
+*.swp
+*.log
+.gceapi-venv
+.venv
+.tox
+.coverage
+cover/*
+nosetests.xml
+coverage.xml
+gceapi.sqlite
+AUTHORS
+ChangeLog
+build
+doc/source/api
+dist
+*.egg
+gceapi.egg-info
+tests.sqlite
+gceapi/versioninfo
+# Files created by doc build
+doc/source/api

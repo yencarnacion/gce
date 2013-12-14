@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = gceapi
+omit = gceapi/tests/*,gceapi/openstack/*
+
+[report]
+ignore-errors = True
