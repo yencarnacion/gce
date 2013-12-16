@@ -192,7 +192,7 @@ class APIRouterOAuth(wsgi.Router):
 
     @classmethod
     def factory(cls, global_config, **local_config):
-        """Simple paste factory, :class:`gceapi.wsgi.Router` doesn't have one."""
+        """Simple paste factory, `gceapi.wsgi.Router` doesn't have one."""
 
         return cls()
 
@@ -229,7 +229,7 @@ class APIRouterDiscovery(wsgi.Router):
 
     @classmethod
     def factory(cls, global_config, **local_config):
-        """Simple paste factory, :class:`gceapi.wsgi.Router` doesn't have one."""
+        """Simple paste factory, `gceapi.wsgi.Router` doesn't have one."""
 
         return cls()
 

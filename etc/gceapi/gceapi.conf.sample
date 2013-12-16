@@ -1,0 +1,33 @@
+[DEFAULT]
+api_paste_config = /etc/gceapi/api-paste.ini
+
+service_neutron_metadata_proxy = True
+security_group_api = neutron
+neutron_url = http://192.168.137.21:9696
+neutron_region_name = RegionOne
+neutron_admin_tenant_name = service
+neutron_auth_strategy = keystone
+neutron_admin_auth_url = http://192.168.137.21:35357/v2.0
+neutron_admin_password = password
+neutron_admin_username = neutron
+network_api_class = nova.network.neutronv2.api.API
+glance_api_servers = 192.168.137.21:9292
+rabbit_password = password
+rabbit_host = localhost
+logging_context_format_string = %(asctime)s.%(msecs)03d %(levelname)s %(name)s [%(request_id)s %(user_name)s %(project_name)s] %(instance)s%(message)s
+volume_api_class = nova.volume.cinder.API
+sql_connection = mysql://root:password@127.0.0.1/nova?charset=utf8
+metadata_workers = 4
+osapi_compute_workers = 4
+my_ip = 192.168.137.21
+osapi_compute_extension = nova.api.openstack.compute.contrib.standard_extensions
+auth_strategy = keystone
+debug = True
+verbose = True
+
+[keystone_authtoken]
+signing_dir = /var/cache/nova
+admin_password = password
+admin_user = nova
+admin_tenant_name = service
+auth_host = 192.168.137.21

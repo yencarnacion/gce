@@ -23,15 +23,12 @@ Gceapi API Server
 """
 
 import eventlet
-import os
 import sys
 
 eventlet.patcher.monkey_patch(os=False, thread=False)
 
 from gceapi import config
-from gceapi import exception
 from gceapi import service
-from gceapi import wsgi
 from gceapi.openstack.common import log as logging
 
 
