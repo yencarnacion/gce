@@ -14,8 +14,8 @@
 
 import os.path
 
-from nova.api.gce import base_api
-from nova.api.gce import image_api
+from gceapi.api import base_api
+from gceapi.api import image_api
 from nova import exception
 from nova import volume
 

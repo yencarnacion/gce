@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova.api.gce import base_api
+from gceapi.api import base_api
 from nova import exception
 
 

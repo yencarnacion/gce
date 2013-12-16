@@ -15,8 +15,8 @@
 import copy
 import os.path
 
-from nova.api.gce import base_api
-from nova.api.gce import network_api
+from gceapi.api import base_api
+from gceapi.api import network_api
 from nova import exception
 from nova.network.security_group import openstack_driver
 from nova.openstack.common import log as logging

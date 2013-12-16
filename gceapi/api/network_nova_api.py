@@ -14,7 +14,7 @@
 
 import netaddr
 
-from nova.api.gce import base_api
+from gceapi.api import base_api
 from nova import exception
 from nova import network as nova_network
 from nova.openstack.common.gettextutils import _

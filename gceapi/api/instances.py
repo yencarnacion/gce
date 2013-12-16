@@ -14,10 +14,10 @@
 
 import webob
 
-from nova.api.gce import common as gce_common
-from nova.api.gce import instance_api
-from nova.api.gce import wsgi as gce_wsgi
-from nova.api.gce import zone_api
+from gceapi.api import common as gce_common
+from gceapi.api import instance_api
+from gceapi.api import wsgi as gce_wsgi
+from gceapi.api import zone_api
 from nova.compute import instance_types
 from nova import exception
 

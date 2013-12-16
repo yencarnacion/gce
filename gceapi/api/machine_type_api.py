@@ -12,8 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova.api.gce import base_api
-from nova.api.gce import zone_api
+from gceapi.api import base_api
+from gceapi.api import zone_api
 from nova.compute import instance_types
 
 

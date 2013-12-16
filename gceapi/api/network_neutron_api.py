@@ -16,7 +16,7 @@ import netaddr
 
 from nova import exception
 from nova.network import quantumv2
-from nova.api.gce import base_api
+from gceapi.api import base_api
 from nova.openstack.common import log as logging
 
 

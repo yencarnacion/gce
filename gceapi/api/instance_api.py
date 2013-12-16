@@ -23,13 +23,13 @@ from nova.compute import vm_states
 from nova.compute import utils as compute_utils
 from nova.openstack.common import log as logging
 
-from nova.api.gce import base_api
-from nova.api.gce import disk_api
-from nova.api.gce import firewall_api
-from nova.api.gce import machine_type_api
-from nova.api.gce import network_api
-from nova.api.gce import project_api
-from nova.api.gce import zone_api
+from gceapi.api import base_api
+from gceapi.api import disk_api
+from gceapi.api import firewall_api
+from gceapi.api import machine_type_api
+from gceapi.api import network_api
+from gceapi.api import project_api
+from gceapi.api import zone_api
 
 LOG = logging.getLogger(__name__)
 

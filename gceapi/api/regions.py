@@ -12,10 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova.api.gce import common as gce_common
-from nova.api.gce import region_api
-from nova.api.gce import wsgi as gce_wsgi
-from nova.api.gce import zone_api
+from gceapi.api import common as gce_common
+from gceapi.api import region_api
+from gceapi.api import wsgi as gce_wsgi
+from gceapi.api import zone_api
 
 
 class Controller(gce_common.Controller):

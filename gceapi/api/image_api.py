@@ -17,7 +17,7 @@ import tarfile
 import tempfile
 import urllib2
 
-from nova.api.gce import base_api
+from gceapi.api import base_api
 from nova import exception
 from nova.image import glance
 

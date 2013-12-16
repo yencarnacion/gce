@@ -12,10 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova.api.gce import address_neutron_api
-from nova.api.gce import address_nova_api
-from nova.api.gce import base_api
-from nova.api.gce import region_api
+from gceapi.api import address_neutron_api
+from gceapi.api import address_nova_api
+from gceapi.api import base_api
+from gceapi.api import region_api
 
 
 class API(base_api.BaseNetAPI):

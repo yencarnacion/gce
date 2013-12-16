@@ -16,7 +16,7 @@ from keystoneclient.v2_0 import client as keystone_client
 from oslo.config import cfg
 
 from nova import exception
-from nova.api.gce import base_api
+from gceapi.api import base_api
 from nova.compute import api as compute_api
 
 FLAGS = cfg.CONF

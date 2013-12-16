@@ -16,9 +16,9 @@ import webob
 
 from nova import exception
 
-from nova.api.gce import common as gce_common
-from nova.api.gce import project_api
-from nova.api.gce import wsgi as gce_wsgi
+from gceapi.api import common as gce_common
+from gceapi.api import project_api
+from gceapi.api import wsgi as gce_wsgi
 
 
 class Controller(gce_common.Controller):
