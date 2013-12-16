@@ -17,9 +17,9 @@
 import os.path
 from webob import exc
 
-from nova import exception
-from nova.openstack.common.rpc import common as rpc_common
-from nova.openstack.common import timeutils
+from gceapi import exception
+from gceapi.openstack.common.rpc import common as rpc_common
+from gceapi.openstack.common import timeutils
 
 
 class Controller(object):

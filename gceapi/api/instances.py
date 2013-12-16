@@ -18,8 +18,8 @@ from gceapi.api import common as gce_common
 from gceapi.api import instance_api
 from gceapi.api import wsgi as gce_wsgi
 from gceapi.api import zone_api
-from nova.compute import instance_types
-from nova import exception
+#from nova.compute import instance_types
+from gceapi import exception
 
 
 class Controller(gce_common.Controller):

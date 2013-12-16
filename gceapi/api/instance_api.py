@@ -14,14 +14,14 @@
 
 import time
 
-from nova import context as nova_context
-from nova import db
-from nova import exception
-from nova import network
-from nova.compute import api as compute_api
-from nova.compute import vm_states
-from nova.compute import utils as compute_utils
-from nova.openstack.common import log as logging
+from gceapi import context as nova_context
+#from gceapi import db
+from gceapi import exception
+#from gceapi import network
+#from nova.compute import api as compute_api
+#from nova.compute import vm_states
+#from nova.compute import utils as compute_utils
+from gceapi.openstack.common import log as logging
 
 from gceapi.api import base_api
 from gceapi.api import disk_api
@@ -42,21 +42,21 @@ class API(base_api.API):
     # \"STOPPING\", \"STOPPED\", \"TERMINATED\" (output only).
     _status_map = {
         None: 'TERMINATED',
-        vm_states.ACTIVE: 'RUNNING',
-        vm_states.BUILDING: 'PROVISIONING',
-        vm_states.DELETED: 'TERMINATED',
-        vm_states.SOFT_DELETED: 'TERMINATED',
-        vm_states.STOPPED: 'STOPPED',
-        vm_states.PAUSED: 'STOPPED',
-        vm_states.SUSPENDED: 'STOPPED',
-        vm_states.RESCUED: 'STOPPED',
-        vm_states.RESIZED: 'STOPPED',
+        "active": 'RUNNING',
+        "building": 'PROVISIONING',
+        "deleted": 'TERMINATED',
+        "soft-delete": 'TERMINATED',
+        "stopped": 'STOPPED',
+        "paused": 'STOPPED',
+        "suspended": 'STOPPED',
+        "rescued": 'STOPPED',
+        "resized": 'STOPPED',
         'error': 'TERMINATED'
     }
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        self._compute_api = compute_api.API()
+        #self._compute_api = compute_api.API()
         network_api.API()._register_callback(
             base_api._callback_reasons.check_delete,
             self._can_delete_network)

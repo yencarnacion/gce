@@ -15,7 +15,7 @@
 from oslo.config import cfg
 
 from gceapi.api import base_api
-from gceapi import availability_zones
+#from gceapi import availability_zones
 from gceapi import context as ctxt
 from gceapi import exception
 

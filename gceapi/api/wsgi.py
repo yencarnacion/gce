@@ -16,7 +16,7 @@ import webob
 
 from gceapi import exception
 from gceapi.api import utils
-#from gceapi.api.openstack import wsgi as openstack_wsgi
+from gceapi import wsgi_ext as openstack_wsgi
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import jsonutils
 

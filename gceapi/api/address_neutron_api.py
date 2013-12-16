@@ -16,8 +16,8 @@ from oslo.config import cfg
 
 from gceapi.api import base_api
 from gceapi.api import network_api
-from nova import exception
-from nova.network import quantumv2
+from gceapi import exception
+#from nova.network import quantumv2
 
 CONF = cfg.CONF
 

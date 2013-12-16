@@ -32,7 +32,7 @@ from gceapi.api import projects
 from gceapi.api import regions
 from gceapi.api import snapshots
 from gceapi.api import zones
-#from gceapi.api import openstack as openstack_api
+from gceapi import wsgi_ext as openstack_api
 from gceapi import config
 from gceapi import context
 from gceapi.openstack.common import log as logging

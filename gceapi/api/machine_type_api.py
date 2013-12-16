@@ -14,7 +14,7 @@
 
 from gceapi.api import base_api
 from gceapi.api import zone_api
-from nova.compute import instance_types
+#from nova.compute import instance_types
 
 
 class API(base_api.API):

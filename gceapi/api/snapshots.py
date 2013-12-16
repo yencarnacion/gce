@@ -15,7 +15,7 @@
 from gceapi.api import common as gce_common
 from gceapi.api import snapshot_api
 from gceapi.api import wsgi as gce_wsgi
-from nova import exception
+from gceapi import exception
 
 
 class Controller(gce_common.Controller):

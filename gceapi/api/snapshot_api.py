@@ -13,8 +13,8 @@
 #    under the License.
 
 from gceapi.api import base_api
-from nova import exception
-from nova import volume
+from gceapi import exception
+#from gceapi import volume
 
 
 class API(base_api.API):
@@ -31,7 +31,7 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        self._volume_service = volume.API()
+        #self._volume_service = volume.API()
 
     def get_item(self, context, name, scope=None):
         snapshots = self._volume_service.get_all_snapshots(context)

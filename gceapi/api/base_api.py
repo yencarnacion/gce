@@ -20,7 +20,7 @@ and sufficient to handle supported GCE API requests
 
 from oslo.config import cfg
 
-from nova import exception
+from gceapi import exception
 
 FLAGS = cfg.CONF
 
@@ -122,7 +122,8 @@ class BaseNetAPI(API):
 
     def __init__(self, neutron_api, nova_api, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        net_api = FLAGS.get("network_api_class")
+        net_api = None
+        #net_api = FLAGS.has("network_api_class")
         # NOTE(Alex): Initializing proper network singleton
         if net_api is not None and ("quantum" in net_api
                                     or "neutron" in net_api):

@@ -17,9 +17,9 @@ import os.path
 
 from gceapi.api import base_api
 from gceapi.api import network_api
-from nova import exception
-from nova.network.security_group import openstack_driver
-from nova.openstack.common import log as logging
+from gceapi import exception
+#from nova.network.security_group import openstack_driver
+from gceapi.openstack.common import log as logging
 
 
 DESCRIPTION_NETWORK_SEPARATOR = "-=#=-"
@@ -36,8 +36,8 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        self._secgroup_service = (openstack_driver.
-                                  get_openstack_security_group_driver())
+        #self._secgroup_service = (openstack_driver.
+        #    get_openstack_security_group_driver())
         net_api = network_api.API()
         net_api._register_callback(
             base_api._callback_reasons.pre_delete,

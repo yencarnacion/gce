@@ -16,8 +16,8 @@ import os.path
 
 from gceapi.api import base_api
 from gceapi.api import image_api
-from nova import exception
-from nova import volume
+from gceapi import exception
+#from gceapi import volume
 
 
 GB = 1048576 * 1024
@@ -42,7 +42,7 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        self._volume_service = volume.API()
+        #self._volume_service = volume.API()
 
     def get_item(self, context, name, scope=None):
         volumes = self._volume_service.get_all(context)

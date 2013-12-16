@@ -17,8 +17,8 @@ import os
 import threading
 import webob
 
-from nova.api.openstack import wsgi as openstack_wsgi
-from nova.openstack.common import log as logging
+from gceapi import wsgi_ext as openstack_wsgi
+from gceapi.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

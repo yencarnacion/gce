@@ -14,7 +14,7 @@
 
 import webob
 
-from nova import exception
+from gceapi import exception
 
 from gceapi.api import common as gce_common
 from gceapi.api import project_api

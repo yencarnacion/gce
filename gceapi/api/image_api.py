@@ -18,8 +18,8 @@ import tempfile
 import urllib2
 
 from gceapi.api import base_api
-from nova import exception
-from nova.image import glance
+from gceapi import exception
+#from nova.image import glance
 
 
 class API(base_api.API):
@@ -36,7 +36,7 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        self._image_service = glance.get_default_image_service()
+        #self._image_service = glance.get_default_image_service()
 
     def get_item(self, context, name, scope=None):
         images = self._image_service.detail(context,

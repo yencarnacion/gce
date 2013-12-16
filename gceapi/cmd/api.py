@@ -40,9 +40,9 @@ def main():
     logging.setup('gceapi')
 
     # TODO(apavlov): get it from config
-    should_use_ssl = False
-    server = service.WSGIService('gce', use_ssl=should_use_ssl,
-                                 max_url_len=16384)
+    use_ssl = False
+
+    server = service.WSGIService('gce', use_ssl=use_ssl, max_url_len=16384)
     service.serve(server, workers=server.workers)
     service.wait()
 

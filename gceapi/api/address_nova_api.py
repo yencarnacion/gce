@@ -13,8 +13,8 @@
 #    under the License.
 
 from gceapi.api import base_api
-from nova import exception
-from nova import network as nova_network
+from gceapi import exception
+#from gceapi import network as nova_network
 
 
 class API(base_api.API):

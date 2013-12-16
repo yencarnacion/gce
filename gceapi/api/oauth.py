@@ -22,9 +22,9 @@ from keystoneclient.v2_0 import client as keystone_client
 from oslo.config import cfg
 import webob
 
-from nova.api.openstack import wsgi as openstack_wsgi
-from nova.openstack.common import log as logging
-from nova.openstack.common import timeutils
+from gceapi import wsgi_ext as openstack_wsgi
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import timeutils
 
 FLAGS = cfg.CONF
 LOG = logging.getLogger(__name__)

@@ -13,7 +13,7 @@
 #    under the License.
 
 from gceapi.api import base_api
-from nova import exception
+from gceapi import exception
 
 
 class API(base_api.API):

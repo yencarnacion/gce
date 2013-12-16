@@ -14,10 +14,10 @@
 
 import netaddr
 
-from nova import exception
-from nova.network import quantumv2
+from gceapi import exception
+#from nova.network import quantumv2
 from gceapi.api import base_api
-from nova.openstack.common import log as logging
+from gceapi.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
