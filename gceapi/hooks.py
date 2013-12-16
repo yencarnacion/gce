@@ -41,10 +41,10 @@ import functools
 
 import stevedore
 
-from nova.openstack.common import log as logging
+from gceapi.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
-NS = 'nova.hooks'
+NS = 'gceapi.hooks'
 
 _HOOKS = {}  # hook name => hook manager
 

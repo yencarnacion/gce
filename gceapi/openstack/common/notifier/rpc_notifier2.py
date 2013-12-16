@@ -17,10 +17,10 @@
 
 from oslo.config import cfg
 
-from nova.openstack.common import context as req_context
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import log as logging
-from nova.openstack.common import rpc
+from gceapi.openstack.common import context as req_context
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import rpc
 
 LOG = logging.getLogger(__name__)
 

@@ -14,9 +14,9 @@
 #    under the License.
 
 
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import log as logging
-from nova.openstack.common.notifier import rpc_notifier
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common.notifier import rpc_notifier
 
 LOG = logging.getLogger(__name__)
 

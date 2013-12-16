@@ -27,7 +27,7 @@ import time
 
 import eventlet
 
-from nova.openstack.common.rpc import common as rpc_common
+from gceapi.openstack.common.rpc import common as rpc_common
 
 CONSUMERS = {}
 

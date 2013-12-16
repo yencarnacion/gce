@@ -23,11 +23,11 @@ import traceback
 
 from oslo.config import cfg
 
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import importutils
-from nova.openstack.common import jsonutils
-from nova.openstack.common import local
-from nova.openstack.common import log as logging
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import importutils
+from gceapi.openstack.common import jsonutils
+from gceapi.openstack.common import local
+from gceapi.openstack.common import log as logging
 
 
 CONF = cfg.CONF

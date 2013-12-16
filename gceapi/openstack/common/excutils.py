@@ -24,7 +24,7 @@ import logging
 import sys
 import traceback
 
-from nova.openstack.common.gettextutils import _
+from gceapi.openstack.common.gettextutils import _
 
 
 @contextlib.contextmanager

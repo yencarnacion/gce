@@ -15,8 +15,8 @@
 
 from oslo.config import cfg
 
-from nova.openstack.common import jsonutils
-from nova.openstack.common import log as logging
+from gceapi.openstack.common import jsonutils
+from gceapi.openstack.common import log as logging
 
 CONF = cfg.CONF
 

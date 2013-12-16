@@ -26,12 +26,12 @@ import eventlet
 import greenlet
 from oslo.config import cfg
 
-from nova.openstack.common import excutils
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import importutils
-from nova.openstack.common import jsonutils
-from nova.openstack.common import processutils as utils
-from nova.openstack.common.rpc import common as rpc_common
+from gceapi.openstack.common import excutils
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import importutils
+from gceapi.openstack.common import jsonutils
+from gceapi.openstack.common import processutils as utils
+from gceapi.openstack.common.rpc import common as rpc_common
 
 zmq = importutils.try_import('eventlet.green.zmq')
 

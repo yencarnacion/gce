@@ -39,8 +39,8 @@ import functools
 
 from oslo.config import cfg
 
-from nova.openstack.common import lockutils
-from nova.openstack.common import importutils
+from gceapi.openstack.common import lockutils
+from gceapi.openstack.common import importutils
 
 
 db_opts = [

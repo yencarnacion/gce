@@ -22,7 +22,7 @@ import logging.handlers
 import os
 import string
 
-from nova.openstack.common.rootwrap import filters
+from gceapi.openstack.common.rootwrap import filters
 
 
 class NoFilterMatched(Exception):

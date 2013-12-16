@@ -30,10 +30,10 @@ import kombu.entity
 import kombu.messaging
 from oslo.config import cfg
 
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import network_utils
-from nova.openstack.common.rpc import amqp as rpc_amqp
-from nova.openstack.common.rpc import common as rpc_common
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import network_utils
+from gceapi.openstack.common.rpc import amqp as rpc_amqp
+from gceapi.openstack.common.rpc import common as rpc_common
 
 kombu_opts = [
     cfg.StrOpt('kombu_ssl_version',

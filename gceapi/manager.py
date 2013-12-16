@@ -58,12 +58,12 @@ import time
 import eventlet
 from oslo.config import cfg
 
-from nova.db import base
-from nova import exception
-from nova.openstack.common import log as logging
-from nova.openstack.common.plugin import pluginmanager
-from nova.openstack.common.rpc import dispatcher as rpc_dispatcher
-from nova.scheduler import rpcapi as scheduler_rpcapi
+from gceapi.db import base
+from gceapi import exception
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common.plugin import pluginmanager
+from gceapi.openstack.common.rpc import dispatcher as rpc_dispatcher
+from gceapi.scheduler import rpcapi as scheduler_rpcapi
 
 
 periodic_opts = [
@@ -75,7 +75,7 @@ periodic_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(periodic_opts)
-CONF.import_opt('host', 'nova.netconf')
+CONF.import_opt('host', 'gceapi.netconf')
 LOG = logging.getLogger(__name__)
 
 DEFAULT_INTERVAL = 60.0
@@ -203,7 +203,7 @@ class Manager(base.Base):
         super(Manager, self).__init__(db_driver)
 
     def load_plugins(self):
-        pluginmgr = pluginmanager.PluginManager('nova', self.__class__)
+        pluginmgr = pluginmanager.PluginManager('gceapi', self.__class__)
         pluginmgr.load_plugins()
 
     def create_rpc_dispatcher(self):
@@ -298,7 +298,7 @@ class SchedulerDependentManager(Manager):
         super(SchedulerDependentManager, self).__init__(host, db_driver)
 
     def load_plugins(self):
-        pluginmgr = pluginmanager.PluginManager('nova', self.service_name)
+        pluginmgr = pluginmanager.PluginManager('gceapi', self.service_name)
         pluginmgr.load_plugins()
 
     def update_service_capabilities(self, capabilities):

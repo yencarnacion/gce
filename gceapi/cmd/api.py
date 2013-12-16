@@ -28,38 +28,23 @@ import sys
 
 eventlet.patcher.monkey_patch(os=False, thread=False)
 
-# If ../gceapi/__init__.py exists, add ../ to Python search path, so that
-# it will override what happens to be installed in /usr/(local/)lib/python...
-possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
-                                   os.pardir,
-                                   os.pardir))
-if os.path.exists(os.path.join(possible_topdir, 'gceapi', '__init__.py')):
-    sys.path.insert(0, possible_topdir)
-
-
 from gceapi import config
-from gceapi import wsgi
 from gceapi import exception
-from gceapi.openstack.common import log
-
-
-def fail(returncode, e):
-    sys.stderr.write("ERROR: %s\n" % e)
-    sys.exit(returncode)
+from gceapi import service
+from gceapi import wsgi
+from gceapi.openstack.common import log as logging
 
 
 def main():
-    try:
-        config.parse_args()
-        log.setup('gceapi')
+    config.parse_args(sys.argv)
+    logging.setup('gceapi')
 
-        server = wsgi.Server()
-        server.start(config.load_paste_app('gceapi'), default_port=8777)
-        server.wait()
-    except exception.WorkerCreationFailure as e:
-        fail(2, e)
-    except RuntimeError as e:
-        fail(1, e)
+    # TODO(apavlov): get it from config
+    should_use_ssl = False
+    server = service.WSGIService('gce', use_ssl=should_use_ssl,
+                                 max_url_len=16384)
+    service.serve(server, workers=server.workers)
+    service.wait()
 
 
 if __name__ == '__main__':

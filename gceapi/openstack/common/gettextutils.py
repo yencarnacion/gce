@@ -20,7 +20,7 @@ gettext for openstack-common modules.
 
 Usual usage in an openstack.common module:
 
-    from nova.openstack.common.gettextutils import _
+    from gceapi.openstack.common.gettextutils import _
 """
 
 import gettext

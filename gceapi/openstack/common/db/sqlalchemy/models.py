@@ -26,8 +26,8 @@ from sqlalchemy import Column, Integer
 from sqlalchemy import DateTime
 from sqlalchemy.orm import object_mapper
 
-from nova.openstack.common.db.sqlalchemy.session import get_session
-from nova.openstack.common import timeutils
+from gceapi.openstack.common.db.sqlalchemy.session import get_session
+from gceapi.openstack.common import timeutils
 
 
 class ModelBase(object):

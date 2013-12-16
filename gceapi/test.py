@@ -35,17 +35,17 @@ from oslo.config import cfg
 import stubout
 import testtools
 
-from nova import context
-from nova import db
-from nova.db import migration
-from nova.network import manager as network_manager
-from nova.openstack.common.db.sqlalchemy import session
-from nova.openstack.common import log as logging
-from nova.openstack.common import timeutils
-from nova import paths
-from nova import service
-from nova.tests import conf_fixture
-from nova.tests import policy_fixture
+from gceapi import context
+from gceapi import db
+from gceapi.db import migration
+from gceapi.network import manager as network_manager
+from gceapi.openstack.common.db.sqlalchemy import session
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import timeutils
+from gceapi import paths
+from gceapi import service
+from gceapi.tests import conf_fixture
+from gceapi.tests import policy_fixture
 
 
 test_opts = [
@@ -57,11 +57,11 @@ test_opts = [
 CONF = cfg.CONF
 CONF.register_opts(test_opts)
 CONF.import_opt('sql_connection',
-                'nova.openstack.common.db.sqlalchemy.session')
-CONF.import_opt('sqlite_db', 'nova.openstack.common.db.sqlalchemy.session')
+                'gceapi.openstack.common.db.sqlalchemy.session')
+CONF.import_opt('sqlite_db', 'gceapi.openstack.common.db.sqlalchemy.session')
 CONF.set_override('use_stderr', False)
 
-logging.setup('nova')
+logging.setup('gceapi')
 LOG = logging.getLogger(__name__)
 
 eventlet.monkey_patch(os=False)
@@ -155,7 +155,7 @@ class ServiceFixture(fixtures.Fixture):
         name = name
         host = host and host or uuid.uuid4().hex
         kwargs.setdefault('host', host)
-        kwargs.setdefault('binary', 'nova-%s' % name)
+        kwargs.setdefault('binary', 'gceapi-%s' % name)
         self.kwargs = kwargs
 
     def setUp(self):
@@ -210,7 +210,7 @@ class TestCase(testtools.TestCase):
             stderr = self.useFixture(fixtures.StringStream('stderr')).stream
             self.useFixture(fixtures.MonkeyPatch('sys.stderr', stderr))
 
-        self.log_fixture = self.useFixture(fixtures.FakeLogger('nova'))
+        self.log_fixture = self.useFixture(fixtures.FakeLogger('gceapi'))
         self.useFixture(conf_fixture.ConfFixture(CONF))
 
         global _DB_CACHE

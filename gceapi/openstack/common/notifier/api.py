@@ -17,12 +17,12 @@ import uuid
 
 from oslo.config import cfg
 
-from nova.openstack.common import context
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import importutils
-from nova.openstack.common import jsonutils
-from nova.openstack.common import log as logging
-from nova.openstack.common import timeutils
+from gceapi.openstack.common import context
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import importutils
+from gceapi.openstack.common import jsonutils
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import timeutils
 
 
 LOG = logging.getLogger(__name__)

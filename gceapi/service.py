@@ -31,17 +31,17 @@ import eventlet
 import greenlet
 from oslo.config import cfg
 
-from nova import conductor
-from nova import context
-from nova import exception
-from nova.openstack.common import eventlet_backdoor
-from nova.openstack.common import importutils
-from nova.openstack.common import log as logging
-from nova.openstack.common import rpc
-from nova import servicegroup
-from nova import utils
-from nova import version
-from nova import wsgi
+#from gceapi import conductor
+from gceapi import context
+from gceapi import exception
+from gceapi.openstack.common import eventlet_backdoor
+from gceapi.openstack.common import importutils
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import rpc
+#from gceapi import servicegroup
+#from gceapi import utils
+from gceapi import version
+from gceapi import wsgi
 
 LOG = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ service_opts = [
                default=None,
                help='Number of workers for OpenStack API service'),
     cfg.StrOpt('metadata_manager',
-               default='nova.api.manager.MetadataManager',
+               default='gceapi.api.manager.MetadataManager',
                help='OpenStack metadata service manager'),
     cfg.StrOpt('metadata_listen',
                default="0.0.0.0",
@@ -94,19 +94,19 @@ service_opts = [
                default=None,
                help='Number of workers for metadata service'),
     cfg.StrOpt('compute_manager',
-               default='nova.compute.manager.ComputeManager',
+               default='gceapi.compute.manager.ComputeManager',
                help='full class name for the Manager for compute'),
     cfg.StrOpt('console_manager',
-               default='nova.console.manager.ConsoleProxyManager',
+               default='gceapi.console.manager.ConsoleProxyManager',
                help='full class name for the Manager for console proxy'),
     cfg.StrOpt('cert_manager',
-               default='nova.cert.manager.CertManager',
+               default='gceapi.cert.manager.CertManager',
                help='full class name for the Manager for cert'),
     cfg.StrOpt('network_manager',
-               default='nova.network.manager.VlanManager',
+               default='gceapi.network.manager.VlanManager',
                help='full class name for the Manager for network'),
     cfg.StrOpt('scheduler_manager',
-               default='nova.scheduler.manager.SchedulerManager',
+               default='gceapi.scheduler.manager.SchedulerManager',
                help='full class name for the Manager for scheduler'),
     cfg.IntOpt('service_down_time',
                default=60,
@@ -121,7 +121,7 @@ service_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(service_opts)
-CONF.import_opt('host', 'nova.netconf')
+CONF.import_opt('host', 'gceapi.netconf')
 
 
 class SignalExit(SystemExit):
@@ -508,7 +508,7 @@ class Service(object):
 
         :param host: defaults to CONF.host
         :param binary: defaults to basename of executable
-        :param topic: defaults to bin_name - 'nova-' part
+        :param topic: defaults to bin_name - 'gceapi-' part
         :param manager: defaults to CONF.<topic>_manager
         :param report_interval: defaults to CONF.report_interval
         :param periodic_enable: defaults to CONF.periodic_enable
@@ -521,10 +521,10 @@ class Service(object):
         if not binary:
             binary = os.path.basename(inspect.stack()[-1][1])
         if not topic:
-            topic = binary.rpartition('nova-')[2]
+            topic = binary.rpartition('gceapi-')[2]
         if not manager:
             manager_cls = ('%s_manager' %
-                           binary.rpartition('nova-')[2])
+                           binary.rpartition('gceapi-')[2])
             manager = CONF.get(manager_cls, None)
         if report_interval is None:
             report_interval = CONF.report_interval

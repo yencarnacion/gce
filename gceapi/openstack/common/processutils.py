@@ -26,7 +26,7 @@ import shlex
 from eventlet.green import subprocess
 from eventlet import greenthread
 
-from nova.openstack.common.gettextutils import _
+from gceapi.openstack.common.gettextutils import _
 
 
 LOG = logging.getLogger(__name__)

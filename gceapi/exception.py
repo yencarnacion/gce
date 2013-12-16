@@ -16,9 +16,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Nova base exception handling.
+"""Gceapi base exception handling.
 
-Includes decorator for re-raising Nova-type exceptions.
+Includes decorator for re-raising gceapi-type exceptions.
 
 SHOULD include dedicated exception logging.
 
@@ -30,10 +30,10 @@ import sys
 from oslo.config import cfg
 import webob.exc
 
-from nova.openstack.common import excutils
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import log as logging
-from nova import safe_utils
+from gceapi.openstack.common import excutils
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import log as logging
+from gceapi import safe_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -93,8 +93,8 @@ def wrap_exception(notifier=None, get_notifier=None):
     return inner
 
 
-class NovaException(Exception):
-    """Base Nova Exception
+class GceapiException(Exception):
+    """Base Gceapi Exception
 
     To correctly use this class, inherit from it and define
     a 'msg_fmt' property. That msg_fmt will get printf'd
@@ -133,37 +133,37 @@ class NovaException(Exception):
                     # at least get the core message out if something happened
                     message = self.msg_fmt
 
-        super(NovaException, self).__init__(message)
+        super(GceapiException, self).__init__(message)
 
     def format_message(self):
         # NOTE(mrodden): use the first argument to the python Exception object
-        # which should be our full NovaException message, (see __init__)
+        # which should be our full GceapiException message, (see __init__)
         return self.args[0]
 
 
-class EncryptionFailure(NovaException):
+class EncryptionFailure(GceapiException):
     msg_fmt = _("Failed to encrypt text: %(reason)s")
 
 
-class DecryptionFailure(NovaException):
+class DecryptionFailure(GceapiException):
     msg_fmt = _("Failed to decrypt text: %(reason)s")
 
 
-class VirtualInterfaceCreateException(NovaException):
+class VirtualInterfaceCreateException(GceapiException):
     msg_fmt = _("Virtual Interface creation failed")
 
 
-class VirtualInterfaceMacAddressException(NovaException):
+class VirtualInterfaceMacAddressException(GceapiException):
     msg_fmt = _("5 attempts to create virtual interface"
                 "with unique mac address failed")
 
 
-class GlanceConnectionFailed(NovaException):
+class GlanceConnectionFailed(GceapiException):
     msg_fmt = _("Connection to glance host %(host)s:%(port)s failed: "
         "%(reason)s")
 
 
-class NotAuthorized(NovaException):
+class NotAuthorized(GceapiException):
     ec2_code = 'AuthFailure'
     msg_fmt = _("Not authorized.")
     code = 403
@@ -177,18 +177,18 @@ class PolicyNotAuthorized(NotAuthorized):
     msg_fmt = _("Policy doesn't allow %(action)s to be performed.")
 
 
-class ImageNotActive(NovaException):
+class ImageNotActive(GceapiException):
     # NOTE(jruzicka): IncorrectState is used for volumes only in EC2,
     # but it still seems like the most appropriate option.
     ec2_code = 'IncorrectState'
     msg_fmt = _("Image %(image_id)s is not active.")
 
 
-class ImageNotAuthorized(NovaException):
+class ImageNotAuthorized(GceapiException):
     msg_fmt = _("Not authorized for image %(image_id)s.")
 
 
-class Invalid(NovaException):
+class Invalid(GceapiException):
     msg_fmt = _("Unacceptable parameters.")
     code = 400
 
@@ -253,7 +253,7 @@ class VolumeUnattached(Invalid):
     msg_fmt = _("Volume %(volume_id)s is not attached to anything")
 
 
-class VolumeNotCreated(NovaException):
+class VolumeNotCreated(GceapiException):
     msg_fmt = _("Volume %(volume_id)s did not finish being created"
                 " even after we waited %(seconds)s seconds or %(attempts)s"
                 " attempts.")
@@ -469,12 +469,12 @@ class InvalidID(Invalid):
     msg_fmt = _("Invalid ID received %(id)s.")
 
 
-class ConstraintNotMet(NovaException):
+class ConstraintNotMet(GceapiException):
     msg_fmt = _("Constraint not met.")
     code = 412
 
 
-class NotFound(NovaException):
+class NotFound(GceapiException):
     msg_fmt = _("Resource could not be found.")
     code = 404
 
@@ -483,7 +483,7 @@ class AgentBuildNotFound(NotFound):
     msg_fmt = _("No agent-build associated with id %(id)s.")
 
 
-class AgentBuildExists(NovaException):
+class AgentBuildExists(GceapiException):
     msg_fmt = _("Agent-build with hypervisor %(hypervisor)s os %(os)s "
                 "architecture %(architecture)s exists.")
 
@@ -521,7 +521,7 @@ class ImageNotFound(NotFound):
 
 # NOTE(jruzicka): ImageNotFound is not a valid EC2 error code.
 class ImageNotFoundEC2(ImageNotFound):
-    msg_fmt = _("Image %(image_id)s could not be found. The nova EC2 API "
+    msg_fmt = _("Image %(image_id)s could not be found. The Gceapi EC2 API "
                 "assigns image ids dynamically when they are listed for the "
                 "first time. Have you listed image ids since adding this "
                 "image?")
@@ -539,11 +539,11 @@ class NetworkDuplicated(Invalid):
     msg_fmt = _("Network %(network_id)s is duplicated.")
 
 
-class NetworkInUse(NovaException):
+class NetworkInUse(GceapiException):
     msg_fmt = _("Network %(network_id)s is still in use.")
 
 
-class NetworkNotCreated(NovaException):
+class NetworkNotCreated(GceapiException):
     msg_fmt = _("%(req)s is required to create a network.")
 
 
@@ -601,7 +601,7 @@ class PortNotFree(Invalid):
     msg_fmt = _("No free port available for instance %(instance)s.")
 
 
-class FixedIpExists(NovaException):
+class FixedIpExists(GceapiException):
     msg_fmt = _("Fixed ip %(address)s already exists.")
 
 
@@ -631,12 +631,12 @@ class FixedIpNotFoundForNetwork(FixedIpNotFound):
                 "network (%(network_uuid)s).")
 
 
-class FixedIpAlreadyInUse(NovaException):
+class FixedIpAlreadyInUse(GceapiException):
     msg_fmt = _("Fixed IP address %(address)s is already in use on instance "
                 "%(instance_uuid)s.")
 
 
-class FixedIpAssociatedWithMultipleInstances(NovaException):
+class FixedIpAssociatedWithMultipleInstances(GceapiException):
     msg_fmt = _("More than one instance is associated with fixed ip address "
                 "'%(address)s'.")
 
@@ -645,7 +645,7 @@ class FixedIpInvalid(Invalid):
     msg_fmt = _("Fixed IP address %(address)s is invalid.")
 
 
-class NoMoreFixedIps(NovaException):
+class NoMoreFixedIps(GceapiException):
     ec2_code = 'UnsupportedOperation'
     msg_fmt = _("Zero fixed ips available.")
 
@@ -654,7 +654,7 @@ class NoFixedIpsDefined(NotFound):
     msg_fmt = _("Zero fixed ips could be found.")
 
 
-class FloatingIpExists(NovaException):
+class FloatingIpExists(GceapiException):
     msg_fmt = _("Floating ip %(address)s already exists.")
 
 
@@ -675,7 +675,7 @@ class FloatingIpNotFoundForHost(FloatingIpNotFound):
     msg_fmt = _("Floating ip not found for host %(host)s.")
 
 
-class FloatingIpMultipleFoundForAddress(NovaException):
+class FloatingIpMultipleFoundForAddress(GceapiException):
     msg_fmt = _("Multiple floating ips are found for address %(address)s.")
 
 
@@ -689,12 +689,12 @@ class NoMoreFloatingIps(FloatingIpNotFound):
     safe = True
 
 
-class FloatingIpAssociated(NovaException):
+class FloatingIpAssociated(GceapiException):
     ec2_code = "UnsupportedOpperation"
     msg_fmt = _("Floating ip %(address)s is associated.")
 
 
-class FloatingIpNotAssociated(NovaException):
+class FloatingIpNotAssociated(GceapiException):
     msg_fmt = _("Floating ip %(address)s is not associated.")
 
 
@@ -707,7 +707,7 @@ class NoFloatingIpInterface(NotFound):
     msg_fmt = _("Interface %(interface)s not found.")
 
 
-class CannotDisassociateAutoAssignedFloatingIP(NovaException):
+class CannotDisassociateAutoAssignedFloatingIP(GceapiException):
     ec2_code = "UnsupportedOpperation"
     msg_fmt = _("Cannot disassociate auto assigned floating ip")
 
@@ -721,11 +721,11 @@ class ServiceNotFound(NotFound):
     msg_fmt = _("Service %(service_id)s could not be found.")
 
 
-class ServiceBinaryExists(NovaException):
+class ServiceBinaryExists(GceapiException):
     msg_fmt = _("Service with host %(host)s binary %(binary)s exists.")
 
 
-class ServiceTopicExists(NovaException):
+class ServiceTopicExists(GceapiException):
     msg_fmt = _("Service with host %(host)s topic %(topic)s exists.")
 
 
@@ -754,7 +754,7 @@ class QuotaNotFound(NotFound):
     msg_fmt = _("Quota could not be found")
 
 
-class QuotaExists(NovaException):
+class QuotaExists(GceapiException):
     msg_fmt = _("Quota exists for project %(project_id)s, "
                 "resource %(resource)s")
 
@@ -784,7 +784,7 @@ class ReservationNotFound(QuotaNotFound):
     msg_fmt = _("Quota reservation %(uuid)s could not be found.")
 
 
-class OverQuota(NovaException):
+class OverQuota(GceapiException):
     msg_fmt = _("Quota exceeded for resources: %(overs)s")
 
 
@@ -831,7 +831,7 @@ class SecurityGroupRuleExists(Invalid):
     msg_fmt = _("Rule already exists in group: %(rule)s")
 
 
-class NoUniqueMatch(NovaException):
+class NoUniqueMatch(GceapiException):
     msg_fmt = _("No Unique Match Found.")
     code = 409
 
@@ -849,7 +849,7 @@ class ConsolePoolNotFound(NotFound):
     msg_fmt = _("Console pool %(pool_id)s could not be found.")
 
 
-class ConsolePoolExists(NovaException):
+class ConsolePoolExists(GceapiException):
     msg_fmt = _("Console pool with host %(host)s, console_type "
                 "%(console_type)s and compute_host %(compute_host)s "
                 "already exists.")
@@ -904,11 +904,11 @@ class CellNotFound(NotFound):
     msg_fmt = _("Cell %(cell_name)s doesn't exist.")
 
 
-class CellExists(NovaException):
+class CellExists(GceapiException):
     msg_fmt = _("Cell with name %(name)s already exists.")
 
 
-class CellRoutingInconsistency(NovaException):
+class CellRoutingInconsistency(GceapiException):
     msg_fmt = _("Inconsistency in cell routing: %(reason)s")
 
 
@@ -920,15 +920,15 @@ class CellTimeout(NotFound):
     msg_fmt = _("Timeout waiting for response from cell")
 
 
-class CellMaxHopCountReached(NovaException):
+class CellMaxHopCountReached(GceapiException):
     msg_fmt = _("Cell message has reached maximum hop count: %(hop_count)s")
 
 
-class NoCellsAvailable(NovaException):
+class NoCellsAvailable(GceapiException):
     msg_fmt = _("No cells available matching scheduling criteria.")
 
 
-class CellsUpdateUnsupported(NovaException):
+class CellsUpdateUnsupported(GceapiException):
     msg_fmt = _("Cannot update cells configuration file.")
 
 
@@ -966,49 +966,49 @@ class ClassNotFound(NotFound):
     msg_fmt = _("Class %(class_name)s could not be found: %(exception)s")
 
 
-class NotAllowed(NovaException):
+class NotAllowed(GceapiException):
     msg_fmt = _("Action not allowed.")
 
 
-class ImageRotationNotAllowed(NovaException):
+class ImageRotationNotAllowed(GceapiException):
     msg_fmt = _("Rotation is not allowed for snapshots")
 
 
-class RotationRequiredForBackup(NovaException):
+class RotationRequiredForBackup(GceapiException):
     msg_fmt = _("Rotation param is required for backup image_type")
 
 
-class KeyPairExists(NovaException):
+class KeyPairExists(GceapiException):
     ec2_code = 'InvalidKeyPair.Duplicate'
     msg_fmt = _("Key pair '%(key_name)s' already exists.")
 
 
-class InstanceExists(NovaException):
+class InstanceExists(GceapiException):
     msg_fmt = _("Instance %(name)s already exists.")
 
 
-class InstanceTypeExists(NovaException):
+class InstanceTypeExists(GceapiException):
     msg_fmt = _("Instance Type with name %(name)s already exists.")
 
 
-class InstanceTypeIdExists(NovaException):
+class InstanceTypeIdExists(GceapiException):
     msg_fmt = _("Instance Type with ID %(flavor_id)s already exists.")
 
 
-class FlavorAccessExists(NovaException):
+class FlavorAccessExists(GceapiException):
     msg_fmt = _("Flavor access already exists for flavor %(flavor_id)s "
                 "and project %(project_id)s combination.")
 
 
-class InvalidSharedStorage(NovaException):
+class InvalidSharedStorage(GceapiException):
     msg_fmt = _("%(path)s is not on shared storage: %(reason)s")
 
 
-class InvalidLocalStorage(NovaException):
+class InvalidLocalStorage(GceapiException):
     msg_fmt = _("%(path)s is not on local storage: %(reason)s")
 
 
-class MigrationError(NovaException):
+class MigrationError(GceapiException):
     msg_fmt = _("Migration error") + ": %(reason)s"
 
 
@@ -1016,49 +1016,49 @@ class MigrationPreCheckError(MigrationError):
     msg_fmt = _("Migration pre-check error") + ": %(reason)s"
 
 
-class MalformedRequestBody(NovaException):
+class MalformedRequestBody(GceapiException):
     msg_fmt = _("Malformed message body: %(reason)s")
 
 
 # NOTE(johannes): NotFound should only be used when a 404 error is
 # appropriate to be returned
-class ConfigNotFound(NovaException):
+class ConfigNotFound(GceapiException):
     msg_fmt = _("Could not find config at %(path)s")
 
 
-class PasteAppNotFound(NovaException):
+class PasteAppNotFound(GceapiException):
     msg_fmt = _("Could not load paste app '%(name)s' from %(path)s")
 
 
-class CannotResizeToSameFlavor(NovaException):
+class CannotResizeToSameFlavor(GceapiException):
     msg_fmt = _("When resizing, instances must change flavor!")
 
 
-class ResizeError(NovaException):
+class ResizeError(GceapiException):
     msg_fmt = _("Resize error: %(reason)s")
 
 
-class CannotResizeDisk(NovaException):
+class CannotResizeDisk(GceapiException):
     msg_fmt = _("Server disk was unable to be resized because: %(reason)s")
 
 
-class InstanceTypeMemoryTooSmall(NovaException):
+class InstanceTypeMemoryTooSmall(GceapiException):
     msg_fmt = _("Instance type's memory is too small for requested image.")
 
 
-class InstanceTypeDiskTooSmall(NovaException):
+class InstanceTypeDiskTooSmall(GceapiException):
     msg_fmt = _("Instance type's disk is too small for requested image.")
 
 
-class InsufficientFreeMemory(NovaException):
+class InsufficientFreeMemory(GceapiException):
     msg_fmt = _("Insufficient free memory on compute node to start %(uuid)s.")
 
 
-class NoValidHost(NovaException):
+class NoValidHost(GceapiException):
     msg_fmt = _("No valid host was found. %(reason)s")
 
 
-class QuotaError(NovaException):
+class QuotaError(GceapiException):
     ec2_code = 'ResourceLimitExceeded'
     msg_fmt = _("Quota exceeded") + ": code=%(code)s"
     code = 413
@@ -1108,7 +1108,7 @@ class PortLimitExceeded(QuotaError):
     msg_fmt = _("Maximum number of ports exceeded")
 
 
-class AggregateError(NovaException):
+class AggregateError(GceapiException):
     msg_fmt = _("Aggregate %(aggregate_id)s: action '%(action)s' "
                 "caused an error: %(reason)s.")
 
@@ -1117,7 +1117,7 @@ class AggregateNotFound(NotFound):
     msg_fmt = _("Aggregate %(aggregate_id)s could not be found.")
 
 
-class AggregateNameExists(NovaException):
+class AggregateNameExists(GceapiException):
     msg_fmt = _("Aggregate %(aggregate_name)s already exists.")
 
 
@@ -1130,25 +1130,25 @@ class AggregateMetadataNotFound(NotFound):
                 "key %(metadata_key)s.")
 
 
-class AggregateHostExists(NovaException):
+class AggregateHostExists(GceapiException):
     msg_fmt = _("Aggregate %(aggregate_id)s already has host %(host)s.")
 
 
-class InstanceTypeCreateFailed(NovaException):
+class InstanceTypeCreateFailed(GceapiException):
     msg_fmt = _("Unable to create instance type")
 
 
-class InstancePasswordSetFailed(NovaException):
+class InstancePasswordSetFailed(GceapiException):
     msg_fmt = _("Failed to set admin password on %(instance)s "
                 "because %(reason)s")
     safe = True
 
 
-class DuplicateVlan(NovaException):
+class DuplicateVlan(GceapiException):
     msg_fmt = _("Detected existing vlan with id %(vlan)d")
 
 
-class CidrConflict(NovaException):
+class CidrConflict(GceapiException):
     msg_fmt = _("There was a conflict when trying to complete your request.")
     code = 409
 
@@ -1180,19 +1180,19 @@ class InvalidInstanceIDMalformed(Invalid):
     msg_fmt = _("Invalid id: %(val)s (expecting \"i-...\").")
 
 
-class CouldNotFetchImage(NovaException):
+class CouldNotFetchImage(GceapiException):
     msg_fmt = _("Could not fetch image %(image_id)s")
 
 
-class CouldNotUploadImage(NovaException):
+class CouldNotUploadImage(GceapiException):
     msg_fmt = _("Could not upload image %(image_id)s")
 
 
-class TaskAlreadyRunning(NovaException):
+class TaskAlreadyRunning(GceapiException):
     msg_fmt = _("Task %(task_name)s is already running on host %(host)s")
 
 
-class TaskNotRunning(NovaException):
+class TaskNotRunning(GceapiException):
     msg_fmt = _("Task %(task_name)s is not running on host %(host)s")
 
 
@@ -1204,12 +1204,12 @@ class ConfigDriveInvalidValue(Invalid):
     msg_fmt = _("Invalid value for Config Drive option: %(option)s")
 
 
-class ConfigDriveMountFailed(NovaException):
+class ConfigDriveMountFailed(GceapiException):
     msg_fmt = _("Could not mount vfat config drive. %(operation)s failed. "
                 "Error: %(error)s")
 
 
-class ConfigDriveUnknownFormat(NovaException):
+class ConfigDriveUnknownFormat(GceapiException):
     msg_fmt = _("Unknown config drive format %(format)s. Select one of "
                 "iso9660 or vfat.")
 
@@ -1222,31 +1222,31 @@ class InterfaceDetachFailed(Invalid):
     msg_fmt = _("Failed to detach network adapter device from  %(instance)s")
 
 
-class InstanceUserDataTooLarge(NovaException):
+class InstanceUserDataTooLarge(GceapiException):
     msg_fmt = _("User data too large. User data must be no larger than "
                 "%(maxsize)s bytes once base64 encoded. Your data is "
                 "%(length)d bytes")
 
 
-class InstanceUserDataMalformed(NovaException):
+class InstanceUserDataMalformed(GceapiException):
     msg_fmt = _("User data needs to be valid base 64.")
 
 
-class UnexpectedTaskStateError(NovaException):
+class UnexpectedTaskStateError(GceapiException):
     msg_fmt = _("unexpected task state: expecting %(expected)s but "
                 "the actual state is %(actual)s")
 
 
-class InstanceActionNotFound(NovaException):
+class InstanceActionNotFound(GceapiException):
     msg_fmt = _("Action for request_id %(request_id)s on instance"
                 " %(instance_uuid)s not found")
 
 
-class InstanceActionEventNotFound(NovaException):
+class InstanceActionEventNotFound(GceapiException):
     msg_fmt = _("Event %(event)s not found for action id %(action_id)s")
 
 
-class UnexpectedVMStateError(NovaException):
+class UnexpectedVMStateError(GceapiException):
     msg_fmt = _("unexpected VM state: expecting %(expected)s but "
                 "the actual state is %(actual)s")
 
@@ -1263,12 +1263,12 @@ class InstanceRecreateNotSupported(Invalid):
     msg_fmt = _('Instance recreate is not implemented by this virt driver.')
 
 
-class ServiceGroupUnavailable(NovaException):
+class ServiceGroupUnavailable(GceapiException):
     msg_fmt = _("The service from servicegroup driver %(driver)s is "
                 "temporarily unavailable.")
 
 
-class DBNotAllowed(NovaException):
+class DBNotAllowed(GceapiException):
     msg_fmt = _('%(binary)s attempted direct database access which is '
                 'not allowed by policy')
 
@@ -1283,51 +1283,51 @@ class UnsupportedHardware(Invalid):
                 "the '%(virt)s' virt driver")
 
 
-class Base64Exception(NovaException):
+class Base64Exception(GceapiException):
     msg_fmt = _("Invalid Base 64 data for file %(path)s")
 
 
-class BuildAbortException(NovaException):
+class BuildAbortException(GceapiException):
     msg_fmt = _("Build of instance %(instance_uuid)s aborted: %(reason)s")
 
 
-class RescheduledException(NovaException):
+class RescheduledException(GceapiException):
     msg_fmt = _("Build of instance %(instance_uuid)s was re-scheduled: "
                 "%(reason)s")
 
 
-class ShadowTableExists(NovaException):
+class ShadowTableExists(GceapiException):
     msg_fmt = _("Shadow table with name %(name)s already exists.")
 
 
-class InstanceFaultRollback(NovaException):
+class InstanceFaultRollback(GceapiException):
     def __init__(self, inner_exception=None):
         message = _("Instance rollback performed due to: %s")
         self.inner_exception = inner_exception
         super(InstanceFaultRollback, self).__init__(message % inner_exception)
 
 
-class UnsupportedObjectError(NovaException):
+class UnsupportedObjectError(GceapiException):
     msg_fmt = _('Unsupported object type %(objtype)s')
 
 
-class OrphanedObjectError(NovaException):
+class OrphanedObjectError(GceapiException):
     msg_fmt = _('Cannot call %(method)s on orphaned %(objtype)s object')
 
 
-class IncompatibleObjectVersion(NovaException):
+class IncompatibleObjectVersion(GceapiException):
     msg_fmt = _('Version %(objver)s of %(objname)s is not supported')
 
 
-class ObjectActionError(NovaException):
+class ObjectActionError(GceapiException):
     msg_fmt = _('Object action %(action)s failed because: %(reason)s')
 
 
-class CoreAPIMissing(NovaException):
+class CoreAPIMissing(GceapiException):
     msg_fmt = _("Core API extensions are missing: %(missing_apis)s")
 
 
-class AgentError(NovaException):
+class AgentError(GceapiException):
     msg_fmt = _('Error during following call to agent: %(method)s')
 
 
@@ -1344,7 +1344,7 @@ class InstanceGroupNotFound(NotFound):
     msg_fmt = _("Instance group %(group_uuid)s could not be found.")
 
 
-class InstanceGroupIdExists(NovaException):
+class InstanceGroupIdExists(GceapiException):
     msg_fmt = _("Instance group %(group_uuid)s already exists.")
 
 
@@ -1362,11 +1362,11 @@ class InstanceGroupPolicyNotFound(NotFound):
     msg_fmt = _("Instance group %(group_uuid)s has no policy %(policy)s.")
 
 
-class PluginRetriesExceeded(NovaException):
+class PluginRetriesExceeded(GceapiException):
     msg_fmt = _("Number of retries to plugin (%(num_retries)d) exceeded.")
 
 
-class ImageDownloadModuleError(NovaException):
+class ImageDownloadModuleError(GceapiException):
     msg_fmt = _("There was an error with the download module %(module)s. "
                 "%(reason)s")
 
@@ -1384,7 +1384,7 @@ class ImageDownloadModuleConfigurationError(ImageDownloadModuleError):
     msg_fmt = _("The module %(module)s is misconfigured: %(reason)s.")
 
 
-class PciDeviceWrongAddressFormat(NovaException):
+class PciDeviceWrongAddressFormat(GceapiException):
     msg_fmt = _("The PCI address %(address)s has an incorrect format.")
 
 
@@ -1392,42 +1392,42 @@ class PciDeviceNotFoundById(NotFound):
     msg_fmt = _("PCI device %(id)s not found")
 
 
-class PciDeviceNotFound(NovaException):
+class PciDeviceNotFound(GceapiException):
     msg_fmt = _("PCI Device %(node_id)s:%(address)s not found.")
 
 
-class PciDeviceInvalidStatus(NovaException):
+class PciDeviceInvalidStatus(GceapiException):
     msg_fmt = _(
         "PCI Device %(compute_node_id)s:%(address)s is %(status)s "
         "instead of %(hopestatus)s")
 
 
-class PciDeviceInvalidOwner(NovaException):
+class PciDeviceInvalidOwner(GceapiException):
     msg_fmt = _(
         "PCI Device %(compute_node_id)s:%(address)s is owned by %(owner)s "
         "instead of %(hopeowner)s")
 
 
-class PciDeviceRequestFailed(NovaException):
+class PciDeviceRequestFailed(GceapiException):
     msg_fmt = _(
         "PCI Device request (%requests)s failed")
 
 
-class PciDevicePoolEmpty(NovaException):
+class PciDevicePoolEmpty(GceapiException):
     msg_fmt = _(
         "Attempt to consume PCI Device %(compute_node_id)s:%(address)s "
         "from empty pool")
 
 
-class PciInvalidAlias(NovaException):
+class PciInvalidAlias(GceapiException):
     msg_fmt = _("Invalid PCI alias definition: %(reason)s")
 
 
-class PciRequestAliasNotDefined(NovaException):
+class PciRequestAliasNotDefined(GceapiException):
     msg_fmt = _("PCI alias %(alias)s is not defined")
 
 
-class MissingParameter(NovaException):
+class MissingParameter(GceapiException):
     ec2_code = 'MissingParameter'
     msg_fmt = _("Not enough parameters: %(reason)s")
     code = 400
@@ -1437,28 +1437,28 @@ class PciConfigInvalidWhitelist(Invalid):
     msg_fmt = _("Invalid PCI devices Whitelist config %(reason)s")
 
 
-class PciTrackerInvalidNodeId(NovaException):
+class PciTrackerInvalidNodeId(GceapiException):
     msg_fmt = _("Cannot change %(node_id)s to %(new_node_id)s")
 
 
 # Cannot be templated, msg needs to be constructed when raised.
-class InternalError(NovaException):
+class InternalError(GceapiException):
     ec2_code = 'InternalError'
     msg_fmt = "%(err)s"
 
 
-class PciDevicePrepareFailed(NovaException):
+class PciDevicePrepareFailed(GceapiException):
     msg_fmt = _("Failed to prepare PCI device %(id)s for instance "
                 "%(instance_uuid)s: %(reason)s")
 
 
-class PciDeviceDetachFailed(NovaException):
+class PciDeviceDetachFailed(GceapiException):
     msg_fmt = _("Failed to detach PCI device %(dev)s: %(reason)s")
 
 
-class PciDeviceUnsupportedHypervisor(NovaException):
+class PciDeviceUnsupportedHypervisor(GceapiException):
     msg_fmt = _("%(type)s hypervisor does not support PCI devices")
 
 
-class KeyManagerError(NovaException):
+class KeyManagerError(GceapiException):
     msg_fmt = _("key manager error: %(reason)s")

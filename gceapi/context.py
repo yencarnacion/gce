@@ -17,16 +17,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""RequestContext: context for requests that persist through all of nova."""
+"""RequestContext: context for requests that persist through all of gceapi."""
 
 import copy
 import uuid
 
-from nova import exception
-from nova.openstack.common import local
-from nova.openstack.common import log as logging
-from nova.openstack.common import timeutils
-from nova import policy
+from gceapi import exception
+from gceapi.openstack.common import local
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import timeutils
 
 
 LOG = logging.getLogger(__name__)
@@ -95,8 +94,8 @@ class RequestContext(object):
         self.user_name = user_name
         self.project_name = project_name
         self.is_admin = is_admin
-        if self.is_admin is None:
-            self.is_admin = policy.check_is_admin(self)
+        #if self.is_admin is None:
+        #    self.is_admin = policy.check_is_admin(self)
         if overwrite or not hasattr(local.store, 'context'):
             self.update_store()
 
@@ -154,7 +153,7 @@ class RequestContext(object):
         return context
 
     # NOTE(sirp): the openstack/common version of RequestContext uses
-    # tenant/user whereas the Nova version uses project_id/user_id. We need
+    # tenant/user whereas the gceapi version uses project_id/user_id. We need
     # this shim in order to use context-aware code from openstack/common, like
     # logging, until we make the switch to using openstack/common's version of
     # RequestContext.

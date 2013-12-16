@@ -13,8 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova.openstack.common import log as logging
-from nova.openstack.common.plugin import plugin
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common.plugin import plugin
 
 
 LOG = logging.getLogger(__name__)

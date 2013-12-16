@@ -30,9 +30,9 @@ import logging
 
 from oslo.config import cfg
 
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import importutils
-from nova.openstack.common import local
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import importutils
+from gceapi.openstack.common import local
 
 
 LOG = logging.getLogger(__name__)

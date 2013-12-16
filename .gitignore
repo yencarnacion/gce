@@ -19,4 +19,4 @@ gceapi.egg-info
 tests.sqlite
 gceapi/versioninfo
 # Files created by doc build
-doc/source/api
+/gce_api.egg-info/

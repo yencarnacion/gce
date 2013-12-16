@@ -63,8 +63,8 @@ import urllib
 
 import urllib2
 
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import jsonutils
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import jsonutils
 
 
 LOG = logging.getLogger(__name__)

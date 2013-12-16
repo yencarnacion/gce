@@ -24,12 +24,12 @@ import eventlet
 import greenlet
 from oslo.config import cfg
 
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import importutils
-from nova.openstack.common import jsonutils
-from nova.openstack.common import log as logging
-from nova.openstack.common.rpc import amqp as rpc_amqp
-from nova.openstack.common.rpc import common as rpc_common
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import importutils
+from gceapi.openstack.common import jsonutils
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common.rpc import amqp as rpc_amqp
+from gceapi.openstack.common.rpc import common as rpc_common
 
 qpid_codec = importutils.try_import("qpid.codec010")
 qpid_messaging = importutils.try_import("qpid.messaging")

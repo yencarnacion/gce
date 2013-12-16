@@ -17,9 +17,9 @@ import pkg_resources
 
 from oslo.config import cfg
 
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import log as logging
-from nova.openstack.common.notifier import api as notifier_api
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common.notifier import api as notifier_api
 
 
 CONF = cfg.CONF

@@ -40,7 +40,7 @@ import itertools
 import json
 import xmlrpclib
 
-from nova.openstack.common import timeutils
+from gceapi.openstack.common import timeutils
 
 
 def to_primitive(value, convert_instances=False, convert_datetime=True,
