@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright (c) 2012 OpenStack Foundation
+# Copyright (c) 2012 OpenStack Foundation.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -57,14 +57,14 @@ as it allows particular rules to be explicitly disabled.
 """
 
 import abc
-import logging
 import re
 import urllib
 
 import urllib2
 
-from gceapi.openstack.common.gettextutils import _
-from gceapi.openstack.common import jsonutils
+from nova.openstack.common.gettextutils import _
+from nova.openstack.common import jsonutils
+from nova.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

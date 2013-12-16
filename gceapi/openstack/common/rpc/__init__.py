@@ -26,13 +26,13 @@ For some wrappers that add message versioning to rpc, see:
 """
 
 import inspect
-import logging
 
 from oslo.config import cfg
 
-from gceapi.openstack.common.gettextutils import _
-from gceapi.openstack.common import importutils
-from gceapi.openstack.common import local
+from nova.openstack.common.gettextutils import _  # noqa
+from nova.openstack.common import importutils
+from nova.openstack.common import local
+from nova.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
@@ -56,8 +56,7 @@ rpc_opts = [
                help='Seconds to wait before a cast expires (TTL). '
                     'Only supported by impl_zmq.'),
     cfg.ListOpt('allowed_rpc_exception_modules',
-                default=['nova.openstack.common.exception',
-                         'nova.exception',
+                default=['nova.exception',
                          'cinder.exception',
                          'exceptions',
                          ],

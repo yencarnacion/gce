@@ -20,7 +20,7 @@
 
 from oslo.config import cfg
 
-from gceapi.openstack.common import timeutils
+from nova.openstack.common import timeutils
 
 memcache_opts = [
     cfg.ListOpt('memcached_servers',
@@ -57,7 +57,8 @@ class Client(object):
     def get(self, key):
         """Retrieves the value for a key or None.
 
-        this expunges expired keys during each get"""
+        This expunges expired keys during each get.
+        """
 
         now = timeutils.utcnow_ts()
         for k in self.cache.keys():

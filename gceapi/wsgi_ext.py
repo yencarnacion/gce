@@ -219,7 +219,7 @@ class Request(webob.Request):
         if not self.accept_language:
             return None
         return self.accept_language.best_match(
-                gettextutils.get_available_languages('nova'))
+                gettextutils.get_available_languages('gceapi'))
 
 
 class ActionDispatcher(object):
