@@ -141,7 +141,7 @@ class Controller(object):
 
     # Utility
     def _get_context(self, req):
-        return req.environ['nova.context']
+        return req.environ['gceapi.context']
 
     def _get_scope(self, req, scope_id):
         scope = Scope.construct(req, scope_id)

@@ -65,8 +65,10 @@ class API(base_api.API):
         return None, None
 
     def _get_gce_keypair(self, context):
-        allpairs = compute_api.KeypairAPI().get_key_pairs(
-            context, context.user_id)
+        # TODO(apavlov):
+        allpairs = list()
+            #compute_api.KeypairAPI().get_key_pairs(
+            #context, context.user_id)
         key_datas = []
         for keypair in allpairs:
             key_datas.append(keypair['name'] + ':' + keypair['public_key'])

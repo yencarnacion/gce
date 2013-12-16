@@ -65,7 +65,7 @@ class GCEFault(webob.exc.HTTPException):
     """Wrap webob.exc.HTTPException to provide API friendly response."""
 
     def __init__(self, exception):
-        """Create a Fault for the given webob.exc.exception or nova.exception.
+        """Create a Fault for the given webob.exc.exception or gceapi.exception.
         """
         self.wrapped_exc = exception
         for key, value in self.wrapped_exc.headers.items():
@@ -109,8 +109,8 @@ class GCEResourceExceptionHandler(object):
         elif isinstance(ex_value, webob.exc.HTTPException):
             LOG.info(_("HTTP exception thrown: %s"), unicode(ex_value))
             raise GCEFault(ex_value)
-        elif isinstance(ex_value, exception.NovaException):
-            LOG.info(_("Nova exception thrown: %s"), unicode(ex_value))
+        elif isinstance(ex_value, exception.GceapiException):
+            LOG.info(_("Gceapi exception thrown: %s"), unicode(ex_value))
             raise GCEFault(ex_value)
 
         # We didn't handle the exception
@@ -133,7 +133,7 @@ class GCEResource(openstack_wsgi.Resource):
         elif isinstance(ex_value, webob.exc.HTTPException):
             msg = ex_value.explanation
             code = ex_value.code
-        elif isinstance(ex_value, exception.NovaException):
+        elif isinstance(ex_value, exception.GceapiException):
             msg = ex_value.args[0]
             code = ex_value.code
         else:
@@ -199,7 +199,7 @@ class GCEResource(openstack_wsgi.Resource):
             action_args.update(contents)
 
             project_id = action_args.pop("project_id", None)
-            context = request.environ.get('nova.context')
+            context = request.environ.get('gceapi.context')
 
             action_result = self._check_requested_project(project_id, context)
 
