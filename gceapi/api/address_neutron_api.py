@@ -15,9 +15,9 @@
 from oslo.config import cfg
 
 from gceapi.api import base_api
+from gceapi.api import clients
 from gceapi.api import network_api
 from gceapi import exception
-#from nova.network import quantumv2
 
 CONF = cfg.CONF
 
@@ -38,17 +38,17 @@ class API(base_api.API):
     def delete_item(self, context, name, scope=None):
         address = self._get_floating_ips(context, scope, name)
         ip_id = address[0]["id"]
-        quantumv2.get_client(context).delete_floatingip(ip_id)
+        clients.Clients(context).neutron().delete_floatingip(ip_id)
 
     def add_item(self, context, name, body, scope=None):
         network = network_api.API().get_item(
             context, self._public_network_name, scope)
-        floating_ip = quantumv2.get_client(context).create_floatingip(
+        floating_ip = clients.Clients(context).neutron().create_floatingip(
             {"floatingip": {"floating_network_id": network["id"]}})
         return self._prepare_floating_ip(floating_ip["floatingip"], scope)
 
     def _get_floating_ips(self, context, scope, ip=None):
-        results = quantumv2.get_client(context).list_floatingips()
+        results = clients.Clients(context).neutron().list_floatingips()
         results = results.get("floatingips")
         if results is None:
             return []

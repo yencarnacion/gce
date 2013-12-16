@@ -15,12 +15,7 @@
 import time
 
 from gceapi import context as nova_context
-#from gceapi import db
 from gceapi import exception
-#from gceapi import network
-#from nova.compute import api as compute_api
-#from nova.compute import vm_states
-#from nova.compute import utils as compute_utils
 from gceapi.openstack.common import log as logging
 
 from gceapi.api import base_api

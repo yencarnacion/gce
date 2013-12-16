@@ -12,14 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient.v2_0 import client as keystone_client
-from oslo.config import cfg
-
+from gceapi.api import clients
 from gceapi import exception
 from gceapi.api import base_api
-#from nova.compute import api as compute_api
-
-FLAGS = cfg.CONF
 
 
 class API(base_api.API):
@@ -28,13 +23,7 @@ class API(base_api.API):
     def get_item(self, context, name, scope=None):
         project_name = context.project_name
 
-        try:
-            keystone = keystone_client.Client(
-                token=context.auth_token, auth_url=FLAGS.keystone_gce_url)
-        except Exception:
-            msg = "Failed to connect to Keystone at %s", FLAGS.keystone_gce_url
-            return exception.ServiceUnavailable(explanation=msg)
-
+        keystone = clients.Clients(context).keystone().client_v2
         project = [t for t in keystone.tenants.list()
                 if t.name == project_name][0]
 
@@ -56,22 +45,18 @@ class API(base_api.API):
                 self._update_key(context, user_name, ssh_key)
 
     def get_gce_user_keypair(self, context):
-        allpairs = compute_api.KeypairAPI().get_key_pairs(
-            context, context.user_id)
-        for keypair in allpairs:
+        keypairManager = clients.Clients(context).nova().keypairs
+        for keypair in keypairManager.list():
             if keypair['name'] == context.user_name:
                 return keypair['name'], keypair['public_key']
 
         return None, None
 
     def _get_gce_keypair(self, context):
-        # TODO(apavlov):
-        allpairs = list()
-            #compute_api.KeypairAPI().get_key_pairs(
-            #context, context.user_id)
+        keypairManager = clients.Clients(context).nova().keypairs
         key_datas = []
-        for keypair in allpairs:
-            key_datas.append(keypair['name'] + ':' + keypair['public_key'])
+        for keypair in keypairManager.list():
+            key_datas.append(keypair.name + ':' + keypair.public_key)
 
         if not key_datas:
             return None
@@ -79,16 +64,14 @@ class API(base_api.API):
         return {'key': 'sshKeys', 'value': "\n".join(key_datas)}
 
     def _update_key(self, context, user_name, ssh_key):
+        keypairManager = clients.Clients(context).nova().keypairs
         try:
-            keypair = compute_api.KeypairAPI().get_key_pair(
-                context, context.user_id, user_name)
+            keypair = keypairManager.get(user_name)
             if keypair['public_key'] == ssh_key:
                 return
 
-            compute_api.KeypairAPI().delete_key_pair(
-                context, context.user_id, user_name)
-        except exception.KeypairNotFound:
+            keypairManager.delete(user_name)
+        except clients.novaclient.exceptions.NotFound:
             pass
 
-        keypair = compute_api.KeypairAPI().import_key_pair(
-            context, context.user_id, user_name, ssh_key)
+        keypair = keypairManager.create(user_name, ssh_key)

@@ -30,8 +30,8 @@ class Controller(gce_common.Controller):
 
     def format_item(self, request, zone, scope):
         result_dict = {
-            "name": zone['name'],
-            "status": zone["status"],
+            "name": zone.name,
+            "status": zone.status,
             "region": region_api.API().get_items(None)[0]["name"],
         }
 

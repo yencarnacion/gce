@@ -12,15 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.config import cfg
-
 from gceapi.api import base_api
-#from gceapi import availability_zones
+from gceapi.api import clients
 from gceapi import context as ctxt
 from gceapi import exception
-
-
-CONF = cfg.CONF
 
 
 class API(base_api.BaseScopeAPI):
@@ -40,9 +35,11 @@ class API(base_api.BaseScopeAPI):
         raise exception.NotFound
 
     def get_items(self, context, scope=None):
-        available_zones, not_available_zones = availability_zones \
-            .get_availability_zones(ctxt.get_admin_context())
-        zones = []
+        nova_client = clients.Clients(context).nova()
+        zones = nova_client.availability_zones.list()
+        for zone in zones:
+            zone.name = zone.display_name
+        return zones
         for zone in available_zones:
             if zone != CONF.internal_service_availability_zone:
                 zones.append({"name": zone,
@@ -53,7 +50,9 @@ class API(base_api.BaseScopeAPI):
                               "status": "DOWN"})
         return zones
 
-    def get_item_names(self, context, dummy=None):
+    def get_item_names(self, context, scope=None):
+        return [zone.name for zone in self.get_items(context, scope)]
+
         available_zones, not_available_zones = availability_zones \
             .get_availability_zones(ctxt.get_admin_context())
         zones = []

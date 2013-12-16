@@ -13,24 +13,25 @@
 #    under the License.
 
 from gceapi.api import base_api
+from gceapi.api import clients
 from gceapi.api import zone_api
-#from nova.compute import instance_types
 
 
 class API(base_api.API):
     """GCE Machine types API"""
 
     def get_item(self, context, name, scope=None):
-        item = instance_types.get_instance_type_by_name(self._from_gce(name))
+        nova_client = clients.Clients(context).nova()
+        item = nova_client.flavors.get(self._from_gce(name))
         if item:
             item["name"] = self._to_gce(item["name"])
         return item
 
     def get_items(self, context, scope=None):
-        flavors = instance_types.get_all_types(context, filters={})
-        items = flavors.values()
+        nova_client = clients.Clients(context).nova()
+        items = nova_client.flavors.list()
         for item in items:
-            item["name"] = self._to_gce(item["name"])
+            item.name = self._to_gce(item.name)
         return items
 
     def get_scopes(self, context, item):

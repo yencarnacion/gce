@@ -125,8 +125,8 @@ class BaseNetAPI(API):
         net_api = None
         #net_api = FLAGS.has("network_api_class")
         # NOTE(Alex): Initializing proper network singleton
-        if net_api is not None and ("quantum" in net_api
-                                    or "neutron" in net_api):
+        if net_api is None or ("quantum" in net_api
+                               or "neutron" in net_api):
             self._api = neutron_api.API()
         else:
             self._api = nova_api.API()

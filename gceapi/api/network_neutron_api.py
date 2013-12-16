@@ -15,7 +15,7 @@
 import netaddr
 
 from gceapi import exception
-#from nova.network import quantumv2
+from gceapi.api import clients
 from gceapi.api import base_api
 from gceapi.openstack.common import log as logging
 
@@ -31,7 +31,7 @@ class API(base_api.API):
 
     def get_item(self, context, name, scope=None):
         search_opts = {'name': name}
-        client = quantumv2.get_client(context)
+        client = clients.Clients(context).neutron()
         networks = client.list_networks(**search_opts)["networks"]
         if not networks:
             msg = _("Network resource '%s' could not be found." % name)
@@ -44,7 +44,7 @@ class API(base_api.API):
             return self._prepare_network(context, networks[0])
 
     def get_items(self, context, scope=None):
-        networks = quantumv2.get_client(context).list_networks()
+        networks = clients.Clients(context).neutron().list_networks()
         networks = networks["networks"]
         result_networks = []
         for network in networks:
@@ -54,7 +54,7 @@ class API(base_api.API):
         return result_networks
 
     def delete_item(self, context, name, scope=None):
-        neutron_api = quantumv2.get_client(context)
+        neutron_api = clients.Clients(context).neutron()
         network = self.get_item(context, name)
 
         self._process_callbacks(
@@ -72,7 +72,7 @@ class API(base_api.API):
             network_cidr = netaddr.IPNetwork(ip_range)
             gateway_ip = netaddr.IPAddress(network_cidr.first + 1)
             gateway = str(gateway_ip)
-        neutron_api = quantumv2.get_client(context)
+        neutron_api = clients.Clients(context).neutron()
         network = None
         try:
             network = self.get_item(context, name)
@@ -105,14 +105,14 @@ class API(base_api.API):
     def _prepare_network(self, context, network):
         subnets = network['subnets']
         if subnets and len(subnets) > 0:
-            subnet = quantumv2.get_client(context).show_subnet(subnets[0])
+            subnet = clients.Clients(context).neutron().show_subnet(subnets[0])
             subnet = subnet["subnet"]
             network["IPv4Range"] = subnet.get("cidr", None)
             network["gatewayIPv4"] = subnet.get("gateway_ip", None)
         return network
 
     def _add_subnet_to_external_router(self, context, subnet_id):
-        routers = quantumv2.get_client(context).list_routers()
+        routers = clients.Clients(context).neutron().list_routers()
         routers = routers["routers"]
         router = next((r for r in routers
                        if (r["status"] == "ACTIVE" and
@@ -121,17 +121,17 @@ class API(base_api.API):
         if router is None:
             return
         try:
-            quantumv2.get_client(context).add_interface_router(
+            clients.Clients(context).neutron().add_interface_router(
                     router["id"], {"subnet_id": subnet_id})
         except Exception:
             LOG.exception("Failed to add subnet (%s) to router (%s)",
                           subnet_id, router["id"])
 
     def _remove_network_from_routers(self, context, network):
-        ports = quantumv2.get_client(context).list_ports(
+        ports = clients.Clients(context).neutron().list_ports(
                 network_id=network["id"])
         for port in ports["ports"]:
             if port["device_owner"] != "network:router_interface":
                 continue
-            quantumv2.get_client(context).remove_interface_router(
+            clients.Clients(context).neutron().remove_interface_router(
                     port["device_id"], {"port_id": port["id"]})
