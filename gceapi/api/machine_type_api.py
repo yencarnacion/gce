@@ -14,6 +14,7 @@
 
 from gceapi.api import base_api
 from gceapi.api import clients
+from gceapi.api import utils
 from gceapi.api import zone_api
 from gceapi import exception
 
@@ -29,14 +30,15 @@ class API(base_api.API):
                 clients.novaclient.exceptions.NoUniqueMatch):
             raise exception.NotFound
         if item:
-            item.name = self._to_gce(item.name)
+            item = utils.todict(item)
+            item["name"] = self._to_gce(item["name"])
         return item
 
     def get_items(self, context, scope=None):
         nova_client = clients.Clients(context).nova()
-        items = nova_client.flavors.list()
+        items = [utils.todict(item) for item in nova_client.flavors.list()]
         for item in items:
-            item.name = self._to_gce(item.name)
+            item["name"] = self._to_gce(item["name"])
         return items
 
     def get_scopes(self, context, item):

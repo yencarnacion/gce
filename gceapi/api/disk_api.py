@@ -15,9 +15,10 @@
 import os.path
 
 from gceapi.api import base_api
+from gceapi.api import clients
 from gceapi.api import image_api
+from gceapi.api import utils
 from gceapi import exception
-#from gceapi import volume
 
 
 GB = 1048576 * 1024
@@ -42,10 +43,11 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        #self._volume_service = volume.API()
 
     def get_item(self, context, name, scope=None):
-        volumes = self._volume_service.get_all(context)
+        client = clients.Clients(context).cinder().volumes
+        volumes = client.list(search_opts={"display_name": name})
+        volumes = [utils.todict(item) for item in volumes]
         volumes = self._filter_volumes_by_zone(volumes, scope)
         for volume in volumes:
             if volume["display_name"] == name:
@@ -56,7 +58,8 @@ class API(base_api.API):
         return self._volume_service.get(context, item_id)
 
     def get_items(self, context, scope=None):
-        volumes = self._volume_service.get_all(context)
+        client = clients.Clients(context).cinder().volumes
+        volumes = [utils.todict(item) for item in client.list()]
         volumes = self._filter_volumes_by_zone(volumes, scope)
         for volume in volumes:
             self._prepare_item(context, volume)

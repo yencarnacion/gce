@@ -135,7 +135,7 @@ class Controller(object):
             item = self._api.add_item(
                 self._get_context(req), name, body, scope)
             return self._format_operation(
-                req, item.name, "insert", scope)
+                req, item["name"], "insert", scope)
         except rpc_common.RemoteError as err:
             raise exc.HTTPInternalServerError(explanation=err.message)
 
