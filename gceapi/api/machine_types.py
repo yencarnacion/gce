@@ -43,7 +43,7 @@ class Controller(gce_common.Controller):
             "maximumPersistentDisksSizeGb": 0,
             }
 
-        if flavor["ephemeral"] != 0:
+        if "ephemeral" in flavor:
             result_dict["scratchDisks"] = [{"diskGb": flavor["ephemeral_gb"]}]
 
         # NOTE(Alex): The following code is written but disabled because

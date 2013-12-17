@@ -54,13 +54,15 @@ class API(base_api.API):
     def add_item(self, context, body, scope=None):
         name = body["name"]
         disk_name = body["disk_name"]
-        volume = self._get_disk_by_name(context, disk_name, scope)
+        client = clients.Clients(context).cinder()
+        volumes = client.volumes.list(search_opts={"display_name": disk_name})
+        if not volumes or len(volumes) != 1:
+            raise exception.NotFound
 
-        client = clients.Clients(context).cinder().volume_snapshots
-        snapshot = client.add(
-            context, volume, name, body["description"])
+        snapshot = client.volume_snapshots.create(
+            volumes[0].id, True, name, body["description"])
 
-        return self._prepare_item(context, snapshot)
+        return self._prepare_item(context, utils.todict(snapshot))
 
     def _prepare_item(self, context, item):
         item["name"] = item["display_name"]
@@ -71,10 +73,3 @@ class API(base_api.API):
             pass
         item["status"] = self._status_map.get(item["status"], item["status"])
         return item
-
-    def _get_disk_by_name(self, context, name, scope):
-        client = clients.Clients(context).cinder().volumes
-        volumes = client.list(search_opts={"display_name": name})
-        if volumes and len(volumes) == 1:
-            return volumes[0]
-        raise exception.NotFound
