@@ -21,6 +21,8 @@ from gceapi import exception
 class API(base_api.BaseScopeAPI):
     """GCE Zones API."""
 
+    COMPUTE_SERVICE = "nova-compute"
+
     def get_name(self):
         return "zones"
 
@@ -36,34 +38,27 @@ class API(base_api.BaseScopeAPI):
 
     def get_items(self, context, scope=None):
         nova_client = clients.Clients(context).nova()
-        zones = nova_client.availability_zones.list()
-        for zone in zones:
-            zone.name = zone.display_name
-        return zones
-        for zone in available_zones:
-            if zone != CONF.internal_service_availability_zone:
-                zones.append({"name": zone,
-                              "status": "UP"})
-        for zone in not_available_zones:
-            if zone != CONF.internal_service_availability_zone:
-                zones.append({"name": zone,
-                              "status": "DOWN"})
+        nova_zones = list()
+        for zone in nova_client.availability_zones.list():
+            for host in zone.hosts:
+                if self.COMPUTE_SERVICE in zone.hosts[host]:
+                    nova_zones.append(zone)
+                    break
+        zones = list()
+        for zone in nova_zones:
+            zones.append({
+                "name": zone.zoneName,
+                "status": "UP" if zone.zoneState["available"] else "DOWN",
+                "hosts": [host for host in zone.hosts]
+            })
         return zones
 
     def get_item_names(self, context, scope=None):
-        return [zone.name for zone in self.get_items(context, scope)]
-
-        available_zones, not_available_zones = availability_zones \
-            .get_availability_zones(ctxt.get_admin_context())
-        zones = []
-        for zone in available_zones:
-            if zone != CONF.internal_service_availability_zone:
-                zones.append(zone)
-        for zone in not_available_zones:
-            if zone != CONF.internal_service_availability_zone:
-                zones.append(zone)
-        return zones
+        return [zone["name"] for zone in self.get_items(context, scope)]
 
     def get_item_by_host(self, context, host):
-        return availability_zones.get_host_availability_zone(
-            ctxt.get_admin_context(), host)
+        zones = self.get_items(context, None)
+        for zone in zones:
+            if host in zone.hosts:
+                return zone
+        return None
