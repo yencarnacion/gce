@@ -79,7 +79,9 @@ class Controller(gce_common.Controller):
         attached_disks = instance["attached_disks"]
         disk_index = 0
         for disk in attached_disks:
-            volume = disk["volume"]
+            volume = disk.get("volume")
+            if not volume:
+                continue
             google_disk = {
                 "kind": "compute#attachedDisk",
                 "index": disk_index,

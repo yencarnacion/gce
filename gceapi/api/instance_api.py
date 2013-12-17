@@ -14,6 +14,7 @@
 
 import time
 
+from gceapi.openstack.common.gettextutils import _
 from gceapi import context as nova_context
 from gceapi import exception
 from gceapi.openstack.common import log as logging
@@ -32,7 +33,7 @@ LOG = logging.getLogger(__name__)
 class API(base_api.API):
     """GCE Instance API"""
 
-    # Instance status. One of the following values:
+    # NOTE(apavlov): Instance status. One of the following values:
     # \"PROVISIONING\", \"STAGING\", \"RUNNING\",
     # \"STOPPING\", \"STOPPED\", \"TERMINATED\" (output only).
     _status_map = {
@@ -100,8 +101,9 @@ class API(base_api.API):
         attached_disks = db.block_device_mapping_get_all_by_instance(
             nova_context.get_admin_context(), instance['uuid'])
         for disk in attached_disks:
-            disk["volume"] = disk_api.API().get_item_by_id(
-                context, disk["volume_id"])
+            if disk["volume_id"] is not None:
+                disk["volume"] = disk_api.API().get_item_by_id(
+                    context, disk["volume_id"])
         instance["attached_disks"] = attached_disks
 
         return instance
