@@ -37,6 +37,11 @@ try:
 except ImportError:
     cinderclient = None
     logger.info(_('cinderclient not available'))
+try:
+    from glanceclient import client as glanceclient
+except ImportError:
+    glanceclient = None
+    logger.info(_('glanceclient not available'))
 
 
 class OpenStackClients(object):
@@ -49,6 +54,7 @@ class OpenStackClients(object):
         self._keystone = None
         self._neutron = None
         self._cinder = None
+        self._glance = None
 
     @property
     def auth_token(self):
@@ -120,6 +126,28 @@ class OpenStackClients(object):
         self._neutron = neutronclient.Client(**args)
 
         return self._neutron
+
+    def glance(self):
+        if glanceclient is None:
+            return None
+        if self._glance:
+            return self._glance
+
+        if self.auth_token is None:
+            logger.error(_("Glance connection failed, no auth_token!"))
+            return None
+
+        args = {
+            'auth_url': CONF.keystone_gce_url,
+            'service_type': 'image',
+            'token': self.auth_token,
+        }
+
+        # TODO(apavlov): get version from config
+        self._glance = glanceclient.Client(
+            "1", endpoint=self.url_for(service_type='image'), **args)
+
+        return self._glance
 
     def cinder(self):
         if cinderclient is None:

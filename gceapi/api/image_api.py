@@ -18,8 +18,8 @@ import tempfile
 import urllib2
 
 from gceapi.api import base_api
+from gceapi.api import clients
 from gceapi import exception
-#from nova.image import glance
 
 
 class API(base_api.API):
@@ -34,66 +34,58 @@ class API(base_api.API):
         # "pending_delete": ""
     }
 
-    def __init__(self, *args, **kwargs):
-        super(API, self).__init__(*args, **kwargs)
-        #self._image_service = glance.get_default_image_service()
-
     def get_item(self, context, name, scope=None):
-        images = self._image_service.detail(context,
+        image_service = clients.Clients(context).glance().images
+        images = image_service.list(
             filters={"name": name, "disk_format": "raw"})
-        if not images or len(images) == 0:
+        result = None
+        for image in images:
+            if result:
+                msg = _("Image resource '%s' could not be found" % name)
+                raise exception.NotFound(msg)
+            result = self._prepare_item(image)
+        if not result:
             msg = _("Image resource '%s' could not be found" % name)
             raise exception.NotFound(msg)
-        return self._prepare_item(images[0])
+        return result
 
     def get_items(self, context, scope=None):
-        images = self._image_service.detail(context,
-            filters={"disk_format": "raw"})
+        image_service = clients.Clients(context).glance().images
+        images = image_service.list(filters={"disk_format": "raw"})
+        items = list()
         for image in images:
-            self._prepare_item(image)
-        return images
+            items.append(self._prepare_item(image))
+        return items
 
     def _prepare_item(self, item):
-        item["status"] = self._status_map.get(item["status"], item["status"])
+        item.status = self._status_map.get(item.status, item.status)
         return item
 
     def delete_item(self, context, name, scope=None):
         """Delete an image, if allowed."""
-        image = self._image_service.detail(context, filters={'name': name})[0]
-        self._image_service.delete(context, image['id'])
+        image = self.get_item(context, name, scope)
+        image_service = clients.Clients(context).glance().images
+        image_service.delete(image.id)
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']
         image_ref = body['rawDisk']['source']
-        resp = urllib2.urlopen(image_ref)
-        tar = tempfile.TemporaryFile()
-        for line in resp:
-            tar.write(line)
-        tar.seek(0)
-        tar_file = tarfile.open(fileobj=tar)
-        member = tar_file.next()
-        if member is None:
-            msg = _("TAR-file is empty")
-            raise exception.InvalidRequest(msg)
-        img_filename = member.name
-        tar_file.extract(member, tempfile.gettempdir())
-        img_filename = os.path.join(tempfile.gettempdir(), img_filename)
-        img_file = open(img_filename, 'rb')
-        meta = {'name': name,
-                'disk_format': 'raw',
-                'container_format': 'bare',
-                'min_disk': 0,
-                'min_ram': 0}
-        image = self._image_service.create(context, meta, img_file)
+        meta = {
+            'name': name,
+            'disk_format': 'raw',
+            'container_format': 'bare',
+            'min_disk': 0,
+            'min_ram': 0,
+            'copy_from': image_ref,
+        }
+        image_service = clients.Clients(context).glance().images
+        image = image_service.create(**meta)
 
-        tar_file.close()
-        img_file.close()
-        tar.close()
-        os.remove(img_filename)
         return self._prepare_item(image)
 
     def get_item_by_id(self, context, image_id):
         try:
-            return self._image_service.show(context, image_id)
+            image_service = clients.Clients(context).glance().images
+            return image_service.get(context, image_id)
         except exception.NotFound:
             return None

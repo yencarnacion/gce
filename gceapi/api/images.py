@@ -29,14 +29,15 @@ class Controller(gce_common.Controller):
 
     def format_item(self, request, image, scope):
         result_dict = {
-            "creationTimestamp": self._format_date(image["created_at"]),
-            "name": image["name"],
-            "sourceType": image["disk_format"].upper(),
+            "creationTimestamp": self._format_date(image.created_at),
+            "name": image.name,
+            "sourceType": image.disk_format.upper(),
             "rawDisk": {
                 "containerType": "TAR",
                 "source": "",
             },
-            "status": image["status"]
+            "status": image.status,
+            "archiveSizeBytes": image.size,
         }
 
         return self._format_item(request, result_dict, scope)
