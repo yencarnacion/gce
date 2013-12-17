@@ -82,6 +82,6 @@ class API(base_api.API):
     def get_item_by_id(self, context, image_id):
         try:
             image_service = clients.Clients(context).glance().images
-            return image_service.get(context, image_id)
+            return utils.todict(image_service.get(image_id))
         except exception.NotFound:
             return None

@@ -21,7 +21,7 @@ from gceapi.api import utils
 from gceapi import exception
 
 
-GB = 1048576 * 1024
+GB = 1024 ** 3
 
 
 class API(base_api.API):
@@ -40,9 +40,6 @@ class API(base_api.API):
             "restoring-backup": "READY",
             # "error_restoring": ""
     }
-
-    def __init__(self, *args, **kwargs):
-        super(API, self).__init__(*args, **kwargs)
 
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).cinder().volumes
@@ -92,8 +89,11 @@ class API(base_api.API):
             volumes)
 
     def delete_item(self, context, name, scope=None):
-        volume = self.get_item(context, name, scope)
-        self._volume_service.delete(context, volume)
+        client = clients.Clients(context).cinder().volumes
+        volumes = client.list(search_opts={"display_name": name})
+        if not volumes or len(volumes) != 1:
+            raise exception.NotFound
+        client.delete(volumes[0])
 
     def add_item(self, context, name, body, scope=None):
         sizeGb = int(body['sizeGb']) if 'sizeGb' in body else None
@@ -115,7 +115,7 @@ class API(base_api.API):
                 if not sizeGb or sizeGb < image_size_in_gb:
                     sizeGb = image_size_in_gb
 
-        volume = self._volume_service.create(context,
+        volume = _volume_service.create(context,
             sizeGb,
             body.get('name'),
             body.get('description'),
@@ -126,16 +126,18 @@ class API(base_api.API):
         return self._prepare_item(context, volume)
 
     def _get_snapshot(self, context, snapshot_id):
-        return self._volume_service.get_snapshot(context, snapshot_id)
+        client = clients.Clients(context).cinder().volume_snapshots
+        return client.get(snapshot_id)
 
     def _get_image_by_url(self, context, url):
         source_name = os.path.basename(url)
         return image_api.API().get_item(context, source_name)
 
     def _get_snapshot_by_url(self, context, url):
+        # TODO(apavlov): use extract_name_from_url
         snapshot_name = os.path.basename(url)
-        snapshots = self._volume_service.get_all_snapshots(context)
-        for snapshot in snapshots:
-            if snapshot["display_name"] == snapshot_name:
-                return snapshot
+        client = clients.Clients(context).cinder().volume_snapshots
+        snapshots = client.list(search_opts={"display_name": snapshot_name})
+        if snapshots and len(snapshots) == 1:
+            return snapshots[0]
         raise exception.NotFound

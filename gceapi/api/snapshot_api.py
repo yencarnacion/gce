@@ -13,8 +13,9 @@
 #    under the License.
 
 from gceapi.api import base_api
+from gceapi.api import clients
+from gceapi.api import utils
 from gceapi import exception
-#from gceapi import volume
 
 
 class API(base_api.API):
@@ -29,33 +30,34 @@ class API(base_api.API):
         'deleted': 'DELETING',
         'error': 'FAILED'}
 
-    def __init__(self, *args, **kwargs):
-        super(API, self).__init__(*args, **kwargs)
-        #self._volume_service = volume.API()
-
     def get_item(self, context, name, scope=None):
-        snapshots = self._volume_service.get_all_snapshots(context)
-        for snapshot in snapshots:
-            if snapshot["display_name"] == name:
-                return self._prepare_item(context, snapshot)
+        client = clients.Clients(context).cinder().volume_snapshots
+        snapshots = client.list(search_opts={"display_name": name})
+        if snapshots and len(snapshots) == 1:
+            return self._prepare_item(context, utils.todict(snapshots[0]))
         raise exception.NotFound
 
     def get_items(self, context, scope=None):
-        snapshots = self._volume_service.get_all_snapshots(context)
+        client = clients.Clients(context).cinder().volume_snapshots
+        snapshots = [utils.todict(item) for item in client.list()]
         for snapshot in snapshots:
             self._prepare_item(context, snapshot)
         return snapshots
 
     def delete_item(self, context, name, scope=None):
-        snapshot = self.get_item(context, name, scope)
-        self._volume_service.delete_snapshot(context, snapshot)
+        client = clients.Clients(context).cinder().volume_snapshots
+        snapshots = client.list(search_opts={"display_name": name})
+        if not snapshots or len(snapshots) != 1:
+            raise exception.NotFound
+        client.delete(snapshots[0])
 
     def add_item(self, context, body, scope=None):
         name = body["name"]
         disk_name = body["disk_name"]
         volume = self._get_disk_by_name(context, disk_name, scope)
 
-        snapshot = self._volume_service.create_snapshot_force(
+        client = clients.Clients(context).cinder().volume_snapshots
+        snapshot = client.add(
             context, volume, name, body["description"])
 
         return self._prepare_item(context, snapshot)
@@ -63,15 +65,16 @@ class API(base_api.API):
     def _prepare_item(self, context, item):
         item["name"] = item["display_name"]
         try:
-            item["disk"] = self._volume_service.get(context, item["volume_id"])
+            client = clients.Clients(context).cinder().volumes
+            item["disk"] = utils.todict(client.get(item["volume_id"]))
         except:
             pass
         item["status"] = self._status_map.get(item["status"], item["status"])
         return item
 
     def _get_disk_by_name(self, context, name, scope):
-        volumes = self._volume_service.get_all(context)
-        for volume in volumes:
-            if volume["display_name"] == name:
-                return volume
+        client = clients.Clients(context).cinder().volumes
+        volumes = client.list(search_opts={"display_name": name})
+        if volumes and len(volumes) == 1:
+            return volumes[0]
         raise exception.NotFound
