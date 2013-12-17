@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2010 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 # Copyright 2011 Justin Santa Barbara
@@ -22,9 +20,9 @@ import sys
 from eventlet import event
 from eventlet import greenthread
 
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import log as logging
-from nova.openstack.common import timeutils
+from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import timeutils
 
 LOG = logging.getLogger(__name__)
 

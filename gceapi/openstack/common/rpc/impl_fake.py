@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 #    Copyright 2011 OpenStack Foundation
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -27,7 +25,7 @@ import time
 
 import eventlet
 
-from nova.openstack.common.rpc import common as rpc_common
+from gceapi.openstack.common.rpc import common as rpc_common
 
 CONSUMERS = {}
 

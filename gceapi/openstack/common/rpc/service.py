@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2010 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 # All Rights Reserved.
@@ -17,11 +15,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova.openstack.common.gettextutils import _  # noqa
-from nova.openstack.common import log as logging
-from nova.openstack.common import rpc
-from nova.openstack.common.rpc import dispatcher as rpc_dispatcher
-from nova.openstack.common import service
+from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import rpc
+from gceapi.openstack.common.rpc import dispatcher as rpc_dispatcher
+from gceapi.openstack.common import service
 
 
 LOG = logging.getLogger(__name__)
