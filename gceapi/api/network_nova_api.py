@@ -15,11 +15,13 @@
 import netaddr
 
 from gceapi.api import base_api
+from gceapi.api import clients
+from gceapi.api import utils
 from gceapi import exception
-#from gceapi import network as nova_network
 from gceapi.openstack.common.gettextutils import _
 
 
+# TODO: fix it. check it.
 class API(base_api.API):
     """GCE Network API - nova-network implementation"""
 
@@ -32,12 +34,12 @@ class API(base_api.API):
         raise exception.NotFound(msg)
 
     def get_items(self, context, scope=None):
-        networks = nova_network.API().get_all(context)
-        # networks = networks["networks"]
+        client = clients.Clients(context).nova()
+        networks = client.networks.list()
         result_networks = []
         for network in networks:
-            result_networks.append(self._prepare_network(network))
-        #    result_networks.append(self._fill_subnet_info(context, network))
+            result_networks.append(
+                self._prepare_network(utils.todict(network)))
         return result_networks
 
     def delete_item(self, context, name, scope=None):
@@ -61,7 +63,7 @@ class API(base_api.API):
         except exception.NotFound:
             pass
         if network is not None:
-            raise exception.Duplicate
+            raise exception.DuplicateVlan
         kwargs = {'label': name, 'cidr': ip_range, 'gateway': gateway}
         network = nova_network.API().create(context, **kwargs)
         return self._prepare_network(network)
