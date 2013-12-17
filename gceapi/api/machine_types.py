@@ -31,20 +31,20 @@ class Controller(gce_common.Controller):
 
     def format_item(self, request, flavor, scope):
         result_dict = {
-            "creationTimestamp": self._format_date(flavor["created_at"]),
-            "name": flavor["name"],
+            #"creationTimestamp": self._format_date(flavor["created_at"]),
+            "name": flavor.name,
             "description": "",
-            "guestCpus": flavor["vcpus"],
-            "memoryMb": flavor["memory_mb"],
-            "imageSpaceGb": flavor["root_gb"],
+            "guestCpus": flavor.vcpus,
+            "memoryMb": flavor.ram,
+            "imageSpaceGb": flavor.disk,
             # NOTE(Alex): Is not supported by Openstack
             "maximumPersistentDisks": 0,
             # NOTE(Alex): Is not supported by Openstack
             "maximumPersistentDisksSizeGb": 0,
             }
 
-        if flavor["ephemeral_gb"] != 0:
-            result_dict["scratchDisks"] = [{"diskGb": flavor["ephemeral_gb"]}]
+        if flavor.ephemeral != 0:
+            result_dict["scratchDisks"] = [{"diskGb": flavor.ephemeral_gb}]
 
         # NOTE(Alex): The following code is written but disabled because
         # it seems "deleted" is deprecated now (see comment in

@@ -15,6 +15,7 @@
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import zone_api
+from gceapi import exception
 
 
 class API(base_api.API):
@@ -22,9 +23,13 @@ class API(base_api.API):
 
     def get_item(self, context, name, scope=None):
         nova_client = clients.Clients(context).nova()
-        item = nova_client.flavors.get(self._from_gce(name))
+        try:
+            item = nova_client.flavors.find(name=self._from_gce(name))
+        except (clients.novaclient.exceptions.NotFound,
+                clients.novaclient.exceptions.NoUniqueMatch):
+            raise exception.NotFound
         if item:
-            item["name"] = self._to_gce(item["name"])
+            item.name = self._to_gce(item.name)
         return item
 
     def get_items(self, context, scope=None):
@@ -35,6 +40,7 @@ class API(base_api.API):
         return items
 
     def get_scopes(self, context, item):
+        # TODO(apavlov): too slow for all...
         return zone_api.API().get_item_names(context)
 
     def _from_gce(self, name):

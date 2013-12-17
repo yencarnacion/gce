@@ -13,16 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import eventlet
-
 from oslo.config import cfg
 from novaclient import client as novaclient
 from novaclient import shell as novashell
 from keystoneclient.v2_0 import client as kc
-from keystoneclient.v3 import client as kc_v3
 
 from gceapi import exception
-from gceapi.openstack.common import importutils
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common.gettextutils import _
 
