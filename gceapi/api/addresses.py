@@ -49,9 +49,9 @@ class Controller(gce_common.Controller):
                 ctx, {"fixed_ip": fixed_ip_address}, None)
             if instances:
                 instance = instances[0]
-                zone = zone_api.API().get_item_by_host(ctx, instance["host"])
+                zone = instance["OS-EXT-AZ:availability_zone"]
                 result_dict["users"] = [self._qualify(
-                    request, "instances", instance["display_name"],
+                    request, "instances", instance["name"],
                     gce_common.Scope.create_zone(zone))]
 
         return self._format_item(request, result_dict, scope)

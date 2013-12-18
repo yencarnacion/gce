@@ -76,7 +76,6 @@ class OpenStackClients(object):
         if service_type in self._nova:
             return self._nova[service_type]
 
-        con = self.context
         if self.auth_token is None:
             logger.error(_("Nova connection failed, no auth_token!"))
             return None
@@ -85,7 +84,7 @@ class OpenStackClients(object):
         extensions = computeshell._discover_extensions("1.1")
 
         args = {
-            'project_id': con.project_id,
+            'project_id': self.context.project_id,
             'auth_url': CONF.keystone_gce_url,
             'service_type': service_type,
             'username': None,
@@ -139,7 +138,6 @@ class OpenStackClients(object):
             'token': self.auth_token,
         }
 
-        # TODO(apavlov): get version from config
         self._glance = glanceclient.Client(
             "1", endpoint=self.url_for(service_type='image'), **args)
 
@@ -151,7 +149,6 @@ class OpenStackClients(object):
         if self._cinder:
             return self._cinder
 
-        con = self.context
         if self.auth_token is None:
             logger.error(_("Cinder connection failed, no auth_token!"))
             return None
@@ -159,7 +156,6 @@ class OpenStackClients(object):
         args = {
             'service_type': 'volume',
             'auth_url': CONF.keystone_gce_url,
-            'project_id': con.project_id,
             'username': None,
             'api_key': None,
         }

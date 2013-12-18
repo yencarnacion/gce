@@ -15,17 +15,17 @@
 import time
 
 from gceapi.openstack.common.gettextutils import _
-from gceapi import context as nova_context
 from gceapi import exception
 from gceapi.openstack.common import log as logging
 
 from gceapi.api import base_api
+from gceapi.api import clients
 from gceapi.api import disk_api
 from gceapi.api import firewall_api
 from gceapi.api import machine_type_api
 from gceapi.api import network_api
 from gceapi.api import project_api
-from gceapi.api import zone_api
+from gceapi.api import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -52,7 +52,6 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        #self._compute_api = compute_api.API()
         network_api.API()._register_callback(
             base_api._callback_reasons.check_delete,
             self._can_delete_network)
@@ -70,7 +69,7 @@ class API(base_api.API):
         return self.search_items(context, None, scope)
 
     def get_scopes(self, context, item):
-        return [zone_api.API().get_item_by_host(context, item["host"])]
+        return [item["OS-EXT-AZ:availability_zone"]]
 
     def search_items(self, context, search_opts, scope):
         search_opts = search_opts or {}
@@ -79,32 +78,33 @@ class API(base_api.API):
             search_opts['project_id'] = context.project_id
         else:
             search_opts['user_id'] = context.user_id
-        instances = self._compute_api.get_all(context, search_opts=search_opts)
+        client = clients.Clients(context).nova()
+        instances = client.servers.list(search_opts=search_opts)
 
         filtered_instances = []
         for instance in instances:
+            iscope = getattr(instance, "OS-EXT-AZ:availability_zone")
             if (scope is None
-            or scope.get_name() in self.get_scopes(context, instance)):
-                instance = self._prepare_instance(context, instance)
+            or scope.get_name() == iscope):
+                instance = utils.todict(instance)
+                instance = self._prepare_instance(client, context, instance)
                 filtered_instances.append(instance)
 
         return filtered_instances
 
-    def _prepare_instance(self, context, instance):
-        instance["name"] = instance["display_name"]
+    def _prepare_instance(self, client, context, instance):
         instance["status"] = self._status_map.get(
-            instance["vm_state"], instance["vm_state"])
+            instance["status"].lower(), instance["status"])
+        instance["flavor"]["name"] = client.flavors.get(
+            instance["flavor"]["id"]).name.replace(".", "-")
 
-        instance["cached_nwinfo"] = \
-            compute_utils.get_nw_info_for_instance(instance)
-
-        attached_disks = db.block_device_mapping_get_all_by_instance(
-            nova_context.get_admin_context(), instance['uuid'])
-        for disk in attached_disks:
-            if disk["volume_id"] is not None:
-                disk["volume"] = disk_api.API().get_item_by_id(
-                    context, disk["volume_id"])
-        instance["attached_disks"] = attached_disks
+#         attached_disks = db.block_device_mapping_get_all_by_instance(
+#             nova_context.get_admin_context(), instance['uuid'])
+#         for disk in attached_disks:
+#             if disk["volume_id"] is not None:
+#                 disk["volume"] = disk_api.API().get_item_by_id(
+#                     context, disk["volume_id"])
+#         instance["attached_disks"] = attached_disks
 
         return instance
 
@@ -150,11 +150,11 @@ class API(base_api.API):
 
     def reset_instance(self, context, scope, name):
         instance = self.search_items(context, {"name": name}, scope)[0]
-        self._compute_api.reboot(context, instance, 'HARD')
+        _compute_api.reboot(context, instance, 'HARD')
 
     def delete_item(self, context, name, scope=None):
         instance = self.search_items(context, {"name": name}, scope)[0]
-        self._compute_api.delete(context, instance)
+        _compute_api.delete(context, instance)
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']
@@ -226,7 +226,7 @@ class API(base_api.API):
         instance_type = machine_type_api.API() \
             .get_item(context, flavor_name, scope)
 
-        self._compute_api.create(
+        _compute_api.create(
             context,
             instance_type,
             image_id,

@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright (c) 2013 Rackspace Hosting
 # All Rights Reserved.
 #
@@ -40,8 +38,7 @@ import functools
 
 from oslo.config import cfg
 
-from nova.openstack.common import importutils
-from nova.openstack.common import lockutils
+from gceapi.openstack.common import importutils
 
 
 db_opts = [
@@ -66,20 +63,6 @@ class DBAPI(object):
     def __init__(self, backend_mapping=None):
         if backend_mapping is None:
             backend_mapping = {}
-        self.__backend = None
-        self.__backend_mapping = backend_mapping
-
-    @lockutils.synchronized('dbapi_backend', 'nova-')
-    def __get_backend(self):
-        """Get the actual backend.  May be a module or an instance of
-        a class.  Doesn't matter to us.  We do this synchronized as it's
-        possible multiple greenthreads started very quickly trying to do
-        DB calls and eventlet can switch threads before self.__backend gets
-        assigned.
-        """
-        if self.__backend:
-            # Another thread assigned it
-            return self.__backend
         backend_name = CONF.database.backend
         self.__use_tpool = CONF.database.use_tpool
         if self.__use_tpool:
@@ -87,15 +70,12 @@ class DBAPI(object):
             self.__tpool = tpool
         # Import the untranslated name if we don't have a
         # mapping.
-        backend_path = self.__backend_mapping.get(backend_name,
-                                                  backend_name)
+        backend_path = backend_mapping.get(backend_name, backend_name)
         backend_mod = importutils.import_module(backend_path)
         self.__backend = backend_mod.get_backend()
-        return self.__backend
 
     def __getattr__(self, key):
-        backend = self.__backend or self.__get_backend()
-        attr = getattr(backend, key)
+        attr = getattr(self.__backend, key)
         if not self.__use_tpool or not hasattr(attr, '__call__'):
             return attr
 

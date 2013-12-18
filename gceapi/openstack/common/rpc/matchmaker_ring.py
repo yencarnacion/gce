@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 #    Copyright 2011-2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -23,9 +21,9 @@ import json
 
 from oslo.config import cfg
 
-from nova.openstack.common.gettextutils import _  # noqa
-from nova.openstack.common import log as logging
-from nova.openstack.common.rpc import matchmaker as mm
+from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common.rpc import matchmaker as mm
 
 
 matchmaker_opts = [

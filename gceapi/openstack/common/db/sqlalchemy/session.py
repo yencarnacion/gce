@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2010 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 # All Rights Reserved.
@@ -23,11 +21,11 @@ Initializing:
 * Call set_defaults with the minimal of the following kwargs:
     sql_connection, sqlite_db
 
-  Example:
+  Example::
 
     session.set_defaults(
-        sql_connection="sqlite:///var/lib/nova/sqlite.db",
-        sqlite_db="/var/lib/nova/sqlite.db")
+        sql_connection="sqlite:///var/lib/gceapi/sqlite.db",
+        sqlite_db="/var/lib/gceapi/sqlite.db")
 
 Recommended ways to use sessions within this framework:
 
@@ -44,17 +42,17 @@ Recommended ways to use sessions within this framework:
   functionality should be handled at a logical level. For an example, look at
   the code around quotas and reservation_rollback().
 
-  Examples:
+  Examples::
 
     def get_foo(context, foo):
-        return model_query(context, models.Foo).\
-                filter_by(foo=foo).\
-                first()
+        return (model_query(context, models.Foo).
+                filter_by(foo=foo).
+                first())
 
     def update_foo(context, id, newfoo):
-        model_query(context, models.Foo).\
-                filter_by(id=id).\
-                update({'foo': newfoo})
+        (model_query(context, models.Foo).
+                filter_by(id=id).
+                update({'foo': newfoo}))
 
     def create_foo(context, values):
         foo_ref = models.Foo()
@@ -76,6 +74,8 @@ Recommended ways to use sessions within this framework:
   If you create models within the session, they need to be added, but you
   do not need to call model.save()
 
+  ::
+
     def create_many_foo(context, foos):
         session = get_session()
         with session.begin():
@@ -87,29 +87,29 @@ Recommended ways to use sessions within this framework:
     def update_bar(context, foo_id, newbar):
         session = get_session()
         with session.begin():
-            foo_ref = model_query(context, models.Foo, session).\
-                        filter_by(id=foo_id).\
-                        first()
-            model_query(context, models.Bar, session).\
-                        filter_by(id=foo_ref['bar_id']).\
-                        update({'bar': newbar})
+            foo_ref = (model_query(context, models.Foo, session).
+                        filter_by(id=foo_id).
+                        first())
+            (model_query(context, models.Bar, session).
+                        filter_by(id=foo_ref['bar_id']).
+                        update({'bar': newbar}))
 
   Note: update_bar is a trivially simple example of using "with session.begin".
   Whereas create_many_foo is a good example of when a transaction is needed,
   it is always best to use as few queries as possible. The two queries in
   update_bar can be better expressed using a single query which avoids
-  the need for an explicit transaction. It can be expressed like so:
+  the need for an explicit transaction. It can be expressed like so::
 
     def update_bar(context, foo_id, newbar):
-        subq = model_query(context, models.Foo.id).\
-                filter_by(id=foo_id).\
-                limit(1).\
-                subquery()
-        model_query(context, models.Bar).\
-                filter_by(id=subq.as_scalar()).\
-                update({'bar': newbar})
+        subq = (model_query(context, models.Foo.id).
+                filter_by(id=foo_id).
+                limit(1).
+                subquery())
+        (model_query(context, models.Bar).
+                filter_by(id=subq.as_scalar()).
+                update({'bar': newbar}))
 
-  For reference, this emits approximagely the following SQL statement:
+  For reference, this emits approximately the following SQL statement::
 
     UPDATE bar SET bar = ${newbar}
         WHERE id=(SELECT bar_id FROM foo WHERE id = ${foo_id} LIMIT 1);
@@ -128,6 +128,8 @@ Recommended ways to use sessions within this framework:
   single database transaction spans more than one method. Error handling
   becomes less clear in this situation. When this is needed for code clarity,
   it should be clearly documented.
+
+  ::
 
     def myfunc(foo):
         session = get_session()
@@ -173,7 +175,7 @@ There are some things which it is best to avoid:
 Enabling soft deletes:
 
 * To use/enable soft-deletes, the SoftDeleteMixin must be added
-  to your model class. For example:
+  to your model class. For example::
 
       class NovaBase(models.SoftDeleteMixin, models.ModelBase):
           pass
@@ -181,14 +183,15 @@ Enabling soft deletes:
 
 Efficient use of soft deletes:
 
-* There are two possible ways to mark a record as deleted:
+* There are two possible ways to mark a record as deleted::
+
     model.soft_delete() and query.soft_delete().
 
   model.soft_delete() method works with single already fetched entry.
   query.soft_delete() makes only one db request for all entries that correspond
   to query.
 
-* In almost all cases you should use query.soft_delete(). Some examples:
+* In almost all cases you should use query.soft_delete(). Some examples::
 
         def soft_delete_bar():
             count = model_query(BarModel).find(some_condition).soft_delete()
@@ -199,9 +202,9 @@ Efficient use of soft deletes:
             if session is None:
                 session = get_session()
             with session.begin(subtransactions=True):
-                count = model_query(BarModel).\
-                            find(some_condition).\
-                            soft_delete(synchronize_session=True)
+                count = (model_query(BarModel).
+                            find(some_condition).
+                            soft_delete(synchronize_session=True))
                             # Here synchronize_session is required, because we
                             # don't know what is going on in outer session.
                 if count == 0:
@@ -211,6 +214,8 @@ Efficient use of soft deletes:
   you fetch a single record, work with it, and mark it as deleted in the same
   transaction.
 
+  ::
+
         def soft_delete_bar_model():
             session = get_session()
             with session.begin():
@@ -219,13 +224,13 @@ Efficient use of soft deletes:
                 bar_ref.soft_delete(session=session)
 
   However, if you need to work with all entries that correspond to query and
-  then soft delete them you should use query.soft_delete() method:
+  then soft delete them you should use query.soft_delete() method::
 
         def soft_delete_multi_models():
             session = get_session()
             with session.begin():
-                query = model_query(BarModel, session=session).\
-                            find(some_condition)
+                query = (model_query(BarModel, session=session).
+                            find(some_condition))
                 model_refs = query.all()
                 # Work with model_refs
                 query.soft_delete(synchronize_session=False)
@@ -236,16 +241,18 @@ Efficient use of soft deletes:
   which issues a single query. Using model.soft_delete(), as in the following
   example, is very inefficient.
 
+  ::
+
         for bar_ref in bar_refs:
             bar_ref.soft_delete(session=session)
         # This will produce count(bar_refs) db requests.
 """
 
+import functools
 import os.path
 import re
 import time
 
-from eventlet import greenthread
 from oslo.config import cfg
 import six
 from sqlalchemy import exc as sqla_exc
@@ -255,14 +262,14 @@ import sqlalchemy.orm
 from sqlalchemy.pool import NullPool, StaticPool
 from sqlalchemy.sql.expression import literal_column
 
-from nova.openstack.common.db import exception
-from nova.openstack.common.gettextutils import _  # noqa
-from nova.openstack.common import log as logging
-from nova.openstack.common import timeutils
+from gceapi.openstack.common.db import exception
+from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import timeutils
 
 sqlite_db_opts = [
     cfg.StrOpt('sqlite_db',
-               default='nova.sqlite',
+               default='gceapi.sqlite',
                help='the filename to use with sqlite'),
     cfg.BoolOpt('sqlite_synchronous',
                 default=True,
@@ -279,19 +286,21 @@ database_opts = [
                deprecated_opts=[cfg.DeprecatedOpt('sql_connection',
                                                   group='DEFAULT'),
                                 cfg.DeprecatedOpt('sql_connection',
-                                                  group='DATABASE')],
-               secret=True),
+                                                  group='DATABASE'),
+                                cfg.DeprecatedOpt('connection',
+                                                  group='sql'), ]),
     cfg.StrOpt('slave_connection',
                default='',
                help='The SQLAlchemy connection string used to connect to the '
-                    'slave database',
-               secret=True),
+                    'slave database'),
     cfg.IntOpt('idle_timeout',
                default=3600,
                deprecated_opts=[cfg.DeprecatedOpt('sql_idle_timeout',
                                                   group='DEFAULT'),
                                 cfg.DeprecatedOpt('sql_idle_timeout',
-                                                  group='DATABASE')],
+                                                  group='DATABASE'),
+                                cfg.DeprecatedOpt('idle_timeout',
+                                                  group='sql')],
                help='timeout before idle sql connections are reaped'),
     cfg.IntOpt('min_pool_size',
                default=1,
@@ -478,6 +487,11 @@ def _raise_if_duplicate_entry_error(integrity_error, engine_name):
     if engine_name not in ["mysql", "sqlite", "postgresql"]:
         return
 
+    # FIXME(johannes): The usage of the .message attribute has been
+    # deprecated since Python 2.6. However, the exceptions raised by
+    # SQLAlchemy can differ when using unicode() and accessing .message.
+    # An audit across all three supported engines will be necessary to
+    # ensure there are no regressions.
     m = _DUP_KEY_RE_DB[engine_name].match(integrity_error.message)
     if not m:
         return
@@ -510,6 +524,11 @@ def _raise_if_deadlock_error(operational_error, engine_name):
     re = _DEADLOCK_RE_DB.get(engine_name)
     if re is None:
         return
+    # FIXME(johannes): The usage of the .message attribute has been
+    # deprecated since Python 2.6. However, the exceptions raised by
+    # SQLAlchemy can differ when using unicode() and accessing .message.
+    # An audit across all three supported engines will be necessary to
+    # ensure there are no regressions.
     m = re.match(operational_error.message)
     if not m:
         return
@@ -517,6 +536,7 @@ def _raise_if_deadlock_error(operational_error, engine_name):
 
 
 def _wrap_db_error(f):
+    @functools.wraps(f)
     def _wrap(*args, **kwargs):
         try:
             return f(*args, **kwargs)
@@ -541,7 +561,6 @@ def _wrap_db_error(f):
         except Exception as e:
             LOG.exception(_('DB exception wrapped.'))
             raise exception.DBError(e)
-    _wrap.func_name = f.func_name
     return _wrap
 
 
@@ -581,28 +600,36 @@ def _add_regexp_listener(dbapi_con, con_record):
     dbapi_con.create_function('regexp', 2, regexp)
 
 
-def _greenthread_yield(dbapi_con, con_record):
+def _thread_yield(dbapi_con, con_record):
     """Ensure other greenthreads get a chance to be executed.
 
+    If we use eventlet.monkey_patch(), eventlet.greenthread.sleep(0) will
+    execute instead of time.sleep(0).
     Force a context switch. With common database backends (eg MySQLdb and
     sqlite), there is no implicit yield caused by network I/O since they are
     implemented by C libraries that eventlet cannot monkey patch.
     """
-    greenthread.sleep(0)
+    time.sleep(0)
 
 
-def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
-    """Ensures that MySQL connections checked out of the pool are alive.
+def _ping_listener(engine, dbapi_conn, connection_rec, connection_proxy):
+    """Ensures that MySQL and DB2 connections are alive.
 
     Borrowed from:
     http://groups.google.com/group/sqlalchemy/msg/a4ce563d802c929f
     """
+    cursor = dbapi_conn.cursor()
     try:
-        dbapi_conn.cursor().execute('select 1')
-    except dbapi_conn.OperationalError as ex:
-        if ex.args[0] in (2006, 2013, 2014, 2045, 2055):
-            LOG.warn(_('Got mysql server has gone away: %s'), ex)
-            raise sqla_exc.DisconnectionError("Database server went away")
+        ping_sql = 'select 1'
+        if engine.name == 'ibm_db_sa':
+            # DB2 requires a table expression
+            ping_sql = 'select 1 from (values (1)) AS t1'
+        cursor.execute(ping_sql)
+    except Exception as ex:
+        if engine.dialect.is_disconnect(ex, dbapi_conn, cursor):
+            msg = _('Database server has gone away: %s') % ex
+            LOG.warning(msg)
+            raise sqla_exc.DisconnectionError(msg)
         else:
             raise
 
@@ -611,7 +638,8 @@ def _is_db_connection_error(args):
     """Return True if error in connecting to db."""
     # NOTE(adam_g): This is currently MySQL specific and needs to be extended
     #               to support Postgres and others.
-    conn_err_codes = ('2002', '2003', '2006')
+    # For the db2, the error code is -30081 since the db2 is still not ready
+    conn_err_codes = ('2002', '2003', '2006', '-30081')
     for err_code in conn_err_codes:
         if args.find(err_code) != -1:
             return True
@@ -657,10 +685,11 @@ def create_engine(sql_connection, sqlite_fk=False):
 
     engine = sqlalchemy.create_engine(sql_connection, **engine_args)
 
-    sqlalchemy.event.listen(engine, 'checkin', _greenthread_yield)
+    sqlalchemy.event.listen(engine, 'checkin', _thread_yield)
 
-    if 'mysql' in connection_dict.drivername:
-        sqlalchemy.event.listen(engine, 'checkout', _ping_listener)
+    if engine.name in ['mysql', 'ibm_db_sa']:
+        callback = functools.partial(_ping_listener, engine)
+        sqlalchemy.event.listen(engine, 'checkout', callback)
     elif 'sqlite' in connection_dict.drivername:
         if not CONF.sqlite_synchronous:
             sqlalchemy.event.listen(engine, 'connect',
@@ -682,7 +711,7 @@ def create_engine(sql_connection, sqlite_fk=False):
             remaining = 'infinite'
         while True:
             msg = _('SQL connection failed. %s attempts left.')
-            LOG.warn(msg % remaining)
+            LOG.warning(msg % remaining)
             if remaining != 'infinite':
                 remaining -= 1
             time.sleep(CONF.database.retry_interval)
@@ -741,25 +770,25 @@ def _patch_mysqldb_with_stacktrace_comments():
 
     def _do_query(self, q):
         stack = ''
-        for file, line, method, function in traceback.extract_stack():
+        for filename, line, method, function in traceback.extract_stack():
             # exclude various common things from trace
-            if file.endswith('session.py') and method == '_do_query':
+            if filename.endswith('session.py') and method == '_do_query':
                 continue
-            if file.endswith('api.py') and method == 'wrapper':
+            if filename.endswith('api.py') and method == 'wrapper':
                 continue
-            if file.endswith('utils.py') and method == '_inner':
+            if filename.endswith('utils.py') and method == '_inner':
                 continue
-            if file.endswith('exception.py') and method == '_wrap':
+            if filename.endswith('exception.py') and method == '_wrap':
                 continue
             # db/api is just a wrapper around db/sqlalchemy/api
-            if file.endswith('db/api.py'):
+            if filename.endswith('db/api.py'):
                 continue
-            # only trace inside nova
-            index = file.rfind('nova')
+            # only trace inside gceapi
+            index = filename.rfind('gceapi')
             if index == -1:
                 continue
             stack += "File:%s:%s Method:%s() Line:%s | " \
-                     % (file[index:], line, method, function)
+                     % (filename[index:], line, method, function)
 
         # strip trailing " | " from stack
         if stack:

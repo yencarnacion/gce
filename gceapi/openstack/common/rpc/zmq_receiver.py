@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 #    Copyright 2011 OpenStack Foundation
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -22,9 +20,9 @@ import sys
 
 from oslo.config import cfg
 
-from nova.openstack.common import log as logging
-from nova.openstack.common import rpc
-from nova.openstack.common.rpc import impl_zmq
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import rpc
+from gceapi.openstack.common.rpc import impl_zmq
 
 CONF = cfg.CONF
 CONF.register_opts(rpc.rpc_opts)

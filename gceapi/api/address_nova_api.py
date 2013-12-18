@@ -14,9 +14,9 @@
 
 from gceapi.api import base_api
 from gceapi import exception
-#from gceapi import network as nova_network
 
 
+# TODO: fix it. check it.
 class API(base_api.API):
     """GCE Address API - nova-network implementation"""
 

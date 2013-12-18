@@ -18,8 +18,11 @@ from gceapi.api import common as gce_common
 from gceapi.api import instance_api
 from gceapi.api import wsgi as gce_wsgi
 from gceapi.api import zone_api
-#from nova.compute import instance_types
 from gceapi import exception
+
+from gceapi.openstack.common import log as logging
+
+logger = logging.getLogger(__name__)
 
 
 class Controller(gce_common.Controller):
@@ -34,18 +37,13 @@ class Controller(gce_common.Controller):
         return "instance"
 
     def format_item(self, request, instance, scope):
-        machineTypeName = str(
-            instance_types.extract_instance_type(instance)['name']
-                .replace(".", "-"))
         result_dict = {
-            "creationTimestamp": self._format_date(instance['created_at']),
-            "status": instance['status'],
-            # NOTE(apavlov): real openstack status
-            "statusMessage": instance['vm_state'],
-            "name": instance['display_name'],
-            "description": instance['display_description'],
+            "creationTimestamp": self._format_date(instance["created"]),
+            "status": instance["status"],
+            "name": instance["name"],
+            "description": instance.get("display_description", ""),
             "machineType": self._qualify(request,
-                "machineTypes", machineTypeName, scope),
+                "machineTypes", instance["flavor"]["name"], scope),
             "networkInterfaces": [],
             "disks": [],
             "metadata": {
@@ -53,48 +51,54 @@ class Controller(gce_common.Controller):
             },
         }
 
+        # TODO(apavlov):
         for i in instance.get("metadata", []):
             result_dict["metadata"]["items"].append(
                 {"key": i["key"], "value": i["value"]})
 
-        cached_nwinfo = instance["cached_nwinfo"]
-        if cached_nwinfo:
-            for network_info in cached_nwinfo:
-                for subnet in network_info['network']['subnets']:
-                    for fixed_ip in subnet['ips']:
-                        result_dict["networkInterfaces"].append({
-                            "network": self._qualify(request,
-                                "networks", network_info['network']['label'],
-                                gce_common.Scope.create_global()),
-                            "networkIP": fixed_ip['address'],
-                            "name": network_info['network']['label'],
-                            "accessConfigs": [{
-                                "kind": "compute#accessConfig",
-                                "name": "External NAT",
-                                "type": "ONE_TO_ONE_NAT",
-                                "natIP": ip['address']
-                            } for ip in fixed_ip['floating_ips']]
-                        })
+        for network in instance["addresses"]:
+            ni = dict()
+            ni["network"] = self._qualify(request,
+                "networks", network,
+                gce_common.Scope.create_global())
+            ni["name"] = network
+            ni["accessConfigs"] = []
+            for address in instance["addresses"][network]:
+                atype = address["OS-EXT-IPS:type"]
+                if atype == "fixed" and "networkIP" not in ni:
+                    ni["networkIP"] = address["addr"]
+                    continue
+                if atype == "floating":
+                    ni["accessConfigs"].append({
+                        "kind": "compute#accessConfig",
+                        "name": "External NAT",
+                        "type": "ONE_TO_ONE_NAT",
+                        "natIP": address["addr"]
+                    })
+                    continue
+                logger.warn(_("Unexpected address for instance '%(i)' in "
+                    "network '%(n)", {"i": instance["name"], "n": network}))
+            result_dict["networkInterfaces"].append(ni)
 
-        attached_disks = instance["attached_disks"]
-        disk_index = 0
-        for disk in attached_disks:
-            volume = disk.get("volume")
-            if not volume:
-                continue
-            google_disk = {
-                "kind": "compute#attachedDisk",
-                "index": disk_index,
-                "type": "PERSISTENT",
-                "mode": "READ_WRITE",
-                "source": self._qualify(request,
-                    "disks", volume['display_name'], scope),
-                "deviceName": disk['device_name'],
-            }
-            if disk['device_name'] == "vda":
-                google_disk["boot"] = True,
-            result_dict["disks"].append(google_disk)
-            disk_index += 1
+#         attached_disks = instance["attached_disks"]
+#         disk_index = 0
+#         for disk in attached_disks:
+#             volume = disk.get("volume")
+#             if not volume:
+#                 continue
+#             google_disk = {
+#                 "kind": "compute#attachedDisk",
+#                 "index": disk_index,
+#                 "type": "PERSISTENT",
+#                 "mode": "READ_WRITE",
+#                 "source": self._qualify(request,
+#                     "disks", volume['display_name'], scope),
+#                 "deviceName": disk['device_name'],
+#             }
+#             if disk['device_name'] == "vda":
+#                 google_disk["boot"] = True,
+#             result_dict["disks"].append(google_disk)
+#             disk_index += 1
 
         return self._format_item(request, result_dict, scope)
 

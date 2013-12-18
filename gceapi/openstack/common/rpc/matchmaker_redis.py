@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 #    Copyright 2013 Cloudscaling Group, Inc
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -20,9 +18,9 @@ return keys for direct exchanges, per (approximate) AMQP parlance.
 
 from oslo.config import cfg
 
-from nova.openstack.common import importutils
-from nova.openstack.common import log as logging
-from nova.openstack.common.rpc import matchmaker as mm_common
+from gceapi.openstack.common import importutils
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common.rpc import matchmaker as mm_common
 
 redis = importutils.try_import('redis')
 
@@ -95,7 +93,7 @@ class MatchMakerRedis(mm_common.HeartbeatMatchMakerBase):
         if not redis:
             raise ImportError("Failed to import module redis.")
 
-        self.redis = redis.StrictRedis(
+        self.redis = redis.Redis(
             host=CONF.matchmaker_redis.host,
             port=CONF.matchmaker_redis.port,
             password=CONF.matchmaker_redis.password)

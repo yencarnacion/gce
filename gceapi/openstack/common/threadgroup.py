@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2012 Red Hat, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -14,12 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from eventlet import greenlet
+import eventlet
 from eventlet import greenpool
 from eventlet import greenthread
 
-from nova.openstack.common import log as logging
-from nova.openstack.common import loopingcall
+from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import loopingcall
 
 
 LOG = logging.getLogger(__name__)
@@ -47,6 +45,9 @@ class Thread(object):
 
     def wait(self):
         return self.thread.wait()
+
+    def link(self, func, *args, **kwargs):
+        self.thread.link(func, *args, **kwargs)
 
 
 class ThreadGroup(object):
@@ -79,13 +80,17 @@ class ThreadGroup(object):
         gt = self.pool.spawn(callback, *args, **kwargs)
         th = Thread(gt, self)
         self.threads.append(th)
+        return th
 
     def thread_done(self, thread):
         self.threads.remove(thread)
 
     def stop(self):
         current = greenthread.getcurrent()
-        for x in self.threads:
+
+        # Iterate over a copy of self.threads so thread_done doesn't
+        # modify the list while we're iterating
+        for x in self.threads[:]:
             if x is current:
                 # don't kill the current thread.
                 continue
@@ -105,17 +110,20 @@ class ThreadGroup(object):
         for x in self.timers:
             try:
                 x.wait()
-            except greenlet.GreenletExit:
+            except eventlet.greenlet.GreenletExit:
                 pass
             except Exception as ex:
                 LOG.exception(ex)
         current = greenthread.getcurrent()
-        for x in self.threads:
+
+        # Iterate over a copy of self.threads so thread_done doesn't
+        # modify the list while we're iterating
+        for x in self.threads[:]:
             if x is current:
                 continue
             try:
                 x.wait()
-            except greenlet.GreenletExit:
+            except eventlet.greenlet.GreenletExit:
                 pass
             except Exception as ex:
                 LOG.exception(ex)
