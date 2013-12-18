@@ -12,13 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os.path
-import tarfile
-import tempfile
-import urllib2
-
 from gceapi.api import base_api
 from gceapi.api import clients
+from gceapi.api import utils
 from gceapi import exception
 
 
@@ -43,7 +39,7 @@ class API(base_api.API):
             if result:
                 msg = _("Image resource '%s' could not be found" % name)
                 raise exception.NotFound(msg)
-            result = self._prepare_item(image)
+            result = self._prepare_item(utils.todict(image))
         if not result:
             msg = _("Image resource '%s' could not be found" % name)
             raise exception.NotFound(msg)
@@ -54,18 +50,18 @@ class API(base_api.API):
         images = image_service.list(filters={"disk_format": "raw"})
         items = list()
         for image in images:
-            items.append(self._prepare_item(image))
+            items.append(self._prepare_item(utils.todict(image)))
         return items
 
     def _prepare_item(self, item):
-        item.status = self._status_map.get(item.status, item.status)
+        item["status"] = self._status_map.get(item["status"], item["status"])
         return item
 
     def delete_item(self, context, name, scope=None):
         """Delete an image, if allowed."""
         image = self.get_item(context, name, scope)
         image_service = clients.Clients(context).glance().images
-        image_service.delete(image.id)
+        image_service.delete(image["id"])
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']
@@ -81,11 +77,11 @@ class API(base_api.API):
         image_service = clients.Clients(context).glance().images
         image = image_service.create(**meta)
 
-        return self._prepare_item(image)
+        return self._prepare_item(utils.todict(image))
 
     def get_item_by_id(self, context, image_id):
         try:
             image_service = clients.Clients(context).glance().images
-            return image_service.get(context, image_id)
+            return utils.todict(image_service.get(image_id))
         except exception.NotFound:
             return None

@@ -32,9 +32,10 @@ class Controller(gce_common.Controller):
         result_dict = {
             "creationTimestamp": self._format_date(snapshot["created_at"]),
             "status": snapshot["status"],
-            "diskSizeGb": snapshot["volume_size"],
+            "diskSizeGb": snapshot["size"],
             "name": snapshot["name"],
             "description": snapshot["display_description"],
+            # TODO(apavlov): return hashed from qualify as ID
             "sourceDiskId": snapshot["volume_id"],
             }
         disk = snapshot.get("disk")

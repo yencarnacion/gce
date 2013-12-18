@@ -14,6 +14,7 @@
 
 import netaddr
 
+from gceapi.openstack.common.gettextutils import _
 from gceapi import exception
 from gceapi.api import clients
 from gceapi.api import base_api
@@ -79,7 +80,7 @@ class API(base_api.API):
         except exception.NotFound:
             pass
         if network is not None:
-            raise exception.Duplicate
+            raise exception.DuplicateVlan
         network_body = {}
         network_body["network"] = {"name": name}
         network = neutron_api.create_network(network_body)

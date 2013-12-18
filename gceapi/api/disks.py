@@ -44,10 +44,6 @@ class Controller(gce_common.Controller):
                 "snapshots", snapshot["display_name"],
                 gce_common.Scope.create_global())
             result_dict["sourceSnapshotId"] = snapshot["id"]
-        image = volume.get("image")
-        if image:
-            result_dict["sourceImage"] = self._qualify(request,
-                "images", image["name"], gce_common.Scope.create_global())
 
         return self._format_item(request, result_dict, scope)
 
@@ -60,7 +56,8 @@ class Controller(gce_common.Controller):
     def create_snapshot(self, req, body, scope_id, id):
         body["disk_name"] = id
         scope = self._get_scope(req, scope_id)
-        snapshot_api.API().add_item(req, body, scope)
+        context = self._get_context(req)
+        snapshot_api.API().add_item(context, body, scope)
         return self._format_operation(req, id, "createSnapshot", scope)
 
 

@@ -104,3 +104,27 @@ def apply_template(template_string, json):
         return res
 
     return apply_recursive(_parse_template(template_string), json)
+
+
+def todict(obj, recursive=False, classkey=None):
+    if hasattr(obj, "__dict__"):
+        data = dict()
+        for key, value in obj.__dict__.iteritems():
+            if not callable(value) and not key.startswith('_'):
+                data[key] = (value if not recursive
+                    else todict(value, recursive, classkey))
+        if classkey is not None and hasattr(obj, "__class__"):
+            data[classkey] = obj.__class__.__name__
+        return data
+
+    if not recursive:
+        return obj
+
+    if isinstance(obj, dict):
+        for k in obj.keys():
+            obj[k] = todict(obj[k], recursive, classkey)
+        return obj
+    elif hasattr(obj, "__iter__"):
+        return [todict(v, recursive, classkey) for v in obj]
+
+    return obj

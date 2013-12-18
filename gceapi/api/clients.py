@@ -91,8 +91,6 @@ class OpenStackClients(object):
             'username': None,
             'api_key': None,
             'extensions': extensions,
-            'cacert': None,
-            'insecure': False
         }
 
         client = novaclient.Client(1.1, **args)
@@ -119,8 +117,6 @@ class OpenStackClients(object):
             'service_type': 'network',
             'token': self.auth_token,
             'endpoint_url': self.url_for(service_type='network'),
-            'ca_cert': None,
-            'insecure': False
         }
 
         self._neutron = neutronclient.Client(**args)
@@ -166,8 +162,6 @@ class OpenStackClients(object):
             'project_id': con.project_id,
             'username': None,
             'api_key': None,
-            'cacert': None,
-            'insecure': False
         }
 
         self._cinder = cinderclient.Client('1', **args)

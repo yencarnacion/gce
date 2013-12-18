@@ -15,12 +15,13 @@
 import os.path
 
 from gceapi.api import base_api
+from gceapi.api import clients
 from gceapi.api import image_api
+from gceapi.api import utils
 from gceapi import exception
-#from gceapi import volume
 
 
-GB = 1048576 * 1024
+GB = 1024 ** 3
 
 
 class API(base_api.API):
@@ -40,43 +41,36 @@ class API(base_api.API):
             # "error_restoring": ""
     }
 
-    def __init__(self, *args, **kwargs):
-        super(API, self).__init__(*args, **kwargs)
-        #self._volume_service = volume.API()
-
     def get_item(self, context, name, scope=None):
-        volumes = self._volume_service.get_all(context)
+        client = clients.Clients(context).cinder()
+        volumes = client.volumes.list(search_opts={"display_name": name})
+        volumes = [utils.todict(item) for item in volumes]
         volumes = self._filter_volumes_by_zone(volumes, scope)
         for volume in volumes:
             if volume["display_name"] == name:
-                return self._prepare_item(context, volume)
+                return self._prepare_item(client, volume)
         raise exception.NotFound
 
     def get_item_by_id(self, context, item_id):
         return self._volume_service.get(context, item_id)
 
     def get_items(self, context, scope=None):
-        volumes = self._volume_service.get_all(context)
+        client = clients.Clients(context).cinder()
+        volumes = [utils.todict(item) for item in client.volumes.list()]
         volumes = self._filter_volumes_by_zone(volumes, scope)
         for volume in volumes:
-            self._prepare_item(context, volume)
+            self._prepare_item(client, volume)
         return volumes
 
     def get_scopes(self, context, item):
         return [item["availability_zone"]]
 
-    def _prepare_item(self, context, item):
+    def _prepare_item(self, client, item):
         snapshot = None
         snapshot_id = item["snapshot_id"]
         if snapshot_id:
-            snapshot = self._get_snapshot(context, snapshot_id)
+            snapshot = utils.todict(client.volume_snapshots.get(snapshot_id))
         item["snapshot"] = snapshot
-        metadata = item.get("volume_image_metadata")
-        if metadata:
-            image_id = metadata.get("image_id")
-            if image_id:
-                item["image"] = image_api.API().get_item_by_id(context,
-                                                               image_id)
         item["status"] = self._status_map.get(item["status"], item["status"])
         item["name"] = item["display_name"]
         return item
@@ -89,50 +83,44 @@ class API(base_api.API):
             volumes)
 
     def delete_item(self, context, name, scope=None):
-        volume = self.get_item(context, name, scope)
-        self._volume_service.delete(context, volume)
+        client = clients.Clients(context).cinder().volumes
+        volumes = client.list(search_opts={"display_name": name})
+        if not volumes or len(volumes) != 1:
+            raise exception.NotFound
+        client.delete(volumes[0])
 
     def add_item(self, context, name, body, scope=None):
         sizeGb = int(body['sizeGb']) if 'sizeGb' in body else None
 
         snapshot_uri = body.get("sourceSnapshot")
         image_uri = body.get("sourceImage")
-        snapshot = None
+        snapshot_id = None
         image_id = None
 
+        client = clients.Clients(context).cinder()
         if snapshot_uri:
-            snapshot = self._get_snapshot_by_url(context, snapshot_uri)
+            # TODO(apavlov): use extract_name_from_url
+            snapshot_name = os.path.basename(snapshot_uri)
+            snapshots = client.volume_snapshots.list(
+                search_opts={"display_name": snapshot_name})
+            if not snapshots or len(snapshots) != 1:
+                raise exception.NotFound
+            snapshot_id = snapshots[0].id
         elif image_uri:
+            # TODO(apavlov): use extract_name_from_url
             image_name = os.path.basename(image_uri)
-            if image_name:
-                image = image_api.API().get_item(context, image_name, scope)
-                image_id = image['id']
-                # Cinder API doesn't get size from image, so we do this
-                image_size_in_gb = (int(image['size']) + GB - 1) / GB
-                if not sizeGb or sizeGb < image_size_in_gb:
-                    sizeGb = image_size_in_gb
+            image = image_api.API().get_item(context, image_name, scope)
+            image_id = image['id']
+            # Cinder API doesn't get size from image, so we do this
+            image_size_in_gb = (int(image['size']) + GB - 1) / GB
+            if not sizeGb or sizeGb < image_size_in_gb:
+                sizeGb = image_size_in_gb
 
-        volume = self._volume_service.create(context,
-            sizeGb,
-            body.get('name'),
-            body.get('description'),
-            snapshot=snapshot,
-            image_id=image_id,
+        volume = client.volumes.create(
+            sizeGb, snapshot_id=snapshot_id,
+            display_name=body.get('name'),
+            display_description=body.get('description'),
+            imageRef=image_id,
             availability_zone=scope.get_name())
 
-        return self._prepare_item(context, volume)
-
-    def _get_snapshot(self, context, snapshot_id):
-        return self._volume_service.get_snapshot(context, snapshot_id)
-
-    def _get_image_by_url(self, context, url):
-        source_name = os.path.basename(url)
-        return image_api.API().get_item(context, source_name)
-
-    def _get_snapshot_by_url(self, context, url):
-        snapshot_name = os.path.basename(url)
-        snapshots = self._volume_service.get_all_snapshots(context)
-        for snapshot in snapshots:
-            if snapshot["display_name"] == snapshot_name:
-                return snapshot
-        raise exception.NotFound
+        return self._prepare_item(context, utils.todict(volume))
