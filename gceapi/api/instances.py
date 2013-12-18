@@ -80,25 +80,22 @@ class Controller(gce_common.Controller):
                     "network '%(n)", {"i": instance["name"], "n": network}))
             result_dict["networkInterfaces"].append(ni)
 
-#         attached_disks = instance["attached_disks"]
-#         disk_index = 0
-#         for disk in attached_disks:
-#             volume = disk.get("volume")
-#             if not volume:
-#                 continue
-#             google_disk = {
-#                 "kind": "compute#attachedDisk",
-#                 "index": disk_index,
-#                 "type": "PERSISTENT",
-#                 "mode": "READ_WRITE",
-#                 "source": self._qualify(request,
-#                     "disks", volume['display_name'], scope),
-#                 "deviceName": disk['device_name'],
-#             }
-#             if disk['device_name'] == "vda":
-#                 google_disk["boot"] = True,
-#             result_dict["disks"].append(google_disk)
-#             disk_index += 1
+        disk_index = 0
+        for volume in instance["volumes"]:
+            google_disk = {
+                "kind": "compute#attachedDisk",
+                "index": disk_index,
+                "type": "PERSISTENT",
+                "mode": "READ_ONLY"
+                    if volume["metadata"]["readonly"] == "True"
+                    else "READ_WRITE",
+                "source": self._qualify(request,
+                    "disks", volume["display_name"], scope),
+                "deviceName": volume["attachments"][0]["device"],
+                "boot": True if volume["bootable"] == "true" else False
+            }
+            result_dict["disks"].append(google_disk)
+            disk_index += 1
 
         return self._format_item(request, result_dict, scope)
 

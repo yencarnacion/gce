@@ -45,7 +45,8 @@ class API(base_api.API):
             context, self._public_network_name, scope)
         floating_ip = clients.Clients(context).neutron().create_floatingip(
             {"floatingip": {"floating_network_id": network["id"]}})
-        return self._prepare_floating_ip(floating_ip["floatingip"], scope)
+        return self._prepare_floating_ip(
+            context, floating_ip["floatingip"], scope)
 
     def _get_floating_ips(self, context, scope, ip=None):
         results = clients.Clients(context).neutron().list_floatingips()
@@ -53,7 +54,7 @@ class API(base_api.API):
         if results is None:
             return []
 
-        results = [self._prepare_floating_ip(x, scope)
+        results = [self._prepare_floating_ip(context, x, scope)
                    for x in results
                    if context.project_id == x["tenant_id"]]
         if ip is None:
@@ -65,12 +66,22 @@ class API(base_api.API):
 
         raise exception.NotFound
 
-    def _prepare_floating_ip(self, floating_ip, scope):
+    def _prepare_floating_ip(self, context, floating_ip, scope):
         ip = floating_ip["floating_ip_address"]
         floating_ip["name"] = self._generate_floating_ip_name(ip)
         floating_ip["scope"] = scope
         fixed_ip_address = floating_ip.get("fixed_ip_address")
         floating_ip["status"] = "IN USE" if fixed_ip_address else "RESERVED"
+
+        if fixed_ip_address is not None:
+            nova_client = clients.Clients(context).nova()
+            instances = nova_client.servers.list(
+                search_opts={"fixed_ip": fixed_ip_address})
+            if instances:
+                floating_ip["instance_name"] = instances[0].name
+                floating_ip["instance_zone"] = getattr(
+                    instances[0], "OS-EXT-AZ:availability_zone")
+
         return floating_ip
 
     # TODO(apavlov): Until we have own DB for gce names translation

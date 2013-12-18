@@ -14,10 +14,8 @@
 
 from gceapi.api import address_api
 from gceapi.api import common as gce_common
-from gceapi.api import instance_api
 from gceapi.api import region_api
 from gceapi.api import wsgi as gce_wsgi
-from gceapi.api import zone_api
 
 
 class Controller(gce_common.Controller):
@@ -42,17 +40,10 @@ class Controller(gce_common.Controller):
             "address": floating_ip["floating_ip_address"],
         }
 
-        ctx = self._get_context(request)
-        fixed_ip_address = floating_ip.get("fixed_ip_address")
-        if fixed_ip_address is not None:
-            instances = instance_api.API().search_items(
-                ctx, {"fixed_ip": fixed_ip_address}, None)
-            if instances:
-                instance = instances[0]
-                zone = instance["OS-EXT-AZ:availability_zone"]
-                result_dict["users"] = [self._qualify(
-                    request, "instances", instance["name"],
-                    gce_common.Scope.create_zone(zone))]
+        if "instance_name" in floating_ip:
+            result_dict["users"] = [self._qualify(
+                request, "instances", floating_ip["instance_name"],
+                gce_common.Scope.create_zone(floating_ip["instance_zone"]))]
 
         return self._format_item(request, result_dict, scope)
 

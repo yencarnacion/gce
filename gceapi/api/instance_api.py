@@ -72,15 +72,8 @@ class API(base_api.API):
         return [item["OS-EXT-AZ:availability_zone"]]
 
     def search_items(self, context, search_opts, scope):
-        search_opts = search_opts or {}
-        search_opts['deleted'] = False
-        if context.project_id:
-            search_opts['project_id'] = context.project_id
-        else:
-            search_opts['user_id'] = context.user_id
         client = clients.Clients(context).nova()
-        instances = client.servers.list(search_opts=search_opts)
-
+        instances = self._search_items(client, context, search_opts, scope)
         filtered_instances = []
         for instance in instances:
             iscope = getattr(instance, "OS-EXT-AZ:availability_zone")
@@ -92,24 +85,31 @@ class API(base_api.API):
 
         return filtered_instances
 
+    def _search_items(self, client, context, search_opts, scope):
+        search_opts = search_opts or {}
+        search_opts['deleted'] = False
+        if context.project_id:
+            search_opts['project_id'] = context.project_id
+        else:
+            search_opts['user_id'] = context.user_id
+        instances = client.servers.list(search_opts=search_opts)
+        return instances
+
     def _prepare_instance(self, client, context, instance):
         instance["status"] = self._status_map.get(
             instance["status"].lower(), instance["status"])
         instance["flavor"]["name"] = client.flavors.get(
             instance["flavor"]["id"]).name.replace(".", "-")
 
-#         attached_disks = db.block_device_mapping_get_all_by_instance(
-#             nova_context.get_admin_context(), instance['uuid'])
-#         for disk in attached_disks:
-#             if disk["volume_id"] is not None:
-#                 disk["volume"] = disk_api.API().get_item_by_id(
-#                     context, disk["volume_id"])
-#         instance["attached_disks"] = attached_disks
+        cinder_client = clients.Clients(context).cinder()
+        volumes = instance["os-extended-volumes:volumes_attached"]
+        instance["volumes"] = [
+            utils.todict(cinder_client.volumes.get(v["id"])) for v in volumes]
 
         return instance
 
     def _can_delete_network(self, context, network):
-        instances = self.search_items(context, None, None)
+        instances = search_items(context, None, None)
         for instance in instances:
             cached_info = instance["cached_nwinfo"]
             inst_network = cached_info.legacy()
@@ -149,12 +149,18 @@ class API(base_api.API):
                 context, secgroup, affected_instances)
 
     def reset_instance(self, context, scope, name):
-        instance = self.search_items(context, {"name": name}, scope)[0]
-        _compute_api.reboot(context, instance, 'HARD')
+        client = clients.Clients(context).nova()
+        instances = self._search_items(client, context, {"name": name}, scope)
+        if not instances or len(instances) != 1:
+            raise exception.NotFound
+        instances[0].reboot("HARD")
 
     def delete_item(self, context, name, scope=None):
-        instance = self.search_items(context, {"name": name}, scope)[0]
-        _compute_api.delete(context, instance)
+        client = clients.Clients(context).nova()
+        instances = self._search_items(client, context, {"name": name}, scope)
+        if not instances or len(instances) != 1:
+            raise exception.NotFound
+        instances[0].delete()
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']
