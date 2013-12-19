@@ -33,6 +33,9 @@ LOG = logging.getLogger(__name__)
 class API(base_api.API):
     """GCE Instance API"""
 
+    DEFAULT_ACCESS_CONFIG_NAME = "External NAT"
+    DEFAULT_ACCESS_CONFIG_TYPE = "ONE_TO_ONE_NAT"
+
     # NOTE(apavlov): Instance status. One of the following values:
     # \"PROVISIONING\", \"STAGING\", \"RUNNING\",
     # \"STOPPING\", \"STOPPED\", \"TERMINATED\" (output only).
@@ -73,7 +76,7 @@ class API(base_api.API):
 
     def search_items(self, context, search_opts, scope):
         client = clients.Clients(context).nova()
-        instances = self._search_items(client, context, search_opts, scope)
+        instances = client.servers.list(search_opts=search_opts)
         filtered_instances = []
         for instance in instances:
             iscope = getattr(instance, "OS-EXT-AZ:availability_zone")
@@ -84,16 +87,6 @@ class API(base_api.API):
                 filtered_instances.append(instance)
 
         return filtered_instances
-
-    def _search_items(self, client, context, search_opts, scope):
-        search_opts = search_opts or {}
-        search_opts['deleted'] = False
-        if context.project_id:
-            search_opts['project_id'] = context.project_id
-        else:
-            search_opts['user_id'] = context.user_id
-        instances = client.servers.list(search_opts=search_opts)
-        return instances
 
     def _prepare_instance(self, client, context, instance):
         instance["status"] = self._status_map.get(
@@ -106,28 +99,28 @@ class API(base_api.API):
         instance["volumes"] = [
             utils.todict(cinder_client.volumes.get(v["id"])) for v in volumes]
 
+        for network in instance["addresses"]:
+            for address in instance["addresses"][network]:
+                if address["OS-EXT-IPS:type"] == "floating":
+                    address["name"] = self.DEFAULT_ACCESS_CONFIG_NAME
+                    address["type"] = self.DEFAULT_ACCESS_CONFIG_TYPE
+
         return instance
 
     def _can_delete_network(self, context, network):
-        instances = search_items(context, None, None)
+        client = clients.Clients(context).nova()
+        instances = client.servers.list(search_opts=None)
         for instance in instances:
-            cached_info = instance["cached_nwinfo"]
-            inst_network = cached_info.legacy()
-            for net, dummy in inst_network:
-                network_id = net.get('id')
-                if network_id == network["id"]:
-                    raise exception.NetworkInUse(network_id=network_id)
+            if network["name"] in instance.networks:
+                raise exception.NetworkInUse(network_id=network["id"])
 
     def _get_instances_with_network(self, context, network, scope):
         affected_instances = []
-        network_id = network['id']
-        instances = self.get_items(context, scope)
+        client = clients.Clients(context).nova()
+        instances = client.servers.list(search_opts=None)
         for instance in instances:
-            cached_nwinfo = compute_utils.get_nw_info_for_instance(instance)
-            if cached_nwinfo:
-                for network_info in cached_nwinfo:
-                    if network_id == network_info['network']['id']:
-                        affected_instances.append(instance)
+            if network["name"] in instance.networks:
+                affected_instances.append(instance)
         return affected_instances
 
     def _add_secgroup_to_instances(self, context, secgroup, **kwargs):
@@ -150,14 +143,14 @@ class API(base_api.API):
 
     def reset_instance(self, context, scope, name):
         client = clients.Clients(context).nova()
-        instances = self._search_items(client, context, {"name": name}, scope)
+        instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
         instances[0].reboot("HARD")
 
     def delete_item(self, context, name, scope=None):
         client = clients.Clients(context).nova()
-        instances = self._search_items(client, context, {"name": name}, scope)
+        instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
         instances[0].delete()
@@ -251,84 +244,91 @@ class API(base_api.API):
 
     def add_access_config(self, context,
                           body, item_id, scope, network_interface):
-
-        address = body.get('natIP')
-
-        instance = self.search_items(context, {"name": item_id}, scope)[0]
-
-        cached_nwinfo = compute_utils.get_nw_info_for_instance(instance)
-        if not cached_nwinfo:
-            msg = _('No nw_info cache associated with instance')
+        if body["type"] != self.DEFAULT_ACCESS_CONFIG_TYPE:
+            msg = _("Only '%s' type of access config currently supported."
+                    % self.DEFAULT_ACCESS_CONFIG_TYPE)
             raise exception.InvalidRequest(msg)
 
-        port_to_be_associated = None
-        for network_info in cached_nwinfo:
-            if network_info['network']['label'] == network_interface:
-                subnets = network_info['network']['subnets']
-                if len(subnets) == 0:
-                    msg = _('No fixed ips associated to instance')
+        # TODO(apavlov): we should store body["name"] for later usage.
+        # waiting for db...
+        if body["name"] != self.DEFAULT_ACCESS_CONFIG_NAME:
+            msg = _('Only default name of access config currently supported.')
+            raise exception.InvalidRequest(msg)
+
+        input_ip = body.get('natIP')
+
+        client = clients.Clients(context).nova()
+        instances = client.servers.list(search_opts={"name": item_id})
+        if not instances or len(instances) != 1:
+            raise exception.NotFound
+        instance = instances[0]
+
+        fixed_ip = None
+        for network in instance.addresses:
+            if network_interface != network:
+                continue
+            for address in instance.addresses[network]:
+                atype = address["OS-EXT-IPS:type"]
+                if atype == "floating":
+                    msg = _('At most one access config currently supported.')
                     raise exception.InvalidRequest(msg)
-                if len(subnets) > 1:
-                    msg = _('multiple subnets exist, using the first: %s')
-                    LOG.warning(msg, subnets[0]['cidr'])
-                fixed_ips = subnets[0]['ips']
-                if len(fixed_ips) == 0:
-                    msg = _('No fixed ips associated to instance')
-                    raise exception.InvalidRequest(msg)
-                if len(fixed_ips) > 1:
-                    msg = _('multiple fixed_ips exist, using the first: %s')
-                    LOG.warning(msg, fixed_ips[0]['address'])
-                port_to_be_associated = fixed_ips[0]['address']
-                break
-        else:
+                if atype == "fixed":
+                    fixed_ip = address["addr"]
+
+        if not fixed_ip:
             msg = _('Network interface not found')
             raise exception.InvalidRequest(msg)
 
-        floating_ips = network.API().get_floating_ips_by_project(context)
-        if address is None:
+        floating_ips = client.floating_ips.list()
+        if input_ip is None:
             # try to find unused
             for floating_ip in floating_ips:
-                if floating_ip['fixed_ip_id'] is None:
-                    address = floating_ip['address']
+                if floating_ip.instance_id is None:
+                    input_ip = floating_ip.ip
                     break
             else:
                 msg = _('There is no unused floating ips.')
                 raise exception.InvalidRequest(msg)
         else:
             for floating_ip in floating_ips:
-                if floating_ip['address'] != address:
+                if floating_ip.ip != input_ip:
                     continue
-
-                if floating_ip['fixed_ip_id'] is None:
+                if floating_ip.instance_id is None:
                     break
-
-                msg = _("Floating ip '%s' is already associated" % address)
+                msg = _("Floating ip '%s' is already associated" % floating_ip)
                 raise exception.InvalidRequest(msg)
             else:
-                msg = _("There is no such floating ip '%s'." % address)
+                msg = _("There is no such floating ip '%s'." % input_ip)
                 raise exception.InvalidRequest(msg)
 
-        network.API().associate_floating_ip(context, instance,
-            floating_address=address,
-            fixed_address=port_to_be_associated)
+        instance.add_floating_ip(input_ip, fixed_ip)
 
     def delete_access_config(self, context, item_id, scope,
-                             network_interface, address):
+                             network_interface, accessConfig):
+        client = clients.Clients(context).nova()
+        instances = client.servers.list(search_opts={"name": item_id})
+        if not instances or len(instances) != 1:
+            raise exception.NotFound
+        instance = instances[0]
 
-        instance = self.search_items(context, {"name": item_id}, scope)[0]
+        # TODO(apavlov): we should find accessConfig(its a given name at
+        # creation) and remove specific address. waiting for db...
+        # now we can delete by address only
+        # floating_ip = db.find_resource("floating_ip", accessConfig)
+        # and next will be removed
+        floating_ip = None
+        if accessConfig != self.DEFAULT_ACCESS_CONFIG_NAME:
+            msg = _('Only default name of access config currently supported.')
+            raise exception.InvalidRequest(msg)
+        for network in instance.addresses:
+            if network_interface != network:
+                continue
+            for address in instance.addresses[network]:
+                if address["OS-EXT-IPS:type"] == "floating":
+                    floating_ip = address["addr"]
 
-        try:
-            floating_ip = network.API() \
-                .get_floating_ip_by_address(context, address)
-        except exception.FloatingIpNotFoundForAddress:
-            msg = _("floating ip not found")
-            raise exception.NotFound(explanation=msg)
+        if floating_ip is None:
+            msg = _("There is no such floating ip '%s'." % floating_ip)
+            raise exception.InvalidRequest(msg)
 
-        # NOTE(apavlov) we don`t test that address belongs to network_interface
-
-        if (floating_ip['instance'] is None
-            or floating_ip['instance']['uuid'] != instance['uuid']):
-                msg = _("floating ip doesn`t belong to this instance")
-                raise exception.InvalidRequest(message=msg)
-
-        network.API().disassociate_floating_ip(context, instance, address)
+        instance.remove_floating_ip(floating_ip)

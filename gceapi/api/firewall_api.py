@@ -18,7 +18,6 @@ import os.path
 from gceapi.api import base_api
 from gceapi.api import network_api
 from gceapi import exception
-#from nova.network.security_group import openstack_driver
 from gceapi.openstack.common import log as logging
 
 
@@ -31,25 +30,26 @@ PROTOCOL_MAP = {
 LOG = logging.getLogger(__name__)
 
 
+# TODO(apavlov): implement it through novaclient
+
+
 class API(base_api.API):
     """GCE Firewall API"""
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        #self._secgroup_service = (openstack_driver.
-        #    get_openstack_security_group_driver())
         net_api = network_api.API()
         net_api._register_callback(
             base_api._callback_reasons.pre_delete,
             self.delete_network_firewalls)
 
     def get_item(self, context, name, scope=None):
-        firewall = self._secgroup_service.list(
+        firewall = _secgroup_service.list(
                context, project=context.project_id, names=[name])[0]
         return self._prepare_item(firewall)
 
     def get_items(self, context, scope=None):
-        firewalls = self._secgroup_service.list(
+        firewalls = _secgroup_service.list(
                 context, project=context.project_id)
         return [self._prepare_item(firewall)
                 for firewall in firewalls]
@@ -60,14 +60,14 @@ class API(base_api.API):
         group_description = "".join([body.get("description", ""),
                                      DESCRIPTION_NETWORK_SEPARATOR,
                                      network["name"]])
-        group_ref = self._secgroup_service.create_security_group(
+        group_ref = _secgroup_service.create_security_group(
             context, body['name'], group_description)
         try:
             rules = self._convert_to_secgroup_rules(group_ref['id'], body)
-            self._secgroup_service.add_rules(
+            _secgroup_service.add_rules(
                     context, group_ref['id'], group_ref['name'], rules)
         except Exception:
-            self._secgroup_service.destroy(context, group_ref)
+            _secgroup_service.destroy(context, group_ref)
             raise
         self._process_callbacks(
             context, base_api._callback_reasons.post_add, group_ref)
@@ -77,7 +77,7 @@ class API(base_api.API):
         firewall = self.get_item(context, name)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, firewall)
-        self._secgroup_service.destroy(context, firewall)
+        _secgroup_service.destroy(context, firewall)
 
     def _prepare_item(self, firewall):
         # NOTE(ft): OpenStack security groups are more powerful than
@@ -212,7 +212,7 @@ class API(base_api.API):
     def add_security_group_to_instances(self, context, group, instances):
         for instance in instances:
             try:
-                self._secgroup_service.add_to_instance(
+                _secgroup_service.add_to_instance(
                         context, instance, group["id"])
             except exception.InstanceNotRunning:
                 LOG.warning(("Failed to add not running "
@@ -227,7 +227,7 @@ class API(base_api.API):
                                              instances):
         for instance in instances:
             try:
-                self._secgroup_service.remove_from_instance(
+                _secgroup_service.remove_from_instance(
                         context, instance, secgroup['id'])
             except Exception:
                 LOG.exception(("Failed to remove securiy group (%s) "
@@ -245,7 +245,7 @@ class API(base_api.API):
                 if network_name else None)
 
     def get_network_firewalls(self, context, network_name):
-        secgroups = self._secgroup_service.list(
+        secgroups = _secgroup_service.list(
                 context, project=context.project_id)
         return [f for f in secgroups
                 if self.get_firewall_network_name(f) == network_name]
@@ -254,7 +254,7 @@ class API(base_api.API):
         network_name = network["name"]
         for secgroup in self.get_network_firewalls(context, network_name):
             try:
-                self._secgroup_service.destroy(context, secgroup)
+                _secgroup_service.destroy(context, secgroup)
             except Exception:
                 LOG.exception(("Failed to delete security group (%s) while"
                                "delete network (%s))"),
