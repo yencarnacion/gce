@@ -23,8 +23,3 @@ class API(base_api.BaseNetAPI):
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(
             network_neutron_api, network_nova_api, *args, **kwargs)
-
-    # For quantumv2, requested_networks(for instance creation)
-    # should be tuple of (network_uuid, fixed_ip, port_id)
-    def format_network(self, network_settings):
-        return self._api.format_network(network_settings)

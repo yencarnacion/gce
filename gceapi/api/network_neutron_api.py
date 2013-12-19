@@ -100,9 +100,6 @@ class API(base_api.API):
 
         return self._prepare_network(context, network)
 
-    def format_network(self, network_settings):
-        return (network_settings['id'], None, None)
-
     def _prepare_network(self, context, network):
         subnets = network['subnets']
         if subnets and len(subnets) > 0:

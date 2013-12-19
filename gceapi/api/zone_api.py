@@ -36,19 +36,31 @@ class API(base_api.BaseScopeAPI):
         raise exception.NotFound
 
     def get_items(self, context, scope=None):
-        nova_client = clients.Clients(context).nova()
-        nova_zones = list()
-        for zone in nova_client.availability_zones.list():
+        client = clients.Clients(context).nova()
+        try:
+            nova_zones = client.availability_zones.list()
+        except clients.novaclient.exceptions.Forbidden as e:
+            try:
+                nova_zones = client.availability_zones.list(detailed=False)
+            except Exception:
+                raise e
+
+        filtered_zones = list()
+        for zone in nova_zones:
+            if not zone.hosts:
+                filtered_zones.append(zone)
+                continue
             for host in zone.hosts:
                 if self.COMPUTE_SERVICE in zone.hosts[host]:
-                    nova_zones.append(zone)
+                    filtered_zones.append(zone)
                     break
         zones = list()
-        for zone in nova_zones:
+        for zone in filtered_zones:
             zones.append({
                 "name": zone.zoneName,
                 "status": "UP" if zone.zoneState["available"] else "DOWN",
                 "hosts": [host for host in zone.hosts]
+                         if zone.hosts else list()
             })
         return zones
 

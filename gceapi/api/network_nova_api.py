@@ -18,20 +18,15 @@ from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import utils
 from gceapi import exception
-from gceapi.openstack.common.gettextutils import _
 
 
-# TODO: fix it. check it.
 class API(base_api.API):
     """GCE Network API - nova-network implementation"""
 
     def get_item(self, context, name, scope=None):
-        networks = self.get_items(context, scope)
-        for network in networks:
-            if network['name'] == name:
-                return network
-        msg = _("Network resource '%s' could not be found." % name)
-        raise exception.NotFound(msg)
+        client = clients.Clients(context).nova()
+        network = client.networks.find(label=name)
+        return self._prepare_network(utils.todict(network))
 
     def get_items(self, context, scope=None):
         client = clients.Clients(context).nova()
@@ -48,7 +43,8 @@ class API(base_api.API):
             context, base_api._callback_reasons.check_delete, network)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
-        nova_network.API().delete(context, network['uuid'])
+        client = clients.Clients(context).nova()
+        client.networks.delete(context, network["id"])
 
     def add_item(self, context, name, body, scope=None):
         ip_range = body['IPv4Range']
@@ -60,20 +56,18 @@ class API(base_api.API):
         network = None
         try:
             network = self.get_item(context, name)
-        except exception.NotFound:
+        except clients.novaclient.exceptions.NotFound:
             pass
         if network is not None:
             raise exception.DuplicateVlan
         kwargs = {'label': name, 'cidr': ip_range, 'gateway': gateway}
-        network = nova_network.API().create(context, **kwargs)
-        return self._prepare_network(network)
-
-    def format_network(self, network_settings):
-        return (network_settings['id'], None)
+        client = clients.Clients(context).nova()
+        network = client.networks.create(**kwargs)
+        return self._prepare_network(utils.todict(network))
 
     def _prepare_network(self, network):
-            return {
-                'name': network['label'],
-                'IPv4Range': network['cidr'],
-                'gatewayIPv4': network['gateway'],
-                'id': network['uuid']}
+        return {
+            'name': network['label'],
+            'IPv4Range': network['cidr'],
+            'gatewayIPv4': network['gateway'],
+            'id': network['id']}
