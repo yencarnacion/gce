@@ -13,33 +13,36 @@
 #    under the License.
 
 from gceapi.api import base_api
+from gceapi.api import clients
+from gceapi.api import utils
 from gceapi import exception
 
 
-# TODO: fix it. check it.
 class API(base_api.API):
     """GCE Address API - nova-network implementation"""
 
     def get_item(self, context, name, scope=None):
-        return self._get_floating_ips(context, scope, name)[0]
+        client = clients.Clients(context).nova()
+        return self._get_floating_ips(client, context, scope, name)[0]
 
     def get_items(self, context, scope=None):
-        return self._get_floating_ips(context, scope)
+        client = clients.Clients(context).nova()
+        return self._get_floating_ips(client, context, scope)
 
     def delete_item(self, context, name, scope=None):
-        address = self._get_floating_ips(context, scope, name)
-        nova_network.API().release_floating_ip(context, address[0]["address"])
+        client = clients.Clients(context).nova()
+        floating_ip = self._get_floating_ips(client, context, scope, name)[0]
+        client.floating_ips.delete(floating_ip["id"])
 
     def add_item(self, context, name, body, scope=None):
-        ip = nova_network.API().allocate_floating_ip(context)
-        fip = nova_network.API().get_floating_ip_by_address(context, ip)
-        return self._prepare_floating_ip(fip, scope)
+        client = clients.Clients(context).nova()
+        result = client.floating_ips.create()
+        return self._prepare_floating_ip(client, context, result, scope)
 
-    def _get_floating_ips(self, context, scope, ip=None):
-        results = nova_network.API().get_floating_ips_by_project(context)
-        results = [self._prepare_floating_ip(x, scope)
-                   for x in results
-                   if not x.deleted and context.project_id == x.project_id]
+    def _get_floating_ips(self, client, context, scope, ip=None):
+        results = client.floating_ips.list()
+        results = [self._prepare_floating_ip(client, context, x, scope)
+                   for x in results]
 
         if ip is None:
             return results
@@ -50,18 +53,27 @@ class API(base_api.API):
 
         raise exception.NotFound
 
-    def _prepare_floating_ip(self, floating_ip, scope):
+    def _prepare_floating_ip(self, client, context, floating_ip, scope):
+        floating_ip = utils.todict(floating_ip)
+        fixed_ip = floating_ip.get("fixed_ip")
         result = {
-            "fixed_ip_address": floating_ip["fixed_ip"]["address"],
-            "floating_ip_address": floating_ip["address"],
+            "fixed_ip_address": fixed_ip if fixed_ip else None,
+            "floating_ip_address": floating_ip["ip"],
             "id": floating_ip["id"],
-            "port_id": floating_ip["fixed_ip_id"],
-            "tenant_id": floating_ip["project_id"],
-            "name": self._generate_floating_ip_name(floating_ip["address"]),
+            "port_id": None,
+            "tenant_id": context.project_id,
+            "name": self._generate_floating_ip_name(floating_ip["ip"]),
             "scope": scope,
-            "status": "IN USE" if floating_ip["fixed_ip_address"]
-                      else "RESERVED",
+            "status": "IN USE" if fixed_ip else "RESERVED",
         }
+
+        instance_id = floating_ip.get("instance_id")
+        if instance_id is not None:
+            instance = client.servers.get(instance_id)
+            result["instance_name"] = instance.name
+            result["instance_zone"] = getattr(
+                instance, "OS-EXT-AZ:availability_zone")
+
         return result
 
     # TODO(apavlov): Until we have own DB for gce names translation

@@ -123,9 +123,8 @@ class BaseNetAPI(API):
     def __init__(self, neutron_api, nova_api, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
 
-        net_api = None
+        net_api = "nova"
         # TODO(apavlov): get it from config
-        # or somewhere(use nova if neutron does not present)
         #net_api = FLAGS.has("network_api_class")
 
         # NOTE(Alex): Initializing proper network singleton
