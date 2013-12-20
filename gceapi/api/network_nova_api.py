@@ -24,10 +24,13 @@ class API(base_api.API):
     """GCE Network API - nova-network implementation"""
 
     KIND = "network"
-    persistent_attributes = ["id", "creationTimestamp", "description"]
+    PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "description"]
 
     def _get_type(self):
         return self.KIND
+
+    def _get_persistent_attributes(self):
+        return self.PERSISTENT_ATTRIBUTES
 
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).nova()

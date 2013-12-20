@@ -69,6 +69,14 @@ class API(object):
 
         raise NotImplementedError
 
+    def _get_persistent_attributes(self):
+        """Iterable of name of columns stored in GCE API database.
+
+        Should be overriden.
+        """
+
+        raise NotImplementedError
+
     def get_item(self, context, name, scope=None):
         """Returns fully filled item for particular inherited API."""
 
@@ -116,9 +124,9 @@ class API(object):
 
     def _add_db_item(self, context, item):
         db_item = {key: item.get(key)
-                   for key in self.persistent_attributes
+                   for key in self._get_persistent_attributes()
                    if key in item}
-        if ("creationTimestamp" in self.persistent_attributes and
+        if ("creationTimestamp" in self._get_persistent_attributes() and
                 "creationTimestamp" not in db_item):
             # TODO(ft): Google not returns microseconds but returns
             # server time zone: 2013-12-06T03:34:31.340-08:00
