@@ -49,20 +49,21 @@ class API(base_api.API):
             # for names as well and return error if we have multi-results
             # when addressed by name.
             network = networks[0]
-            gce_network = self._get_item_by_id(context, network["id"])
+            gce_network = self._get_db_item_by_id(context, network["id"])
             return self._prepare_network(context, network, gce_network)
 
     def get_items(self, context, scope=None):
         networks = clients.Clients(context).neutron().list_networks()
         networks = networks["networks"]
-        gce_networks = self._get_items_dict(context)
+        gce_networks = self._get_db_items_dict(context)
         result_networks = []
         for network in networks:
             if network["tenant_id"] != context.project_id:
                 continue
-            result_networks.append(self._prepare_network(context, network,
-                                                         gce_networks))
-        self._sync_db(context, result_networks, gce_networks)
+            network = self._prepare_network(context, network,
+                                            gce_networks.get(network["id"]))
+            result_networks.append(network)
+        self._purge_db(context, result_networks, gce_networks)
         return result_networks
 
     def delete_item(self, context, name, scope=None):
@@ -71,7 +72,7 @@ class API(base_api.API):
 
         self._process_callbacks(
             context, base_api._callback_reasons.check_delete, network)
-        self._delete_item(context, network)
+        self._delete_db_item(context, network)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
 
@@ -111,16 +112,16 @@ class API(base_api.API):
             self._add_subnet_to_external_router(context, subnet_id)
         network = self._prepare_network(context, network)
         network["description"] = body.get("description")
-        return self._add_item(context, network)
+        return self._add_db_item(context, network)
 
-    def _prepare_network(self, context, network, db_data=None):
+    def _prepare_network(self, context, network, db_network=None):
         subnets = network['subnets']
         if subnets and len(subnets) > 0:
             subnet = clients.Clients(context).neutron().show_subnet(subnets[0])
             subnet = subnet["subnet"]
             network["IPv4Range"] = subnet.get("cidr", None)
             network["gatewayIPv4"] = subnet.get("gateway_ip", None)
-        return self._prepare_item(network, db_data)
+        return self._prepare_item(network, db_network)
 
     def _add_subnet_to_external_router(self, context, subnet_id):
         routers = clients.Clients(context).neutron().list_routers()

@@ -32,25 +32,25 @@ class API(base_api.API):
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).nova()
         network = client.networks.find(label=name)
-        gce_network = self._get_item_by_id(context, network.id)
+        gce_network = self._get_db_item_by_id(context, network.id)
         return self._prepare_network(utils.todict(network), gce_network)
 
     def get_items(self, context, scope=None):
         client = clients.Clients(context).nova()
         networks = client.networks.list()
-        gce_networks = self._get_items_dict(context)
+        gce_networks = self._get_db_items_dict(context)
         result_networks = []
         for network in networks:
             result_networks.append(self._prepare_network(utils.todict(network),
-                                   gce_networks))
-        self._sync_db(context, result_networks, gce_networks)
+                                   gce_networks.get(network["id"])))
+        self._purge_db(context, result_networks, gce_networks)
         return result_networks
 
     def delete_item(self, context, name, scope=None):
         network = self.get_item(context, name)
         self._process_callbacks(
             context, base_api._callback_reasons.check_delete, network)
-        self._delete_item(context, network)
+        self._delete_db_item(context, network)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
         client = clients.Clients(context).nova()
@@ -76,7 +76,7 @@ class API(base_api.API):
         network = self._prepare_network(utils.todict(network))
         if "description" in body:
             network["description"] = body["description"]
-        return self._add_item(context, network)
+        return self._add_db_item(context, network)
 
     def _prepare_network(self, network, db_data=None):
         return self._prepare_item({
