@@ -123,7 +123,7 @@ class BaseNetAPI(API):
     def __init__(self, neutron_api, nova_api, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
 
-        net_api = "nova"
+        net_api = None
         # TODO(apavlov): get it from config
         #net_api = FLAGS.has("network_api_class")
 
