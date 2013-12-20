@@ -21,7 +21,6 @@ from gceapi import exception
 CONF = cfg.CONF
 
 
-# TODO(ft): use from utils or move to another on demand loader
 class LazyPluggable(object):
     """A pluggable backend loaded lazily based on some value."""
 
