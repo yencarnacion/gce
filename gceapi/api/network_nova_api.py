@@ -23,28 +23,38 @@ from gceapi import exception
 class API(base_api.API):
     """GCE Network API - nova-network implementation"""
 
+    kind = "network"
+    persistent_attributes = ["id", "creationTimestamp", "description"]
+
+    def _get_type(self):
+        return self.kind
+
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).nova()
         network = client.networks.find(label=name)
-        return self._prepare_network(utils.todict(network))
+        gce_network = self._get_item_by_id(context, network.id)
+        return self._prepare_network(utils.todict(network), gce_network)
 
     def get_items(self, context, scope=None):
         client = clients.Clients(context).nova()
         networks = client.networks.list()
+        gce_networks = self._get_items_dict(context)
         result_networks = []
         for network in networks:
-            result_networks.append(
-                self._prepare_network(utils.todict(network)))
+            result_networks.append(self._prepare_network(utils.todict(network),
+                                   gce_networks))
+        self._sync_db(context, result_networks, gce_networks)
         return result_networks
 
     def delete_item(self, context, name, scope=None):
         network = self.get_item(context, name)
         self._process_callbacks(
             context, base_api._callback_reasons.check_delete, network)
+        self._delete_item(context, network)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
         client = clients.Clients(context).nova()
-        client.networks.delete(context, network["id"])
+        client.networks.delete(network["id"])
 
     def add_item(self, context, name, body, scope=None):
         ip_range = body['IPv4Range']
@@ -63,11 +73,15 @@ class API(base_api.API):
         kwargs = {'label': name, 'cidr': ip_range, 'gateway': gateway}
         client = clients.Clients(context).nova()
         network = client.networks.create(**kwargs)
-        return self._prepare_network(utils.todict(network))
+        network = self._prepare_network(utils.todict(network))
+        if "description" in body:
+            network["description"] = body["description"]
+        return self._add_item(context, network)
 
-    def _prepare_network(self, network):
-        return {
-            'name': network['label'],
-            'IPv4Range': network['cidr'],
-            'gatewayIPv4': network['gateway'],
-            'id': network['id']}
+    def _prepare_network(self, network, db_data=None):
+        return self._prepare_item({
+                'name': network['label'],
+                'IPv4Range': network['cidr'],
+                'gatewayIPv4': network['gateway'],
+                'id': network['id']},
+            db_data)

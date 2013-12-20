@@ -54,7 +54,7 @@ class Controller(object):
     def _get_type(self):
         """Controller type method. Should be overriden."""
 
-        return ""
+        return self._api._get_type()
 
     def format_item(self, request, image, scope):
         """Main item resource conversion routine
