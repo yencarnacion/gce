@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import time
+import string
 
 from gceapi.openstack.common.gettextutils import _
 from gceapi import exception
@@ -91,8 +91,8 @@ class API(base_api.API):
     def _prepare_instance(self, client, context, instance):
         instance["status"] = self._status_map.get(
             instance["status"].lower(), instance["status"])
-        instance["flavor"]["name"] = client.flavors.get(
-            instance["flavor"]["id"]).name.replace(".", "-")
+        instance["flavor"]["name"] = machine_type_api.API().get_item_by_id(
+            context, instance["flavor"]["id"])["name"]
 
         cinder_client = clients.Clients(context).cinder()
         volumes = instance["os-extended-volumes:volumes_attached"]
@@ -157,90 +157,71 @@ class API(base_api.API):
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']
+        # TODO(apavlov): store description somewhere
+        #description = body.get('description')
+        client = clients.Clients(context).nova()
 
-        networks_names = []
-        for net_iface in body['networkInterfaces']:
-            networks_names.append(net_iface['network'].split('/')[-1])
-
-        networks = []
-        #NOTE(ft) 'default' security group contains output rules
-        #but output rules doesn't configurable by GCE API
-        #all outgoing traffic permitted
-        #so we support this behaviour
-        groups_names = set(['default'])
-        for net_name in networks_names:
-            network_settings = network_api.API().get_item(
-                context, net_name, scope)
-            networks.append(network_api.API().format_network(network_settings))
-            for sg in firewall_api.API().get_network_firewalls(
-                    context, net_name):
-                groups_names.add(sg["name"])
-        groups_names = list(groups_names)
-
-        description = body.get('description')
+        # TODO(apavlov): use extract_name_from_url method
+        flavor_name = body['machineType'].split('/')[-1]
+        flavor_id = machine_type_api.API().get_item(
+            context, flavor_name, scope)["id"]
 
         try:
             metadatas = body['metadata']['items']
         except KeyError:
             metadatas = []
         instance_metadata = dict([(x['key'], x['value']) for x in metadatas])
+
         ssh_keys = instance_metadata.pop('sshKeys', None)
         if ssh_keys is not None:
-            key_name, key_data = ssh_keys.split('\n')[0].split(":")
+            key_name = ssh_keys.split('\n')[0].split(":")[0]
         else:
-            key_name, key_data = project_api.API() \
-                .get_gce_user_keypair(context)
+            key_name = project_api.API().get_gce_user_keypair_name(context)
 
-        image_id = None
-        instance_disks = body.get('disks', [])
-        disks = []
-        for disk in instance_disks:
-            device_name = disk["deviceName"]
+        disks = body.get('disks', [])
+        disks.sort(None, lambda x: x.get("boot", False), True)
+        bdm = dict()
+        diskDevice = 0
+        for disk in disks:
+            # TODO(apavlov): store disk["deviceName"] in DB
+            device_name = "vd" + string.ascii_lowercase[diskDevice]
+            # TODO(apavlov): use extract_name_from_url method
             volume_name = disk["source"].split("/")[-1]
-            try:
-                # NOTE(apavlov): waiting for 15 seconds
-                #     while image will be downloaded and unpacked
-                # TODO(apavlov): find some way to wait on some event
-                for _ in xrange(15):
-                    volume = disk_api.API().get_item(
-                        context, volume_name, scope)
-                    if not volume:
-                        continue
-                    volume_status = volume['status']
-                    if volume_status == 'READY' or 'FAILED' in volume_status:
-                        break
-                    time.sleep(1)
+            volume = disk_api.API().get_item(context, volume_name, scope)
+            bdm[device_name] = volume['id']
+            diskDevice += 1
 
-                disks.append({
-                    "volume_id": volume['id'],
-                    "device_name": device_name,
-                    "volume_size": "",
-                    "delete_on_termination": 0})
-                if disk['boot'] and 'volume_image_metadata' in volume:
-                    image_id = volume['volume_image_metadata']['image_id']
-            except exception.VolumeNotFound:
-                pass
+        nics = []
+        #NOTE(ft) 'default' security group contains output rules
+        #but output rules doesn't configurable by GCE API
+        #all outgoing traffic permitted
+        #so we support this behaviour
+        groups_names = set(['default'])
+        for net_iface in body['networkInterfaces']:
+            # TODO(apavlov): use extract_name_from_url method
+            net_name = net_iface["network"].split("/")[-1]
 
-        flavor_name = body['machineType'].split('/')[-1].replace("-", ".")
-        instance_type = machine_type_api.API() \
-            .get_item(context, flavor_name, scope)
+            # TODO(apavlov): parse net_iface["accessConfigs"] and do it
+            # it can exists in three ways:
+            # None
+            # [{"name": "External NAT", "type": "ONE_TO_ONE_NAT"}]
+            # as two plus "natIP": "173.255.118.146"
 
-        _compute_api.create(
-            context,
-            instance_type,
-            image_id,
-            display_name=name,
-            display_description=description,
-            min_count=1,
-            max_count=1,
-            metadata=instance_metadata,
-            security_group=groups_names,
-            key_name=key_name,
-            key_data=key_data,
-            requested_networks=networks,
-            block_device_mapping=disks)
+            network = network_api.API().get_item(context, net_name, None)
+            nics.append({"net-id": network["id"]})
+            for sg in firewall_api.API().get_network_firewalls(
+                    context, net_name):
+                groups_names.add(sg["name"])
+        groups_names = list(groups_names)
 
-        return self.search_items(context, {"name": name}, scope)[0]
+        instance = client.servers.create(name, None, flavor_id,
+            meta=instance_metadata, min_count=1, max_count=1,
+            security_groups=groups_names, key_name=key_name,
+            availability_zone=scope.get_name(), block_device_mapping=bdm,
+            nics=nics)
+
+        instance = instance = client.servers.get(instance.id)
+        return self._prepare_instance(client, context, utils.todict(instance))
 
     def add_access_config(self, context,
                           body, item_id, scope, network_interface):

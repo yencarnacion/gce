@@ -44,13 +44,13 @@ class API(base_api.API):
                 user_name, ssh_key = key_data.split(":")
                 self._update_key(context, user_name, ssh_key)
 
-    def get_gce_user_keypair(self, context):
+    def get_gce_user_keypair_name(self, context):
         keypairManager = clients.Clients(context).nova().keypairs
         for keypair in keypairManager.list():
-            if keypair['name'] == context.user_name:
-                return keypair['name'], keypair['public_key']
+            if keypair.name == context.user_name:
+                return keypair.name
 
-        return None, None
+        return None
 
     def _get_gce_keypair(self, context):
         keypairManager = clients.Clients(context).nova().keypairs
@@ -67,7 +67,7 @@ class API(base_api.API):
         keypairManager = clients.Clients(context).nova().keypairs
         try:
             keypair = keypairManager.get(user_name)
-            if keypair['public_key'] == ssh_key:
+            if keypair.public_key == ssh_key:
                 return
 
             keypairManager.delete(user_name)

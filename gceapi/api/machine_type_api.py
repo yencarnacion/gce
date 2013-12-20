@@ -29,21 +29,28 @@ class API(base_api.API):
         except (clients.novaclient.exceptions.NotFound,
                 clients.novaclient.exceptions.NoUniqueMatch):
             raise exception.NotFound
-        if item:
-            item = utils.todict(item)
-            item["name"] = self._to_gce(item["name"])
-        return item
+        if not item:
+            raise exception.NotFound
+        return self._prepare_item(utils.todict(item))
 
     def get_items(self, context, scope=None):
         nova_client = clients.Clients(context).nova()
-        items = [utils.todict(item) for item in nova_client.flavors.list()]
-        for item in items:
-            item["name"] = self._to_gce(item["name"])
+        items = [self._prepare_item(utils.todict(item))
+            for item in nova_client.flavors.list()]
         return items
 
     def get_scopes(self, context, item):
         # TODO(apavlov): too slow for all...
         return zone_api.API().get_item_names(context)
+
+    def get_item_by_id(self, context, machine_type_id):
+        nova_client = clients.Clients(context).nova()
+        item = nova_client.flavors.get(machine_type_id)
+        return self._prepare_item(utils.todict(item))
+
+    def _prepare_item(self, item):
+        item["name"] = self._to_gce(item["name"])
+        return item
 
     def _from_gce(self, name):
         return name.replace("-", ".")
