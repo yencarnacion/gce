@@ -250,6 +250,7 @@ class API(base_api.API):
                 if network_name else None)
 
     def get_network_firewalls(self, context, network_name):
+        return []
         secgroups = _secgroup_service.list(
                 context, project=context.project_id)
         return [f for f in secgroups
