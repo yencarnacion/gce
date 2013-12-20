@@ -23,12 +23,9 @@ class Controller(gce_common.Controller):
     """GCE Disk controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(scope_api=zone_api.API(),
+        super(Controller, self).__init__(disk_api.API(),
+                                         scope_api=zone_api.API(),
                                          *args, **kwargs)
-        self._api = disk_api.API()
-
-    def _get_type(self):
-        return "disk"
 
     def format_item(self, request, volume, scope):
         result_dict = {

@@ -21,11 +21,7 @@ class Controller(gce_common.Controller):
     """GCE Firewall controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(*args, **kwargs)
-        self._api = firewall_api.API()
-
-    def _get_type(self):
-        return "firewall"
+        super(Controller, self).__init__(firewall_api.API(), *args, **kwargs)
 
     def format_item(self, request, firewall, scope):
         result_dict = {

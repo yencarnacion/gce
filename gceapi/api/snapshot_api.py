@@ -21,6 +21,7 @@ from gceapi import exception
 class API(base_api.API):
     """GCE Snapshot API"""
 
+    KIND = "snapshot"
     _status_map = {
         'new': 'CREATING',
         'creating': 'CREATING',
@@ -29,6 +30,9 @@ class API(base_api.API):
         'deleting': 'DELETING',
         'deleted': 'DELETING',
         'error': 'FAILED'}
+
+    def _get_type(self):
+        return self.KIND
 
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).cinder().volume_snapshots

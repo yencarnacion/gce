@@ -22,12 +22,9 @@ class Controller(gce_common.Controller):
     """GCE Machine types controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(scope_api=zone_api.API(),
+        super(Controller, self).__init__(machine_type_api.API(),
+                                         scope_api=zone_api.API(),
                                          *args, **kwargs)
-        self._api = machine_type_api.API()
-
-    def _get_type(self):
-        return "machineType"
 
     def format_item(self, request, flavor, scope):
         result_dict = {

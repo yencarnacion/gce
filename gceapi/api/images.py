@@ -21,11 +21,7 @@ class Controller(gce_common.Controller):
     """GCE Image controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(*args, **kwargs)
-        self._api = image_api.API()
-
-    def _get_type(self):
-        return "image"
+        super(Controller, self).__init__(image_api.API(), *args, **kwargs)
 
     def format_item(self, request, image, scope):
         result_dict = {

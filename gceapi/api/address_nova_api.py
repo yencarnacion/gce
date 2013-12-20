@@ -21,6 +21,11 @@ from gceapi import exception
 class API(base_api.API):
     """GCE Address API - nova-network implementation"""
 
+    KIND = "address"
+
+    def _get_type(self):
+        return self.KIND
+
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).nova()
         return self._get_floating_ips(client, context, scope, name)[0]

@@ -27,6 +27,7 @@ GB = 1024 ** 3
 class API(base_api.API):
     """GCE Disk API"""
 
+    KIND = "disk"
     _status_map = {
             "creating": "CREATING",
             "downloading": "CREATING",
@@ -40,6 +41,9 @@ class API(base_api.API):
             "restoring-backup": "READY",
             # "error_restoring": ""
     }
+
+    def _get_type(self):
+        return self.KIND
 
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).cinder()

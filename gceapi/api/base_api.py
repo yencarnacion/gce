@@ -20,7 +20,9 @@ and sufficient to handle supported GCE API requests
 
 from oslo.config import cfg
 
+from gceapi import db
 from gceapi import exception
+from gceapi.openstack.common import timeutils
 
 FLAGS = cfg.CONF
 
@@ -62,6 +64,11 @@ class API(object):
         super(API, self).__init__(*args, **kwargs)
         self._callbacks = []
 
+    def _get_type(self):
+        """GCE API object type method. Should be overriden."""
+
+        raise NotImplementedError
+
     def get_item(self, context, name, scope=None):
         """Returns fully filled item for particular inherited API."""
 
@@ -102,6 +109,46 @@ class API(object):
 
         self._callbacks.append((reason, func))
 
+    def _prepare_item(self, item, db_item):
+        if db_item is not None:
+            item.update(db_item)
+        return item
+
+    def _add_db_item(self, context, item):
+        db_item = {key: item.get(key)
+                   for key in self.persistent_attributes
+                   if key in item}
+        if ("creationTimestamp" in self.persistent_attributes and
+                "creationTimestamp" not in db_item):
+            # TODO(ft): Google not returns microseconds but returns
+            # server time zone: 2013-12-06T03:34:31.340-08:00
+            utcnow = timeutils.isotime(None, True)
+            db_item["creationTimestamp"] = utcnow
+            item["creationTimestamp"] = utcnow
+        db.add_item(context, self._get_type(), db_item)
+        return item
+
+    def _delete_db_item(self, context, item):
+        return db.delete_item(context, item["id"])
+
+    def _get_db_items(self, context):
+        return db.get_items(context, self._get_type())
+
+    def _get_db_items_dict(self, context):
+        return {item["id"]: item for item in self._get_db_items(context)}
+
+    def _get_db_item_by_id(self, context, item_id):
+        return db.get_item_by_id(context, item_id)
+
+    def _get_db_item_by_name(self, context, name):
+        return db.get_item_by_name(context, self._get_type(), name)
+
+    def _purge_db(self, context, os_items, db_items_dict):
+        for item in os_items:
+            db_items_dict.pop(item["id"], None)
+        for item in db_items_dict.itervalues():
+            self._delete_db_item(context, item)
+
 
 class BaseScopeAPI(API):
     """Base class for API which contains other resources."""
@@ -133,6 +180,9 @@ class BaseNetAPI(API):
             self._api = neutron_api.API()
         else:
             self._api = nova_api.API()
+
+    def _get_type(self):
+        return self._api._get_type()
 
     def get_item(self, context, name, scope=None):
         return self._api.get_item(context, name, scope)

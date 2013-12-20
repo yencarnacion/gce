@@ -16,7 +16,6 @@ rabbit_password = password
 rabbit_host = localhost
 logging_context_format_string = %(asctime)s.%(msecs)03d %(levelname)s %(name)s [%(request_id)s %(user_name)s %(project_name)s] %(instance)s%(message)s
 volume_api_class = nova.volume.cinder.API
-sql_connection = mysql://root:password@127.0.0.1/nova?charset=utf8
 metadata_workers = 4
 osapi_compute_workers = 4
 my_ip = 192.168.137.21
@@ -31,3 +30,6 @@ admin_password = password
 admin_user = nova
 admin_tenant_name = service
 auth_host = 192.168.137.21
+
+[database]
+connection = mysql://root:password@127.0.0.1/nova?charset=utf8

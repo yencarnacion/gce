@@ -22,13 +22,10 @@ class Controller(gce_common.Controller):
     """GCE Address controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(scope_api=region_api.API(),
+        super(Controller, self).__init__(address_api.API(),
+                                         scope_api=region_api.API(),
                                          *args, **kwargs)
-        self._api = address_api.API()
         self._collection_name = "%ses" % self._type_name
-
-    def _get_type(self):
-        return "address"
 
     def format_item(self, request, floating_ip, scope):
         result_dict = {

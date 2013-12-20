@@ -21,18 +21,17 @@ class Controller(gce_common.Controller):
     """GCE Network controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(*args, **kwargs)
-        self._api = network_api.API()
-
-    def _get_type(self):
-        return "network"
+        super(Controller, self).__init__(network_api.API(), *args, **kwargs)
 
     def format_item(self, request, network, scope):
         result_dict = {
             "name": network["name"],
             "IPv4Range": network.get("IPv4Range", ""),
             "gatewayIPv4": network.get("gatewayIPv4", ""),
+            "creationTimestamp": network.get("creationTimestamp", ""),
         }
+        if "description" in network:
+            result_dict["description"] = network["description"]
 
         return self._format_item(request, result_dict, scope)
 

@@ -22,11 +22,7 @@ class Controller(gce_common.Controller):
     """GCE Zones controller."""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(*args, **kwargs)
-        self._api = zone_api.API()
-
-    def _get_type(self):
-        return "zone"
+        super(Controller, self).__init__(zone_api.API(), *args, **kwargs)
 
     def format_item(self, request, zone, scope):
         result_dict = {

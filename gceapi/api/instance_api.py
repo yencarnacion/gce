@@ -33,6 +33,7 @@ LOG = logging.getLogger(__name__)
 class API(base_api.API):
     """GCE Instance API"""
 
+    KIND = "instance"
     DEFAULT_ACCESS_CONFIG_NAME = "External NAT"
     DEFAULT_ACCESS_CONFIG_TYPE = "ONE_TO_ONE_NAT"
 
@@ -64,6 +65,9 @@ class API(base_api.API):
         firewall_api.API()._register_callback(
             base_api._callback_reasons.pre_delete,
             self._remove_secgroup_from_instances)
+
+    def _get_type(self):
+        return self.KIND
 
     def get_item(self, context, name, scope=None):
         return self.search_items(context, {"name": name}, scope)[0]
