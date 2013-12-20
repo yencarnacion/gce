@@ -36,25 +36,21 @@ class Controller(object):
     _api = None
 
     # Initialization
-    def __init__(self, scope_api=None):
+    def __init__(self, api, scope_api=None):
         """Base initialization.
 
         Inherited classes should init _api and call super().
         """
 
+        self._api = api
         self._scope_api = scope_api
-        self._type_name = self._get_type()
+        self._type_name = self._api._get_type()
         self._collection_name = "%ss" % self._type_name
         self._type_kind = "compute#%s" % self._type_name
         self._list_kind = "compute#%sList" % self._type_name
         self._aggregated_kind = "compute#%sAggregatedList" % self._type_name
 
     # Base methods, should be overriden
-
-    def _get_type(self):
-        """Controller type method. Should be overriden."""
-
-        return self._api._get_type()
 
     def format_item(self, request, image, scope):
         """Main item resource conversion routine

@@ -21,8 +21,7 @@ class Controller(gce_common.Controller):
     """GCE Network controller"""
 
     def __init__(self, *args, **kwargs):
-        self._api = network_api.API()
-        super(Controller, self).__init__(*args, **kwargs)
+        super(Controller, self).__init__(network_api.API(), *args, **kwargs)
 
     def format_item(self, request, network, scope):
         result_dict = {

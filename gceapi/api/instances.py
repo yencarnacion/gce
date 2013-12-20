@@ -29,12 +29,9 @@ class Controller(gce_common.Controller):
     """GCE Instance controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(scope_api=zone_api.API(),
+        super(Controller, self).__init__(instance_api.API(),
+                                         scope_api=zone_api.API(),
                                          *args, **kwargs)
-        self._api = instance_api.API()
-
-    def _get_type(self):
-        return "instance"
 
     def format_item(self, request, instance, scope):
         result_dict = {

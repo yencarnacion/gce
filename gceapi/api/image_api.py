@@ -21,6 +21,7 @@ from gceapi import exception
 class API(base_api.API):
     """GCE Image API"""
 
+    KIND = "image"
     _status_map = {
         "queued": "PENDING",
         "saving": "PENDING",
@@ -29,6 +30,9 @@ class API(base_api.API):
         # "deleted": "",
         # "pending_delete": ""
     }
+
+    def _get_type(self):
+        return self.KIND
 
     def get_item(self, context, name, scope=None):
         image_service = clients.Clients(context).glance().images

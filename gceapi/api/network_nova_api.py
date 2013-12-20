@@ -23,11 +23,11 @@ from gceapi import exception
 class API(base_api.API):
     """GCE Network API - nova-network implementation"""
 
-    kind = "network"
+    KIND = "network"
     persistent_attributes = ["id", "creationTimestamp", "description"]
 
     def _get_type(self):
-        return self.kind
+        return self.KIND
 
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).nova()

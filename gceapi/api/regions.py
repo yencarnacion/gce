@@ -22,12 +22,8 @@ class Controller(gce_common.Controller):
     """GCE Regions controller."""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(*args, **kwargs)
-        self._api = region_api.API()
+        super(Controller, self).__init__(region_api.API(), *args, **kwargs)
         self._zone_api = zone_api.API()
-
-    def _get_type(self):
-        return "region"
 
     def format_item(self, req, region, scope):
         zones = self._zone_api.get_item_names(self._get_context(req), scope)

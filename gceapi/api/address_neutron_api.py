@@ -25,9 +25,14 @@ CONF = cfg.CONF
 class API(base_api.API):
     """GCE Address API - neutron implementation"""
 
+    KIND = "address"
+
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
         self._public_network_name = CONF.public_network
+
+    def _get_type(self):
+        return self.KIND
 
     def get_item(self, context, name, scope=None):
         return self._get_floating_ips(context, scope, name)[0]

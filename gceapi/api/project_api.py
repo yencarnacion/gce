@@ -20,6 +20,11 @@ from gceapi.api import base_api
 class API(base_api.API):
     """GCE Projects API"""
 
+    KIND = "project"
+
+    def _get_type(self):
+        return self.KIND
+
     def get_item(self, context, name, scope=None):
         project_name = context.project_name
 

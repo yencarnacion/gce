@@ -25,12 +25,8 @@ class Controller(gce_common.Controller):
     """GCE Projects controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(*args, **kwargs)
-        self._api = project_api.API()
+        super(Controller, self).__init__(project_api.API(), *args, **kwargs)
         self._collection_name = None
-
-    def _get_type(self):
-        return "project"
 
     def format_item(self, request, project, scope):
         desc = project["project"].description

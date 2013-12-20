@@ -22,6 +22,11 @@ from gceapi import exception
 class API(base_api.API):
     """GCE Machine types API"""
 
+    KIND = "machineType"
+
+    def _get_type(self):
+        return self.KIND
+
     def get_item(self, context, name, scope=None):
         nova_client = clients.Clients(context).nova()
         try:

@@ -20,7 +20,11 @@ from gceapi import exception
 class API(base_api.BaseScopeAPI):
     """GCE Zones API."""
 
+    KIND = "zone"
     COMPUTE_SERVICE = "nova-compute"
+
+    def _get_type(self):
+        return self.KIND
 
     def get_name(self):
         return "zones"

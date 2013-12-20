@@ -36,12 +36,17 @@ LOG = logging.getLogger(__name__)
 class API(base_api.API):
     """GCE Firewall API"""
 
+    KIND = "firewall"
+
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
         net_api = network_api.API()
         net_api._register_callback(
             base_api._callback_reasons.pre_delete,
             self.delete_network_firewalls)
+
+    def _get_type(self):
+        return self.KIND
 
     def get_item(self, context, name, scope=None):
         firewall = _secgroup_service.list(

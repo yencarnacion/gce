@@ -22,11 +22,7 @@ class Controller(gce_common.Controller):
     """GCE Snapshot controller"""
 
     def __init__(self, *args, **kwargs):
-        super(Controller, self).__init__(*args, **kwargs)
-        self._api = snapshot_api.API()
-
-    def _get_type(self):
-        return "snapshot"
+        super(Controller, self).__init__(snapshot_api.API(), *args, **kwargs)
 
     def format_item(self, request, snapshot, scope):
         result_dict = {

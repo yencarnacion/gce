@@ -67,7 +67,7 @@ class API(object):
     def _get_type(self):
         """GCE API object type method. Should be overriden."""
 
-        return ""
+        raise NotImplementedError
 
     def get_item(self, context, name, scope=None):
         """Returns fully filled item for particular inherited API."""
@@ -125,14 +125,14 @@ class API(object):
             utcnow = timeutils.isotime(None, True)
             db_item["creationTimestamp"] = utcnow
             item["creationTimestamp"] = utcnow
-        db.add_item(context, self.kind, db_item)
+        db.add_item(context, self._get_type(), db_item)
         return item
 
     def _delete_db_item(self, context, item):
         return db.delete_item(context, item["id"])
 
     def _get_db_items(self, context):
-        return db.get_items(context, self.kind)
+        return db.get_items(context, self._get_type())
 
     def _get_db_items_dict(self, context):
         return {item["id"]: item for item in self._get_db_items(context)}
@@ -141,7 +141,7 @@ class API(object):
         return db.get_item_by_id(context, item_id)
 
     def _get_db_item_by_name(self, context, name):
-        return db.get_item_by_name(context, self.kind, name)
+        return db.get_item_by_name(context, self._get_type(), name)
 
     def _purge_db(self, context, os_items, db_items_dict):
         for item in os_items:

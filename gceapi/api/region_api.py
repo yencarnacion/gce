@@ -22,7 +22,11 @@ class API(base_api.API):
     Stubbed now for support only one predefined region nova
     """
 
+    KIND = "region"
     _REGIONS = ["nova"]
+
+    def _get_type(self):
+        return self.KIND
 
     def get_name(self):
         return "regions"
