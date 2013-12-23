@@ -16,7 +16,9 @@ import copy
 import os.path
 
 from gceapi.api import base_api
+from gceapi.api import clients
 from gceapi.api import network_api
+from gceapi.api import utils
 from gceapi import exception
 from gceapi.openstack.common import log as logging
 
@@ -40,8 +42,7 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        net_api = network_api.API()
-        net_api._register_callback(
+        network_api.API()._register_callback(
             base_api._callback_reasons.pre_delete,
             self.delete_network_firewalls)
 
@@ -49,13 +50,17 @@ class API(base_api.API):
         return self.KIND
 
     def get_item(self, context, name, scope=None):
-        firewall = _secgroup_service.list(
-               context, project=context.project_id, names=[name])[0]
+        client = clients.Clients(context).nova()
+        try:
+            firewall = client.security_groups.find(name=name)
+        except (clients.novaclient.exceptions.NotFound,
+                clients.novaclient.exceptions.NoUniqueMatch):
+            raise exception.NotFound()
         return self._prepare_item(firewall)
 
     def get_items(self, context, scope=None):
-        firewalls = _secgroup_service.list(
-                context, project=context.project_id)
+        client = clients.Clients(context).nova()
+        firewalls = client.security_groups.list()
         return [self._prepare_item(firewall)
                 for firewall in firewalls]
 
@@ -65,26 +70,36 @@ class API(base_api.API):
         group_description = "".join([body.get("description", ""),
                                      DESCRIPTION_NETWORK_SEPARATOR,
                                      network["name"]])
-        group_ref = _secgroup_service.create_security_group(
-            context, body['name'], group_description)
+        client = clients.Clients(context).nova()
+        sg = client.security_groups.create(body['name'], group_description)
         try:
-            rules = self._convert_to_secgroup_rules(group_ref['id'], body)
-            _secgroup_service.add_rules(
-                    context, group_ref['id'], group_ref['name'], rules)
+            rules = self._convert_to_secgroup_rules(sg.id, body)
+            for rule in rules:
+                client.security_group_rules.create(
+                    sg.id, ip_protocol=rule["protocol"],
+                    from_port=rule["from_port"], to_port=rule["to_port"],
+                    cidr=rule["cidr"], )
         except Exception:
-            _secgroup_service.destroy(context, group_ref)
+            client.security_groups.delete(sg)
             raise
+        sg = utils.todict(client.security_groups.get(sg.id))
         self._process_callbacks(
-            context, base_api._callback_reasons.post_add, group_ref)
-        return self._prepare_item(group_ref)
+            context, base_api._callback_reasons.post_add, sg)
+        return self._prepare_item(sg)
 
     def delete_item(self, context, name, scope=None):
         firewall = self.get_item(context, name)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, firewall)
-        _secgroup_service.destroy(context, firewall)
+        client = clients.Clients(context).nova()
+        try:
+            client.security_groups.delete(firewall["id"])
+        except clients.novaclient.exceptions.ClientException as ex:
+            raise exception.GceapiException(message=ex.message, code=ex.code)
 
     def _prepare_item(self, firewall):
+        firewall = utils.todict(firewall)
+
         # NOTE(ft): OpenStack security groups are more powerful than
         # gce firewalls so when we cannot completely convert secgroup
         # we add prefixes to firewall description
@@ -103,12 +118,12 @@ class API(base_api.API):
                 return "%s-%s" % (rule['from_port'], rule['to_port'])
 
         grouped_rules = {}
-        for rule in firewall['rules']:
-            if not rule['cidr']:
+        for rule in firewall["rules"]:
+            if "cidr" not in rule["ip_range"] or not rule["ip_range"]["cidr"]:
                 non_cidr_rule_exists = True
                 continue
-            cidr = rule["cidr"]
-            proto = rule['protocol']
+            cidr = rule.get("ip_range", {}).get("cidr")
+            proto = rule["ip_protocol"]
             cidr_group = grouped_rules.setdefault(cidr, {})
             proto_ports = cidr_group.setdefault(proto, set())
             proto_ports.add(_ports_to_str(rule))
@@ -217,27 +232,20 @@ class API(base_api.API):
     def add_security_group_to_instances(self, context, group, instances):
         for instance in instances:
             try:
-                _secgroup_service.add_to_instance(
-                        context, instance, group["id"])
-            except exception.InstanceNotRunning:
-                LOG.warning(("Failed to add not running "
-                             "instance (%s) to security group (%s)"),
-                            instance["uuid"], group["name"])
+                instance.add_security_group(group["name"])
             except Exception:
                 LOG.exception(("Failed to add instance "
                                "(%s) to security group (%s)"),
-                              instance["uuid"], group["name"])
+                              instance.id, group["name"])
 
-    def remove_security_group_from_instances(self, context, secgroup,
-                                             instances):
+    def remove_security_group_from_instances(self, context, group, instances):
         for instance in instances:
             try:
-                _secgroup_service.remove_from_instance(
-                        context, instance, secgroup['id'])
+                instance.remove_security_group(group["name"])
             except Exception:
                 LOG.exception(("Failed to remove securiy group (%s) "
                                "from instance (%s)"),
-                              secgroup["name"], instance["uuid"])
+                              group["name"], instance.id)
 
     def get_firewall_network_name(self, firewall):
         description = firewall.get("description")
@@ -250,17 +258,17 @@ class API(base_api.API):
                 if network_name else None)
 
     def get_network_firewalls(self, context, network_name):
-        return []
-        secgroups = _secgroup_service.list(
-                context, project=context.project_id)
-        return [f for f in secgroups
+        client = clients.Clients(context).nova()
+        firewalls = [utils.todict(f) for f in client.security_groups.list()]
+        return [f for f in firewalls
                 if self.get_firewall_network_name(f) == network_name]
 
     def delete_network_firewalls(self, context, network):
         network_name = network["name"]
+        client = clients.Clients(context).nova()
         for secgroup in self.get_network_firewalls(context, network_name):
             try:
-                _secgroup_service.destroy(context, secgroup)
+                client.security_groups.delete(secgroup["id"])
             except Exception:
                 LOG.exception(("Failed to delete security group (%s) while"
                                "delete network (%s))"),
