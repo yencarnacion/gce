@@ -43,7 +43,7 @@ class API(base_api.API):
             if result:
                 msg = _("Image resource '%s' could not be found" % name)
                 raise exception.NotFound(msg)
-            result = self._prepare_item(utils.todict(image))
+            result = self._prepare_item(utils.to_dict(image))
         if not result:
             msg = _("Image resource '%s' could not be found" % name)
             raise exception.NotFound(msg)
@@ -54,7 +54,7 @@ class API(base_api.API):
         images = image_service.list(filters={"disk_format": "raw"})
         items = list()
         for image in images:
-            items.append(self._prepare_item(utils.todict(image)))
+            items.append(self._prepare_item(utils.to_dict(image)))
         return items
 
     def _prepare_item(self, item):
@@ -81,11 +81,11 @@ class API(base_api.API):
         image_service = clients.Clients(context).glance().images
         image = image_service.create(**meta)
 
-        return self._prepare_item(utils.todict(image))
+        return self._prepare_item(utils.to_dict(image))
 
     def get_item_by_id(self, context, image_id):
         try:
             image_service = clients.Clients(context).glance().images
-            return utils.todict(image_service.get(image_id))
+            return utils.to_dict(image_service.get(image_id))
         except exception.NotFound:
             return None
