@@ -81,7 +81,7 @@ class API(base_api.API):
         except Exception:
             client.security_groups.delete(sg)
             raise
-        sg = utils.todict(client.security_groups.get(sg.id))
+        sg = utils.to_dict(client.security_groups.get(sg.id))
         self._process_callbacks(
             context, base_api._callback_reasons.post_add, sg)
         return self._prepare_item(sg)
@@ -97,7 +97,7 @@ class API(base_api.API):
             raise exception.GceapiException(message=ex.message, code=ex.code)
 
     def _prepare_item(self, firewall):
-        firewall = utils.todict(firewall)
+        firewall = utils.to_dict(firewall)
 
         # NOTE(ft): OpenStack security groups are more powerful than
         # gce firewalls so when we cannot completely convert secgroup
@@ -258,7 +258,7 @@ class API(base_api.API):
 
     def get_network_firewalls(self, context, network_name):
         client = clients.Clients(context).nova()
-        firewalls = [utils.todict(f) for f in client.security_groups.list()]
+        firewalls = [utils.to_dict(f) for f in client.security_groups.list()]
         return [f for f in firewalls
                 if self.get_firewall_network_name(f) == network_name]
 

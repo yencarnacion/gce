@@ -46,7 +46,7 @@ class API(base_api.API):
     def get_item(self, context, name, scope=None):
         client = clients.Clients(context).cinder()
         volumes = client.volumes.list(search_opts={"display_name": name})
-        volumes = [utils.todict(item) for item in volumes]
+        volumes = [utils.to_dict(item) for item in volumes]
         volumes = self._filter_volumes_by_zone(volumes, scope)
         for volume in volumes:
             if volume["display_name"] == name:
@@ -58,7 +58,7 @@ class API(base_api.API):
 
     def get_items(self, context, scope=None):
         client = clients.Clients(context).cinder()
-        volumes = [utils.todict(item) for item in client.volumes.list()]
+        volumes = [utils.to_dict(item) for item in client.volumes.list()]
         volumes = self._filter_volumes_by_zone(volumes, scope)
         for volume in volumes:
             self._prepare_item(client, volume)
@@ -71,7 +71,7 @@ class API(base_api.API):
         snapshot = None
         snapshot_id = item["snapshot_id"]
         if snapshot_id:
-            snapshot = utils.todict(client.volume_snapshots.get(snapshot_id))
+            snapshot = utils.to_dict(client.volume_snapshots.get(snapshot_id))
         item["snapshot"] = snapshot
         item["status"] = self._status_map.get(item["status"], item["status"])
         item["name"] = item["display_name"]
@@ -123,4 +123,4 @@ class API(base_api.API):
             imageRef=image_id,
             availability_zone=scope.get_name())
 
-        return self._prepare_item(context, utils.todict(volume))
+        return self._prepare_item(context, utils.to_dict(volume))

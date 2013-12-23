@@ -59,7 +59,7 @@ class API(base_api.API):
         raise exception.NotFound
 
     def _prepare_floating_ip(self, client, context, floating_ip, scope):
-        floating_ip = utils.todict(floating_ip)
+        floating_ip = utils.to_dict(floating_ip)
         fixed_ip = floating_ip.get("fixed_ip")
         result = {
             "fixed_ip_address": fixed_ip if fixed_ip else None,

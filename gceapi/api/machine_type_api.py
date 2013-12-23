@@ -36,11 +36,11 @@ class API(base_api.API):
             raise exception.NotFound
         if not item:
             raise exception.NotFound
-        return self._prepare_item(utils.todict(item))
+        return self._prepare_item(utils.to_dict(item))
 
     def get_items(self, context, scope=None):
         nova_client = clients.Clients(context).nova()
-        items = [self._prepare_item(utils.todict(item))
+        items = [self._prepare_item(utils.to_dict(item))
             for item in nova_client.flavors.list()]
         return items
 
@@ -51,7 +51,7 @@ class API(base_api.API):
     def get_item_by_id(self, context, machine_type_id):
         nova_client = clients.Clients(context).nova()
         item = nova_client.flavors.get(machine_type_id)
-        return self._prepare_item(utils.todict(item))
+        return self._prepare_item(utils.to_dict(item))
 
     def _prepare_item(self, item):
         item["name"] = self._to_gce(item["name"])

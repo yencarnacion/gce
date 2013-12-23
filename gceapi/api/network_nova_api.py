@@ -36,7 +36,7 @@ class API(base_api.API):
         client = clients.Clients(context).nova()
         network = client.networks.find(label=name)
         gce_network = self._get_db_item_by_id(context, network.id)
-        return self._prepare_network(utils.todict(network), gce_network)
+        return self._prepare_network(utils.to_dict(network), gce_network)
 
     def get_items(self, context, scope=None):
         client = clients.Clients(context).nova()
@@ -44,7 +44,7 @@ class API(base_api.API):
         gce_networks = self._get_db_items_dict(context)
         result_networks = []
         for network in networks:
-            result_networks.append(self._prepare_network(utils.todict(network),
+            result_networks.append(self._prepare_network(utils.to_dict(network),
                                    gce_networks.get(network["id"])))
         self._purge_db(context, result_networks, gce_networks)
         return result_networks
@@ -76,7 +76,7 @@ class API(base_api.API):
         kwargs = {'label': name, 'cidr': ip_range, 'gateway': gateway}
         client = clients.Clients(context).nova()
         network = client.networks.create(**kwargs)
-        network = self._prepare_network(utils.todict(network))
+        network = self._prepare_network(utils.to_dict(network))
         if "description" in body:
             network["description"] = body["description"]
         return self._add_db_item(context, network)

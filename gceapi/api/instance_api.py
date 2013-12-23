@@ -86,7 +86,7 @@ class API(base_api.API):
             iscope = getattr(instance, "OS-EXT-AZ:availability_zone")
             if (scope is None
             or scope.get_name() == iscope):
-                instance = utils.todict(instance)
+                instance = utils.to_dict(instance)
                 instance = self._prepare_instance(client, context, instance)
                 filtered_instances.append(instance)
 
@@ -101,7 +101,7 @@ class API(base_api.API):
         cinder_client = clients.Clients(context).cinder()
         volumes = instance["os-extended-volumes:volumes_attached"]
         instance["volumes"] = [
-            utils.todict(cinder_client.volumes.get(v["id"])) for v in volumes]
+            utils.to_dict(cinder_client.volumes.get(v["id"])) for v in volumes]
 
         for network in instance["addresses"]:
             for address in instance["addresses"][network]:
@@ -222,7 +222,7 @@ class API(base_api.API):
             nics=nics)
 
         instance = instance = client.servers.get(instance.id)
-        return self._prepare_instance(client, context, utils.todict(instance))
+        return self._prepare_instance(client, context, utils.to_dict(instance))
 
     def add_access_config(self, context,
                           body, item_id, scope, network_interface):

@@ -38,12 +38,12 @@ class API(base_api.API):
         client = clients.Clients(context).cinder().volume_snapshots
         snapshots = client.list(search_opts={"display_name": name})
         if snapshots and len(snapshots) == 1:
-            return self._prepare_item(context, utils.todict(snapshots[0]))
+            return self._prepare_item(context, utils.to_dict(snapshots[0]))
         raise exception.NotFound
 
     def get_items(self, context, scope=None):
         client = clients.Clients(context).cinder().volume_snapshots
-        snapshots = [utils.todict(item) for item in client.list()]
+        snapshots = [utils.to_dict(item) for item in client.list()]
         for snapshot in snapshots:
             self._prepare_item(context, snapshot)
         return snapshots
@@ -66,13 +66,13 @@ class API(base_api.API):
         snapshot = client.volume_snapshots.create(
             volumes[0].id, True, name, body["description"])
 
-        return self._prepare_item(context, utils.todict(snapshot))
+        return self._prepare_item(context, utils.to_dict(snapshot))
 
     def _prepare_item(self, context, item):
         item["name"] = item["display_name"]
         try:
             client = clients.Clients(context).cinder().volumes
-            item["disk"] = utils.todict(client.get(item["volume_id"]))
+            item["disk"] = utils.to_dict(client.get(item["volume_id"]))
         except:
             pass
         item["status"] = self._status_map.get(item["status"], item["status"])
