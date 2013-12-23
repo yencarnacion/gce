@@ -12,8 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os.path
-
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import image_api
@@ -103,16 +101,14 @@ class API(base_api.API):
 
         client = clients.Clients(context).cinder()
         if snapshot_uri:
-            # TODO(apavlov): use extract_name_from_url
-            snapshot_name = os.path.basename(snapshot_uri)
+            snapshot_name = utils._extract_name_from_url(snapshot_uri)
             snapshots = client.volume_snapshots.list(
                 search_opts={"display_name": snapshot_name})
             if not snapshots or len(snapshots) != 1:
                 raise exception.NotFound
             snapshot_id = snapshots[0].id
         elif image_uri:
-            # TODO(apavlov): use extract_name_from_url
-            image_name = os.path.basename(image_uri)
+            image_name = utils._extract_name_from_url(image_uri)
             image = image_api.API().get_item(context, image_name, scope)
             image_id = image['id']
             # Cinder API doesn't get size from image, so we do this
