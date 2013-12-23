@@ -12,8 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import webob
-
 from gceapi.api import networks
 from gceapi.tests.api import common
 

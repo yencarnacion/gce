@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
+
 
 FAKE_NETWORKS = {'networks':
                  [
@@ -85,6 +87,36 @@ FAKE_SUBNETS = [
                  }
                 ]
 
+FAKE_ROUTERS = [
+                {u'id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
+                 u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
+                 u'external_gateway_info':
+                    {"network_id": u'503b83b5-bec0-4071-b8ba-789595c8f7b2'},
+                 u'routes': [
+                             {u'destination': u'32.44.64.0/24',
+                              u'nexthop': u'10.0.0.32'},
+                             {u'destination': u'89.34.0.0/16',
+                              u'nexthop': u'10.0.0.78'},
+                             ],
+                 }
+                ]
+FAKE_PORTS = [
+              {u'id': u'3e10c6ac-9fcc-492d-95fb-1b7ea93529f2',
+               u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
+               u'device_owner': u'network:router_gateway',
+               u'network_id': u'503b83b5-bec0-4071-b8ba-789595c8f7b2',
+               u'device_id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
+               },
+              {u'id': u'eee5ba4f-c67e-40ec-8595-61b8e2bb715a',
+               u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
+               u'device_owner': u'network:router_interface',
+               u'network_id': u'734b9c83-3a8b-4350-8fbf-d40f571ee163',
+               u'device_id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
+               u'fixed_ips': [{
+                       u'subnet_id': u'cd84a13b-6246-424f-9dd2-04c324ed4da0'}],
+               },
+              ]
+
 
 class FakeQuantumClient(object):
 
@@ -103,6 +135,11 @@ class FakeQuantumClient(object):
             if subnet["subnet"]["id"] == subnet_id:
                 return subnet
         return None
+
+    def list_subnets(self, retrieve_all=True, **_params):
+        subnets = [copy.deepcopy(s) for s in FAKE_SUBNETS
+                   if all(s.get(a) == _params[a] for a in _params)]
+        return {"subnets": subnets}
 
     def create_network(self, body):
         return {u'network':
@@ -139,10 +176,35 @@ class FakeQuantumClient(object):
         pass
 
     def list_routers(self, retrieve_all=True, **_params):
-        return {"routers": []}
+        routers = [copy.deepcopy(r) for r in FAKE_ROUTERS
+                   if all(r.get(a) == _params[a] for a in _params)]
+        return {"routers": routers}
+
+    def show_router(self, router):
+        return {"router": copy.deepcopy(next(r for r in FAKE_ROUTERS
+                                             if r["id"] == router))}
+
+    def create_router(self, body=None):
+        return {"router": {"id": 111}}
+
+    def update_router(self, router, body=None):
+        pass
+
+    def add_gateway_router(self, router, body=None):
+        routers = self.list_routers(id=router)["routers"]
+        if len(routers) == 1:
+            return {"router": routers[0]}
+
+    def add_interface_router(self, router, body=None):
+        pass
+
+    def remove_gateway_router(self, router):
+        pass
 
     def list_ports(self, *args, **kwargs):
-        return {"ports": []}
+        ports = [p for p in FAKE_PORTS
+                 if all(p.get(a) == kwargs[a] for a in kwargs)]
+        return {"ports": ports}
 
     def list_floatingips(self):
         return {"floatingips": [{

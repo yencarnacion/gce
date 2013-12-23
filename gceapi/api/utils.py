@@ -128,3 +128,9 @@ def todict(obj, recursive=False, classkey=None):
         return [todict(v, recursive, classkey) for v in obj]
 
     return obj
+
+
+# TODO(ft): use this function everywhere
+def _extract_name_from_url(url):
+    """Get object name from fully qualified link"""
+    return url.split('/')[-1]

@@ -13,6 +13,7 @@
 #    under the License.
 
 import netaddr
+from oslo.config import cfg
 
 from gceapi.openstack.common.gettextutils import _
 from gceapi import exception
@@ -21,6 +22,7 @@ from gceapi.api import base_api
 from gceapi.openstack.common import log as logging
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -32,6 +34,7 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
+        self._public_network_name = CONF.public_network
 
     def _get_type(self):
         return self.KIND
@@ -79,7 +82,6 @@ class API(base_api.API):
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
 
-        self._remove_network_from_routers(context, network)
         neutron_api.delete_network(network["id"])
 
     def add_item(self, context, name, body, scope=None):
@@ -112,41 +114,28 @@ class API(base_api.API):
                 "gateway_ip": gateway}
             result_data = neutron_api.create_subnet(subnet_body)
             subnet_id = result_data["subnet"]["id"]
-            self._add_subnet_to_external_router(context, subnet_id)
         network = self._prepare_network(context, network)
         network["description"] = body.get("description")
-        return self._add_db_item(context, network)
+        network = self._add_db_item(context, network)
+        self._process_callbacks(
+            context, base_api._callback_reasons.post_add,
+            network, subnet_id=subnet_id)
+        return network
 
     def _prepare_network(self, context, network, db_network=None):
         subnets = network['subnets']
         if subnets and len(subnets) > 0:
             subnet = clients.Clients(context).neutron().show_subnet(subnets[0])
             subnet = subnet["subnet"]
+            network["subnet_id"] = subnet["id"]
             network["IPv4Range"] = subnet.get("cidr", None)
             network["gatewayIPv4"] = subnet.get("gateway_ip", None)
         return self._prepare_item(network, db_network)
 
-    def _add_subnet_to_external_router(self, context, subnet_id):
-        routers = clients.Clients(context).neutron().list_routers()
-        routers = routers["routers"]
-        router = next((r for r in routers
-                       if (r["status"] == "ACTIVE" and
-                           r["tenant_id"] == context.project_id and
-                           r["external_gateway_info"])), None)
-        if router is None:
-            return
-        try:
-            clients.Clients(context).neutron().add_interface_router(
-                    router["id"], {"subnet_id": subnet_id})
-        except Exception:
-            LOG.exception("Failed to add subnet (%s) to router (%s)",
-                          subnet_id, router["id"])
-
-    def _remove_network_from_routers(self, context, network):
-        ports = clients.Clients(context).neutron().list_ports(
-                network_id=network["id"])
-        for port in ports["ports"]:
-            if port["device_owner"] != "network:router_interface":
-                continue
-            clients.Clients(context).neutron().remove_interface_router(
-                    port["device_id"], {"port_id": port["id"]})
+    def get_public_network_id(self, context):
+        """Get id of public network appointed to GCE in config"""
+        neutron_api = clients.Clients(context).neutron()
+        search_opts = {"name": self._public_network_name,
+                       "router:external": True}
+        networks = neutron_api.list_networks(**search_opts)["networks"]
+        return networks[0]["id"]

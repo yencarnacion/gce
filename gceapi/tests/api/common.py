@@ -22,6 +22,7 @@ import mox
 
 from gceapi import test
 import gceapi.api
+import gceapi.tests.api.fake_db as fake_db
 import gceapi.tests.api.fake_image as fake_image
 import gceapi.tests.api.fake_instance as fake_instance
 import gceapi.tests.api.fake_network as fake_network
@@ -59,6 +60,7 @@ class GCEControllerTest(test.TestCase):
             fake_instance.fake_block_device_mapping_get_all_by_instance)
         self.stubs.Set(compute_api, "KeypairAPI", fake_project.FakeKeypairAPI)
         self.stubs.Set(network, "API", fake_network.FakeNetworkAPI)
+        fake_db.setStubs(self.stubs)
 
     def request_gce(self, url, method="GET", body=None):
         fake_req = fake_request.HTTPRequest.blank(url, method=method,
