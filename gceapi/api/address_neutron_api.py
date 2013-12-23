@@ -46,10 +46,9 @@ class API(base_api.API):
         clients.Clients(context).neutron().delete_floatingip(ip_id)
 
     def add_item(self, context, name, body, scope=None):
-        network = network_api.API().get_item(
-            context, self._public_network_name, scope)
+        public_network_id = network_api.API().get_public_network_id(context)
         floating_ip = clients.Clients(context).neutron().create_floatingip(
-            {"floatingip": {"floating_network_id": network["id"]}})
+            {"floatingip": {"floating_network_id": public_network_id}})
         return self._prepare_floating_ip(
             context, floating_ip["floatingip"], scope)
 

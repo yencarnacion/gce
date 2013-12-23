@@ -108,6 +108,7 @@ class APIRouter(wsgi.Router):
         self.resources['projects'] = projects.create_resource()
         self.resources['snapshots'] = snapshots.create_resource()
         self.resources['addresses'] = addresses.create_resource()
+        self.resources['routes'] = routes.create_resource()
 
         mapper.resource("disks", "zones/{scope_id}/disks",
                 controller=self.resources['disks'])
@@ -159,6 +160,8 @@ class APIRouter(wsgi.Router):
                 controller=self.resources["networks"])
         mapper.resource("firewalls", "global/firewalls",
                 controller=self.resources["firewalls"])
+        mapper.resource("routes", "global/routes",
+                controller=self.resources['routes'])
 
         mapper.connect("/{project_id}", controller=self.resources['projects'],
                 action="show", conditions={"method": ["GET"]})

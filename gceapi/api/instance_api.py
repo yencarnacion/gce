@@ -165,8 +165,7 @@ class API(base_api.API):
         #description = body.get('description')
         client = clients.Clients(context).nova()
 
-        # TODO(apavlov): use extract_name_from_url method
-        flavor_name = body['machineType'].split('/')[-1]
+        flavor_name = utils._extract_name_from_url(body['machineType'])
         flavor_id = machine_type_api.API().get_item(
             context, flavor_name, scope)["id"]
 
@@ -189,8 +188,7 @@ class API(base_api.API):
         for disk in disks:
             # TODO(apavlov): store disk["deviceName"] in DB
             device_name = "vd" + string.ascii_lowercase[diskDevice]
-            # TODO(apavlov): use extract_name_from_url method
-            volume_name = disk["source"].split("/")[-1]
+            volume_name = utils._extract_name_from_url(disk["source"])
             volume = disk_api.API().get_item(context, volume_name, scope)
             bdm[device_name] = volume['id']
             diskDevice += 1
@@ -202,8 +200,7 @@ class API(base_api.API):
         #so we support this behaviour
         groups_names = set(['default'])
         for net_iface in body['networkInterfaces']:
-            # TODO(apavlov): use extract_name_from_url method
-            net_name = net_iface["network"].split("/")[-1]
+            net_name = utils._extract_name_from_url(net_iface["network"])
 
             # TODO(apavlov): parse net_iface["accessConfigs"] and do it
             # it can exists in three ways:

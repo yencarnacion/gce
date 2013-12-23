@@ -13,7 +13,6 @@
 #    under the License.
 
 import copy
-import os.path
 
 from gceapi.api import base_api
 from gceapi.api import clients
@@ -184,7 +183,7 @@ class API(base_api.API):
         return firewall
 
     def _get_network_by_url(self, context, url):
-        network_name = os.path.basename(url)
+        network_name = utils._extract_name_from_url(url)
         return network_api.API().get_item(context, network_name)
 
     def _check_rules(self, firewall):

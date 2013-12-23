@@ -13,17 +13,13 @@
 #    under the License.
 
 from gceapi.api import base_api
-from gceapi.api import network_neutron_api
-from gceapi.api import network_nova_api
+from gceapi.api import route_neutron_api
+from gceapi.api import route_nova_api
 
 
 class API(base_api.BaseNetAPI):
-    """GCE Network API"""
+    """GCE Route API"""
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(
-            network_neutron_api, network_nova_api, *args, **kwargs)
-
-    def get_public_network_id(self, context):
-        """Get id of public network appointed to GCE in config"""
-        return self._api.get_public_network_id(context)
+            route_neutron_api, route_nova_api, *args, **kwargs)
