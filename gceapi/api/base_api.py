@@ -31,7 +31,7 @@ class Singleton(type):
     """Singleton metaclass."""
     _instances = {}
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs):  # @NoSelf
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls) \
                 .__call__(*args, **kwargs)
@@ -152,10 +152,18 @@ class API(object):
         return db.get_item_by_name(context, self._get_type(), name)
 
     def _purge_db(self, context, os_items, db_items_dict):
+        only_os_items = []
+        existed_db_items = set()
         for item in os_items:
-            db_items_dict.pop(item["id"], None)
+            db_item = db_items_dict.get(item["id"])
+            if db_item is None:
+                only_os_items.append(item)
+            else:
+                existed_db_items.add(item["id"])
         for item in db_items_dict.itervalues():
-            self._delete_db_item(context, item)
+            if item["id"] not in existed_db_items:
+                self._delete_db_item(context, item)
+        return only_os_items
 
 
 class BaseScopeAPI(API):
