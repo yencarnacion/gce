@@ -13,7 +13,7 @@ signing_dir = /var/cache/gceapi
 admin_password = password
 admin_user = nova
 admin_tenant_name = service
-auth_host = 192.168.137.21
+auth_host = 127.0.0.1
 
 [database]
 connection = mysql://root:password@127.0.0.1/gceapi?charset=utf8
