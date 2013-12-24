@@ -24,16 +24,13 @@ SHOULD include dedicated exception logging.
 
 """
 
-import functools
 import sys
 
 from oslo.config import cfg
 import webob.exc
 
-from gceapi.openstack.common import excutils
 from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
-from gceapi import safe_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -53,44 +50,6 @@ class ConvertedException(webob.exc.WSGIHTTPException):
         self.title = title
         self.explanation = explanation
         super(ConvertedException, self).__init__()
-
-
-def _cleanse_dict(original):
-    """Strip all admin_password, new_pass, rescue_pass keys from a dict."""
-    return dict((k, v) for k, v in original.iteritems() if not "_pass" in k)
-
-
-def wrap_exception(notifier=None, get_notifier=None):
-    """This decorator wraps a method to catch any exceptions that may
-    get thrown. It logs the exception as well as optionally sending
-    it to the notification system.
-    """
-    def inner(f):
-        def wrapped(self, context, *args, **kw):
-            # Don't store self or context in the payload, it now seems to
-            # contain confidential information.
-            try:
-                return f(self, context, *args, **kw)
-            except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    if notifier or get_notifier:
-                        payload = dict(exception=e)
-                        call_dict = safe_utils.getcallargs(f, context,
-                                                           *args, **kw)
-                        cleansed = _cleanse_dict(call_dict)
-                        payload.update({'args': cleansed})
-
-                        # If f has multiple decorators, they must use
-                        # functools.wraps to ensure the name is
-                        # propagated.
-                        event_type = f.__name__
-
-                        (notifier or get_notifier()).error(context,
-                                                           event_type,
-                                                           payload)
-
-        return functools.wraps(f)(wrapped)
-    return inner
 
 
 class GceapiException(Exception):

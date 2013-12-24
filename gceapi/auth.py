@@ -58,8 +58,8 @@ def pipeline_factory(loader, global_conf, **local_conf):
     filters = [loader.get_filter(n) for n in pipeline[:-1]]
     app = loader.get_app(pipeline[-1])
     filters.reverse()
-    for filter in filters:
-        app = filter(app)
+    for filter_func in filters:
+        app = filter_func(app)
     return app
 
 

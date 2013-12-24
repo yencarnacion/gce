@@ -27,20 +27,23 @@ import sys
 
 eventlet.patcher.monkey_patch(os=False, thread=False)
 
+from oslo.config import cfg
+
 from gceapi import config
 from gceapi import service
 from gceapi.openstack.common import log as logging
+
+CONF = cfg.CONF
+CONF.import_opt('use_ssl', 'gceapi.service')
 
 
 def main():
     config.parse_args(sys.argv)
     logging.setup('gceapi')
 
-    # TODO(apavlov): get it from config
-    use_ssl = False
-
-    server = service.WSGIService('gce', use_ssl=use_ssl, max_url_len=16384)
-    service.serve(server, workers=server.workers)
+    server = service.WSGIService(
+        'gce', use_ssl=CONF.use_ssl, max_url_len=16384)
+    service.serve(server)
     service.wait()
 
 

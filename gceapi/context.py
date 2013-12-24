@@ -45,8 +45,8 @@ class RequestContext(object):
     def __init__(self, user_id, project_id, is_admin=None, read_deleted="no",
                  roles=None, remote_address=None, timestamp=None,
                  request_id=None, auth_token=None, overwrite=True,
-                 quota_class=None, user_name=None, project_name=None,
-                 service_catalog=None, instance_lock_checked=False, **kwargs):
+                 user_name=None, project_name=None,
+                 service_catalog=None, **kwargs):
         """
         :param read_deleted: 'no' indicates deleted records are hidden, 'yes'
             indicates deleted records are visible, 'only' indicates that
@@ -77,20 +77,8 @@ class RequestContext(object):
         self.request_id = request_id
         self.auth_token = auth_token
 
-        if service_catalog:
-            # Only include required parts of service_catalog
-            self.service_catalog = [s for s in service_catalog
-                if s.get('type') in ('volume')]
-        else:
-            # if list is empty or none
-            self.service_catalog = []
+        self.service_catalog = service_catalog
 
-        self.instance_lock_checked = instance_lock_checked
-
-        # NOTE(markmc): this attribute is currently only used by the
-        # rs_limits turnstile pre-processor.
-        # See https://lists.launchpad.net/openstack/msg12200.html
-        self.quota_class = quota_class
         self.user_name = user_name
         self.project_name = project_name
         self.is_admin = is_admin
@@ -127,11 +115,9 @@ class RequestContext(object):
                 'timestamp': timeutils.strtime(self.timestamp),
                 'request_id': self.request_id,
                 'auth_token': self.auth_token,
-                'quota_class': self.quota_class,
                 'user_name': self.user_name,
                 'service_catalog': self.service_catalog,
                 'project_name': self.project_name,
-                'instance_lock_checked': self.instance_lock_checked,
                 'tenant': self.tenant,
                 'user': self.user}
 
@@ -214,13 +200,4 @@ def authorize_user_context(context, user_id):
         if not context.user_id:
             raise exception.NotAuthorized()
         elif context.user_id != user_id:
-            raise exception.NotAuthorized()
-
-
-def authorize_quota_class_context(context, class_name):
-    """Ensures a request has permission to access the given quota class."""
-    if is_user_context(context):
-        if not context.quota_class:
-            raise exception.NotAuthorized()
-        elif context.quota_class != class_name:
             raise exception.NotAuthorized()

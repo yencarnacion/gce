@@ -63,17 +63,6 @@ CONF.register_opts(gce_opts)
 LOG = logging.getLogger(__name__)
 
 
-class StubAuth(wsgi.Middleware):
-
-    @webob.dec.wsgify(RequestClass=wsgi.Request)
-    def __call__(self, req):
-        ctx = context.get_admin_context()
-        ctx.project_id = "demo"
-
-        req.environ['gceapi.context'] = ctx
-        return self.application
-
-
 class APIRouter(wsgi.Router):
     """
     Routes requests on the GCE API to the appropriate controller
