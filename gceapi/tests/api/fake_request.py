@@ -72,7 +72,7 @@ class HTTPRequest(os_wsgi.Request):
         out = os_wsgi.Request.blank(url, *args, **kwargs)
         user_id = 'c2bc8099-8861-46ab-a416-99f06bb89198'
         user_name = 'fake_user'
-        project_id = '4a5cc7d8893544a9babb3b890227d75e'
+        project_id = PROJECT_ID
         project_name = 'fake_project'
         fake_context = context.RequestContext(user_id,
                                               project_id,

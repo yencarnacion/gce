@@ -12,30 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient.v2_0 import client as keystone_client
-
 from gceapi.api import projects
 from gceapi.tests.api import common
 
-
-class FakeProject(object):
-    @property
-    def name(self):
-        return "fake_project"
-
-    @property
-    def description(self):
-        return None
-
-    @property
-    def id(self):
-        return "bf907fe9f01342949e9693ca47e7d856"
-
-    @property
-    def enabled(self):
-        return True
-
-FAKE_PROJECTS = [FakeProject()]
 
 EXPECTED_PROJECT = {
  "kind": "compute#project",
@@ -91,26 +70,9 @@ EXPECTED_PROJECT = {
 }
 
 
-class FakeKeystoneClient(object):
-    @property
-    def tenants(self):
-        class FakeTenants(object):
-            def list(self):
-                return FAKE_PROJECTS
-
-        return FakeTenants()
-
-
-def get_client(**kwargs):
-    return FakeKeystoneClient()
-
-
 class ProjectsTest(common.GCEControllerTest):
     def setUp(self):
         super(ProjectsTest, self).setUp()
-
-        self.stubs.Set(keystone_client, "Client", get_client)
-
         self.controller = projects.Controller()
 
     def test_get_project(self):

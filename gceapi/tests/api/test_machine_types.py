@@ -15,53 +15,12 @@
 import copy
 
 from gceapi.api import machine_types
-import gceapi.compute.instance_types
-from gceapi import exception
 from gceapi.tests.api import common
 
-FAKE_FLAVORS = {
-        'm1.small': {
-            'memory_mb': 2048L,
-            'root_gb': 20L,
-            'deleted_at': None,
-            'name': u'm1.small',
-            'deleted': 0L,
-            'created_at': "2013-04-25T13:32:45.000000",
-            'ephemeral_gb': 0L,
-            'updated_at': None,
-            'disabled': False,
-            'vcpus': 1L,
-            'extra_specs': {},
-            'swap': 0L,
-            'rxtx_factor': 1.0,
-            'is_public': True,
-            'flavorid': u'2',
-            'vcpu_weight': None,
-            'id': 5L},
-        'm1.large': {
-            'memory_mb': 8192L,
-            'root_gb': 80L,
-            'deleted_at': None,
-            'name': u'm1.large',
-            'deleted': 0L,
-            'created_at': "2013-04-25T13:32:45.000000",
-            'ephemeral_gb': 870L,
-            'updated_at': None,
-            'disabled': False,
-            'vcpus': 4L,
-            'extra_specs': {},
-            'swap': 0L,
-            'rxtx_factor': 1.0,
-            'is_public': True,
-            'flavorid': u'4',
-            'vcpu_weight': None,
-            'id': 4L}
-    }
 
 EXPECTED_FLAVORS = [{
         "kind": "compute#machineType",
         "id": "7739288395178120473",
-        "creationTimestamp": "2013-04-25T13:32:45Z",
         "description": "",
         "name": "m1-small",
         "guestCpus": 1,
@@ -77,7 +36,6 @@ EXPECTED_FLAVORS = [{
         {
         "kind": "compute#machineType",
         "id": "6065497922195565467",
-        "creationTimestamp": "2013-04-25T13:32:45Z",
         "description": "",
         "name": "m1-large",
         'scratchDisks': [{"diskGb": 870L}],
@@ -93,28 +51,9 @@ EXPECTED_FLAVORS = [{
         }]
 
 
-def fake_get_instance_type_by_name(name):
-    try:
-        return FAKE_FLAVORS[name]
-    except KeyError:
-        raise exception.InstanceTypeNotFound(flavor_id=name,
-            instance_type_id=0)
-
-
-def fake_instance_type_get_all(inactive=False, filters=None):
-    return FAKE_FLAVORS
-
-
 class MachineTypesTest(common.GCEControllerTest):
     def setUp(self):
         super(MachineTypesTest, self).setUp()
-
-        self.stubs.Set(nova.compute.instance_types, "get_all_types",
-                fake_instance_type_get_all)
-        self.stubs.Set(nova.compute.instance_types,
-                "get_instance_type_by_name",
-                fake_get_instance_type_by_name)
-
         self.controller = machine_types.Controller()
 
     def test_get_machine_type_by_invalid_name(self):
@@ -127,7 +66,7 @@ class MachineTypesTest(common.GCEControllerTest):
             '/fake_project/zones/nova/machineTypes/m1-small')
         expected = EXPECTED_FLAVORS[0]
 
-        self.assertEqual(response.json_body, expected)
+        self.assertDictEqual(response.json_body, expected)
 
     def test_get_flavor_list_filtered(self):
         response = self.request_gce("/fake_project/zones/nova/machineTypes"
@@ -177,9 +116,6 @@ class MachineTypesTest(common.GCEControllerTest):
                 "zones/nova": {
                     "machineTypes": EXPECTED_FLAVORS
                 },
-                "zones/unavailable_zone": {
-                    "machineTypes": expected_flavors2
-                }
             }
         }
 

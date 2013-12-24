@@ -40,8 +40,10 @@ class Controller(gce_common.Controller):
             "maximumPersistentDisksSizeGb": 0,
             }
 
-        if "ephemeral" in flavor:
-            result_dict["scratchDisks"] = [{"diskGb": flavor["ephemeral_gb"]}]
+        if "OS-FLV-EXT-DATA:ephemeral" in flavor:
+            size = flavor["OS-FLV-EXT-DATA:ephemeral"]
+            if size > 0:
+                result_dict["scratchDisks"] = [{"diskGb": size}]
 
         # NOTE(Alex): The following code is written but disabled because
         # it seems "deleted" is deprecated now (see comment in

@@ -12,7 +12,26 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from gceapi.tests.api import utils
+from gceapi.tests.api import fake_request
+
+
+FAKE_PROJECTS = [utils.to_obj({
+    "name": "fake_project",
+    "description": None,
+    "id": fake_request.PROJECT_ID,
+    "enabled": True
+})]
+
 
 class FakeKeystoneClient(object):
     def __init__(self, **kwargs):
         pass
+
+    @property
+    def tenants(self):
+        class FakeTenants(object):
+            def list(self):
+                return FAKE_PROJECTS
+
+        return FakeTenants()

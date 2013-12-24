@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import inspect
+from novaclient.client import exceptions as nova_exceptions
 from gceapi.tests.api import utils
 
 
@@ -57,6 +59,86 @@ FAKE_SIMPLE_ZONES = [utils.to_obj({
 })]
 
 
+FAKE_FLAVORS = [utils.to_obj({
+    u'name': u'm1.small',
+    u'links': [],
+    u'ram': 2048,
+    u'OS-FLV-DISABLED:disabled': False,
+    u'vcpus': 1,
+    u'swap': u'',
+    u'os-flavor-access:is_public': True,
+    u'rxtx_factor': 1.0,
+    u'OS-FLV-EXT-DATA:ephemeral': 0,
+    u'disk': 20,
+    u'id': u'2'
+}), utils.to_obj({
+    u'name': u'm1.large',
+    u'links': [],
+    u'ram': 8192,
+    u'OS-FLV-DISABLED:disabled': False,
+    u'vcpus': 4,
+    u'swap': u'',
+    u'os-flavor-access:is_public': True,
+    u'rxtx_factor': 1.0,
+    u'OS-FLV-EXT-DATA:ephemeral': 870,
+    u'disk': 80,
+    u'id': u'4'
+})]
+
+
+class FakeClassWithFind(object):
+    def list(self):
+        pass
+
+    def find(self, **kwargs):
+        matches = self.findall(**kwargs)
+        num_matches = len(matches)
+        if num_matches == 0:
+            msg = "No %s matching %s." % (self.resource_class.__name__, kwargs)
+            raise nova_exceptions.NotFound(404, msg)
+        elif num_matches > 1:
+            raise nova_exceptions.NoUniqueMatch
+        else:
+            return matches[0]
+
+    def findall(self, **kwargs):
+        found = []
+        searches = kwargs.items()
+
+        detailed = True
+        list_kwargs = {}
+
+        list_argspec = inspect.getargspec(self.list)
+        if 'detailed' in list_argspec.args:
+            detailed = ("human_id" not in kwargs and
+                        "name" not in kwargs and
+                        "display_name" not in kwargs)
+            list_kwargs['detailed'] = detailed
+
+        if 'is_public' in list_argspec.args and 'is_public' in kwargs:
+            is_public = kwargs['is_public']
+            list_kwargs['is_public'] = is_public
+            if is_public is None:
+                tmp_kwargs = kwargs.copy()
+                del tmp_kwargs['is_public']
+                searches = tmp_kwargs.items()
+
+        listing = self.list(**list_kwargs)
+
+        for obj in listing:
+            try:
+                if all(getattr(obj, attr) == value
+                        for (attr, value) in searches):
+                    if detailed:
+                        found.append(obj)
+                    else:
+                        found.append(self.get(obj.id))
+            except AttributeError:
+                continue
+
+        return found
+
+
 class FakeNovaClient(object):
     def __init__(self, version, *args, **kwargs):
         pass
@@ -74,6 +156,38 @@ class FakeNovaClient(object):
                 return FAKE_SIMPLE_ZONES
 
         return FakeAvailabilityZones()
+
+    @property
+    def flavors(self):
+        class FakeFlavors(FakeClassWithFind):
+            def list(self, detailed=True, is_public=True):
+                return FAKE_FLAVORS
+
+            def get(self, flavor):
+                flavor_id = utils.get_id(flavor)
+                for flavor in FAKE_FLAVORS:
+                    if flavor.id == flavor_id:
+                        return flavor
+                raise nova_exceptions.NotFound()
+
+        return FakeFlavors()
+
+    @property
+    def keypairs(self):
+        class FakeKeypairs(object):
+            def get(self, keypair):
+                raise nova_exceptions.NotFound()
+
+            def create(self, name, public_key=None):
+                pass
+
+            def delete(self, key):
+                raise nova_exceptions.NotFound()
+
+            def list(self):
+                return []
+
+        return FakeKeypairs()
 
 
 def fake_discover_extensions(self, version):

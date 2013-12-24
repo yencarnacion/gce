@@ -22,3 +22,10 @@ class to_obj(object):
                                   for x in b])
             else:
                 setattr(self, a, b)
+
+
+def get_id(obj):
+    try:
+        return obj.id
+    except AttributeError:
+        return obj

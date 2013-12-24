@@ -40,9 +40,9 @@ class API(base_api.API):
 
     def get_items(self, context, scope=None):
         client = clients.nova(context)
-        items = [self._prepare_item(utils.to_dict(item))
-            for item in client.flavors.list()]
-        return items
+        items = client.flavors.list()
+        return [self._prepare_item(utils.to_dict(item))
+                for item in items]
 
     def get_scopes(self, context, item):
         # TODO(apavlov): too slow for all...

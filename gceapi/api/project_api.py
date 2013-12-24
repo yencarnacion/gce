@@ -51,17 +51,17 @@ class API(base_api.API):
                 self._update_key(nova_client, user_name, ssh_key)
 
     def get_gce_user_keypair_name(self, context):
-        keypairManager = clients.nova(context).keypairs
-        for keypair in keypairManager.list():
+        client = clients.nova(context)
+        for keypair in client.keypairs.list():
             if keypair.name == context.user_name:
                 return keypair.name
 
         return None
 
     def _get_gce_keypair(self, context):
-        keypairManager = clients.nova(context).keypairs
+        client = clients.nova(context)
         key_datas = []
-        for keypair in keypairManager.list():
+        for keypair in client.keypairs.list():
             key_datas.append(keypair.name + ':' + keypair.public_key)
 
         if not key_datas:
@@ -70,14 +70,13 @@ class API(base_api.API):
         return {'key': 'sshKeys', 'value': "\n".join(key_datas)}
 
     def _update_key(self, nova_client, user_name, ssh_key):
-        keypairManager = nova_client.keypairs
         try:
-            keypair = keypairManager.get(user_name)
+            keypair = nova_client.keypairs.get(user_name)
             if keypair.public_key == ssh_key:
                 return
 
-            keypairManager.delete(user_name)
+            nova_client.keypairs.delete(user_name)
         except clients.novaclient.exceptions.NotFound:
             pass
 
-        keypair = keypairManager.create(user_name, ssh_key)
+        keypair = nova_client.keypairs.create(user_name, ssh_key)
