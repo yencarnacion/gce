@@ -13,9 +13,6 @@
 #    under the License.
 
 
-def get_host_availability_zone(context, host, conductor_api=None):
-    return "nova"
-
-
-def get_availability_zones(context):
-    return ["internal", "nova"], ["unavailable_zone"]
+class FakeCinderClient(object):
+    def __init__(self, version, *args, **kwargs):
+        pass

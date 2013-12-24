@@ -13,7 +13,53 @@
 #    under the License.
 
 from gceapi import context
-from gceapi.api.openstack import wsgi as os_wsgi
+from gceapi import wsgi_ext as os_wsgi
+
+
+PROJECT_ID = "4a5cc7d8893544a9babb3b890227d75e"
+
+
+FAKE_SERVICE_CATALOG = [{
+    u'endpoints': [{
+        u'adminURL': u'http://192.168.137.21:8774/v2/' + PROJECT_ID,
+        u'region': u'RegionOne',
+        u'id': u'81a8b36abc5f4945bbd1269be0423012',
+        u'internalURL': u'http://192.168.137.21:8774/v2/' + PROJECT_ID,
+        u'publicURL': u'http://192.168.137.21:8774/v2/' + PROJECT_ID}],
+    u'endpoints_links': [],
+    u'type': u'compute',
+    u'name': u'nova'
+}, {
+    u'endpoints': [{
+        u'adminURL': u'http://192.168.137.21:9696/',
+        u'region': u'RegionOne',
+        u'id': u'10a0fc598a5741c390f0d6560a89fced',
+        u'internalURL': u'http://192.168.137.21:9696/',
+        u'publicURL': u'http://192.168.137.21:9696/'}],
+    u'endpoints_links': [],
+    u'type': u'network',
+    u'name': u'neutron'
+}, {
+    u'endpoints': [{
+        u'adminURL': u'http://192.168.137.21:9292',
+        u'region': u'RegionOne',
+        u'id': u'39643060448c4c089535fce07f2d2aa4',
+        u'internalURL': u'http://192.168.137.21:9292',
+        u'publicURL': u'http://192.168.137.21:9292'}],
+    u'endpoints_links': [],
+    u'type': u'image',
+    u'name': u'glance'
+}, {
+    u'endpoints': [{
+        u'adminURL': u'http://192.168.137.21:8776/v1/' + PROJECT_ID,
+        u'region': u'RegionOne',
+        u'id': u'494bd5333aed467092316e03b1163139',
+        u'internalURL': u'http://192.168.137.21:8776/v1/' + PROJECT_ID,
+        u'publicURL': u'http://192.168.137.21:8776/v1/' + PROJECT_ID}],
+    u'endpoints_links': [],
+    u'type': u'volume',
+    u'name': u'cinder'
+}]
 
 
 class HTTPRequest(os_wsgi.Request):
@@ -21,7 +67,6 @@ class HTTPRequest(os_wsgi.Request):
     @classmethod
     def blank(cls, url, has_body=False, *args, **kwargs):
         kwargs['base_url'] = 'http://localhost/compute/v1beta15/projects'
-        use_admin_context = kwargs.pop('use_admin_context', False)
         if has_body:
             kwargs.setdefault("content_type", "application/json")
         out = os_wsgi.Request.blank(url, *args, **kwargs)
@@ -34,5 +79,6 @@ class HTTPRequest(os_wsgi.Request):
                                               user_name=user_name,
                                               project_name=project_name,
                                               is_admin=True)
-        out.environ['nova.context'] = fake_context
+        fake_context.service_catalog = FAKE_SERVICE_CATALOG
+        out.environ['gceapi.context'] = fake_context
         return out

@@ -16,14 +16,15 @@ from gceapi import db
 
 
 def setStubs(stubs):
-    stubs.Set(db, 'get_all_gce_routes',
-              fake_get_all_gce_routes)
-    stubs.Set(db, 'get_gce_route_synonyms_count',
-              fake_get_gce_route_synonyms_count)
-    stubs.Set(db, 'add_gce_route',
-              fake_add_gce_route)
-    stubs.Set(db, 'delete_gce_route',
-              fake_delete_gce_route)
+#     stubs.Set(db, 'get_all_gce_routes',
+#               fake_get_all_gce_routes)
+#     stubs.Set(db, 'get_gce_route_synonyms_count',
+#               fake_get_gce_route_synonyms_count)
+#     stubs.Set(db, 'add_gce_route',
+#               fake_add_gce_route)
+#     stubs.Set(db, 'delete_gce_route',
+#               fake_delete_gce_route)
+    pass
 
 
 def fake_get_all_gce_routes(context):

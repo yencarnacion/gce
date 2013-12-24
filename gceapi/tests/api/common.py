@@ -12,25 +12,24 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os.path
-import StringIO
-import tarfile
-import urllib2
 from oslo.config import cfg
+from glanceclient import client as glanceclient
+from keystoneclient.v2_0 import client as kc
+from novaclient import client as novaclient
+from novaclient import shell as novashell
+from neutronclient.v2_0 import client as neutronclient
+from cinderclient import client as cinderclient
 
-import mox
+from gceapi.tests.api import fake_keystone_client
+from gceapi.tests.api import fake_nova_client
+from gceapi.tests.api import fake_glance_client
+from gceapi.tests.api import fake_cinder_client
+from gceapi.tests.api import fake_neutron_client
+from gceapi.tests.api import fake_request
 
 from gceapi import test
 import gceapi.api
 import gceapi.tests.api.fake_db as fake_db
-import gceapi.tests.api.fake_image as fake_image
-import gceapi.tests.api.fake_instance as fake_instance
-import gceapi.tests.api.fake_network as fake_network
-import gceapi.tests.api.fake_project as fake_project
-import gceapi.tests.api.fake_request as fake_request
-import gceapi.tests.api.fake_security_group as fake_security_group
-import gceapi.tests.api.fake_volume as fake_volume
-import gceapi.tests.api.fake_zone as fake_zone
 
 
 class GCEControllerTest(test.TestCase):
@@ -38,28 +37,21 @@ class GCEControllerTest(test.TestCase):
     _APIRouter = None
 
     def setUp(self):
-        cfg.CONF.set_override('network_api_class', 'neutron')
+        cfg.CONF.set_override('network_api', 'neutron')
         super(GCEControllerTest, self).setUp()
         self.maxDiff = None
-        fake_image_service = fake_image.FakeImageService()
-        self.stubs.Set(nova.image.glance, 'get_default_image_service',
-           lambda: fake_image_service)
-        self.stubs.Set(nova.network.quantumv2, "get_client",
-           fake_network.fake_quantum_get_client)
-        self.stubs.Set(nova.network.security_group.openstack_driver,
-           "get_openstack_security_group_driver",
-           fake_security_group.FakeSecurityGroupService)
-        self.stubs.Set(nova.volume, "API", fake_volume.FakeVolumeService)
-        self.stubs.Set(nova.availability_zones, "get_host_availability_zone",
-           fake_zone.get_host_availability_zone)
-        self.stubs.Set(nova.availability_zones, "get_availability_zones",
-           fake_zone.get_availability_zones)
-        self.stubs.Set(compute_api.API, 'get_all',
-            fake_instance.fake_instance_get_all)
-        self.stubs.Set(db, 'block_device_mapping_get_all_by_instance',
-            fake_instance.fake_block_device_mapping_get_all_by_instance)
-        self.stubs.Set(compute_api, "KeypairAPI", fake_project.FakeKeypairAPI)
-        self.stubs.Set(network, "API", fake_network.FakeNetworkAPI)
+
+        self.stubs.Set(kc, 'Client', fake_keystone_client.FakeKeystoneClient)
+        self.stubs.Set(neutronclient, "Client",
+           fake_neutron_client.FakeNeutronClient)
+        self.stubs.Set(glanceclient, "Client",
+           fake_glance_client.FakeGlanceClient)
+        self.stubs.Set(cinderclient, "Client",
+           fake_cinder_client.FakeCinderClient)
+        self.stubs.Set(novashell.OpenStackComputeShell, '_discover_extensions',
+                       fake_nova_client.fake_discover_extensions)
+        self.stubs.Set(novaclient, 'Client', fake_nova_client.FakeNovaClient)
+
         fake_db.setStubs(self.stubs)
 
     def request_gce(self, url, method="GET", body=None):
@@ -81,31 +73,5 @@ class GCEControllerTest(test.TestCase):
 
     def _get_api_router(self):
         if not self._APIRouter:
-            self._APIRouter = nova.api.gce.APIRouter()
+            self._APIRouter = gceapi.api.APIRouter()
         return self._APIRouter
-
-    def set_stubs_for_load_tar(self):
-        def blank(*args, **kwargs):
-            return StringIO.StringIO('')
-
-        def fake_tar_file(*args, **kwargs):
-
-            class Tar(object):
-
-                def next(self):
-                    member = mox.Mox()
-                    member.name = 'img_name'
-                    return member
-
-                def extract(self, member, dir):
-                    f = open(os.path.join(dir, member.name), 'w')
-                    f.write('extract\n')
-                    f.close()
-
-                def close(self):
-                    pass
-
-            return Tar()
-
-        self.stubs.Set(urllib2, 'urlopen', blank)
-        self.stubs.Set(tarfile, 'open', fake_tar_file)

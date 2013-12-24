@@ -38,14 +38,13 @@ import testtools
 from gceapi import context
 from gceapi import db
 from gceapi.db import migration
-from gceapi.network import manager as network_manager
 from gceapi.openstack.common.db.sqlalchemy import session
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import timeutils
 from gceapi import paths
 from gceapi import service
-from gceapi.tests import conf_fixture
-from gceapi.tests import policy_fixture
+#from gceapi.tests import conf_fixture
+#from gceapi.tests import policy_fixture
 
 
 test_opts = [
@@ -56,15 +55,15 @@ test_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(test_opts)
-CONF.import_opt('sql_connection',
-                'gceapi.openstack.common.db.sqlalchemy.session')
-CONF.import_opt('sqlite_db', 'gceapi.openstack.common.db.sqlalchemy.session')
+CONF.import_opt('connection',
+                'gceapi.openstack.common.db.sqlalchemy.session',
+                group='database')
 CONF.set_override('use_stderr', False)
 
 logging.setup('gceapi')
 LOG = logging.getLogger(__name__)
 
-eventlet.monkey_patch(os=False)
+eventlet.monkey_patch(os=False, thread=False)
 
 _DB_CACHE = None
 
@@ -107,28 +106,6 @@ class Database(fixtures.Fixture):
         else:
             shutil.copyfile(paths.state_path_rel(self.sqlite_clean_db),
                             paths.state_path_rel(self.sqlite_db))
-
-    def post_migrations(self):
-        """Any addition steps that are needed outside of the migrations."""
-        ctxt = context.get_admin_context()
-        network = network_manager.VlanManager()
-        bridge_interface = CONF.flat_interface or CONF.vlan_interface
-        network.create_networks(ctxt,
-                                label='test',
-                                cidr=CONF.fixed_range,
-                                multi_host=CONF.multi_host,
-                                num_networks=CONF.num_networks,
-                                network_size=CONF.network_size,
-                                cidr_v6=CONF.fixed_range_v6,
-                                gateway=CONF.gateway,
-                                gateway_v6=CONF.gateway_v6,
-                                bridge=CONF.flat_network_bridge,
-                                bridge_interface=bridge_interface,
-                                vpn_start=CONF.vpn_start,
-                                vlan_start=CONF.vlan_start,
-                                dns1=CONF.flat_network_dns)
-        for net in db.network_get_all(ctxt):
-            network.set_network_host(ctxt, net)
 
 
 class ReplaceModule(fixtures.Fixture):
@@ -211,22 +188,22 @@ class TestCase(testtools.TestCase):
             self.useFixture(fixtures.MonkeyPatch('sys.stderr', stderr))
 
         self.log_fixture = self.useFixture(fixtures.FakeLogger('gceapi'))
-        self.useFixture(conf_fixture.ConfFixture(CONF))
+        #self.useFixture(conf_fixture.ConfFixture(CONF))
 
-        global _DB_CACHE
-        if not _DB_CACHE:
-            _DB_CACHE = Database(session, migration,
-                                    sql_connection=CONF.sql_connection,
-                                    sqlite_db=CONF.sqlite_db,
-                                    sqlite_clean_db=CONF.sqlite_clean_db)
-        self.useFixture(_DB_CACHE)
+#         global _DB_CACHE
+#         if not _DB_CACHE:
+#             _DB_CACHE = Database(session, migration,
+#                                  sql_connection=CONF.database.connection,
+#                                  sqlite_db=CONF.sqlite_db,
+#                                  sqlite_clean_db=CONF.sqlite_clean_db)
+#         self.useFixture(_DB_CACHE)
 
         mox_fixture = self.useFixture(MoxStubout())
         self.mox = mox_fixture.mox
         self.stubs = mox_fixture.stubs
         self.addCleanup(self._clear_attrs)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
-        self.policy = self.useFixture(policy_fixture.PolicyFixture())
+#         self.policy = self.useFixture(policy_fixture.PolicyFixture())
         CONF.set_override('fatal_exception_format_errors', True)
 
     def _clear_attrs(self):
