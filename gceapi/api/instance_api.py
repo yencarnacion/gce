@@ -79,7 +79,7 @@ class API(base_api.API):
         return [item["OS-EXT-AZ:availability_zone"]]
 
     def search_items(self, context, search_opts, scope):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         instances = client.servers.list(search_opts=search_opts)
         filtered_instances = []
         for instance in instances:
@@ -98,7 +98,7 @@ class API(base_api.API):
         instance["flavor"]["name"] = machine_type_api.API().get_item_by_id(
             context, instance["flavor"]["id"])["name"]
 
-        cinder_client = clients.Clients(context).cinder()
+        cinder_client = clients.cinder(context)
         volumes = instance["os-extended-volumes:volumes_attached"]
         instance["volumes"] = [
             utils.to_dict(cinder_client.volumes.get(v["id"])) for v in volumes]
@@ -112,7 +112,7 @@ class API(base_api.API):
         return instance
 
     def _can_delete_network(self, context, network):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         instances = client.servers.list(search_opts=None)
         for instance in instances:
             if network["name"] in instance.networks:
@@ -120,7 +120,7 @@ class API(base_api.API):
 
     def _get_instances_with_network(self, context, network, scope):
         affected_instances = []
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         instances = client.servers.list(search_opts=None)
         for instance in instances:
             if network["name"] in instance.networks:
@@ -146,14 +146,14 @@ class API(base_api.API):
                 context, secgroup, affected_instances)
 
     def reset_instance(self, context, scope, name):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
         instances[0].reboot("HARD")
 
     def delete_item(self, context, name, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
@@ -163,7 +163,7 @@ class API(base_api.API):
         name = body['name']
         # TODO(apavlov): store description somewhere
         #description = body.get('description')
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
 
         flavor_name = utils._extract_name_from_url(body['machineType'])
         flavor_id = machine_type_api.API().get_item(
@@ -239,7 +239,7 @@ class API(base_api.API):
 
         input_ip = body.get('natIP')
 
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         instances = client.servers.list(search_opts={"name": item_id})
         if not instances or len(instances) != 1:
             raise exception.NotFound
@@ -287,7 +287,7 @@ class API(base_api.API):
 
     def delete_access_config(self, context, item_id, scope,
                              network_interface, accessConfig):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         instances = client.servers.list(search_opts={"name": item_id})
         if not instances or len(instances) != 1:
             raise exception.NotFound

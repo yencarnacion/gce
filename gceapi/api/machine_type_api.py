@@ -28,9 +28,9 @@ class API(base_api.API):
         return self.KIND
 
     def get_item(self, context, name, scope=None):
-        nova_client = clients.Clients(context).nova()
+        client = clients.nova(context)
         try:
-            item = nova_client.flavors.find(name=self._from_gce(name))
+            item = client.flavors.find(name=self._from_gce(name))
         except (clients.novaclient.exceptions.NotFound,
                 clients.novaclient.exceptions.NoUniqueMatch):
             raise exception.NotFound
@@ -39,9 +39,9 @@ class API(base_api.API):
         return self._prepare_item(utils.to_dict(item))
 
     def get_items(self, context, scope=None):
-        nova_client = clients.Clients(context).nova()
+        client = clients.nova(context)
         items = [self._prepare_item(utils.to_dict(item))
-            for item in nova_client.flavors.list()]
+            for item in client.flavors.list()]
         return items
 
     def get_scopes(self, context, item):
@@ -49,8 +49,8 @@ class API(base_api.API):
         return zone_api.API().get_item_names(context)
 
     def get_item_by_id(self, context, machine_type_id):
-        nova_client = clients.Clients(context).nova()
-        item = nova_client.flavors.get(machine_type_id)
+        client = clients.nova(context)
+        item = client.flavors.get(machine_type_id)
         return self._prepare_item(utils.to_dict(item))
 
     def _prepare_item(self, item):

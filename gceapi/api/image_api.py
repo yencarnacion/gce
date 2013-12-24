@@ -35,7 +35,7 @@ class API(base_api.API):
         return self.KIND
 
     def get_item(self, context, name, scope=None):
-        image_service = clients.Clients(context).glance().images
+        image_service = clients.glance(context).images
         images = image_service.list(
             filters={"name": name, "disk_format": "raw"})
         result = None
@@ -50,7 +50,7 @@ class API(base_api.API):
         return result
 
     def get_items(self, context, scope=None):
-        image_service = clients.Clients(context).glance().images
+        image_service = clients.glance(context).images
         images = image_service.list(filters={"disk_format": "raw"})
         items = list()
         for image in images:
@@ -64,7 +64,7 @@ class API(base_api.API):
     def delete_item(self, context, name, scope=None):
         """Delete an image, if allowed."""
         image = self.get_item(context, name, scope)
-        image_service = clients.Clients(context).glance().images
+        image_service = clients.glance(context).images
         image_service.delete(image["id"])
 
     def add_item(self, context, name, body, scope=None):
@@ -78,14 +78,14 @@ class API(base_api.API):
             'min_ram': 0,
             'copy_from': image_ref,
         }
-        image_service = clients.Clients(context).glance().images
+        image_service = clients.glance(context).images
         image = image_service.create(**meta)
 
         return self._prepare_item(utils.to_dict(image))
 
     def get_item_by_id(self, context, image_id):
         try:
-            image_service = clients.Clients(context).glance().images
+            image_service = clients.glance(context).images
             return utils.to_dict(image_service.get(image_id))
         except exception.NotFound:
             return None

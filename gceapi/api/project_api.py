@@ -28,7 +28,7 @@ class API(base_api.API):
     def get_item(self, context, name, scope=None):
         project_name = context.project_name
 
-        keystone = clients.Clients(context).keystone().client_v2
+        keystone = clients.keystone(context)
         project = [t for t in keystone.tenants.list()
                 if t.name == project_name][0]
 
@@ -45,12 +45,13 @@ class API(base_api.API):
             [(x['key'], x['value']) for x in metadata_list])
         ssh_keys = instance_metadata.pop('sshKeys', None)
         if ssh_keys:
+            nova_client = clients.nova(context)
             for key_data in ssh_keys.split('\n'):
                 user_name, ssh_key = key_data.split(":")
-                self._update_key(context, user_name, ssh_key)
+                self._update_key(nova_client, user_name, ssh_key)
 
     def get_gce_user_keypair_name(self, context):
-        keypairManager = clients.Clients(context).nova().keypairs
+        keypairManager = clients.nova(context).keypairs
         for keypair in keypairManager.list():
             if keypair.name == context.user_name:
                 return keypair.name
@@ -58,7 +59,7 @@ class API(base_api.API):
         return None
 
     def _get_gce_keypair(self, context):
-        keypairManager = clients.Clients(context).nova().keypairs
+        keypairManager = clients.nova(context).keypairs
         key_datas = []
         for keypair in keypairManager.list():
             key_datas.append(keypair.name + ':' + keypair.public_key)
@@ -68,8 +69,8 @@ class API(base_api.API):
 
         return {'key': 'sshKeys', 'value': "\n".join(key_datas)}
 
-    def _update_key(self, context, user_name, ssh_key):
-        keypairManager = clients.Clients(context).nova().keypairs
+    def _update_key(self, nova_client, user_name, ssh_key):
+        keypairManager = nova_client.keypairs
         try:
             keypair = keypairManager.get(user_name)
             if keypair.public_key == ssh_key:

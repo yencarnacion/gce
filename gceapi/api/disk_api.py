@@ -44,7 +44,7 @@ class API(base_api.API):
         return self.KIND
 
     def get_item(self, context, name, scope=None):
-        client = clients.Clients(context).cinder()
+        client = clients.cinder(context)
         volumes = client.volumes.list(search_opts={"display_name": name})
         volumes = [utils.to_dict(item) for item in volumes]
         volumes = self._filter_volumes_by_zone(volumes, scope)
@@ -57,7 +57,7 @@ class API(base_api.API):
         return self._volume_service.get(context, item_id)
 
     def get_items(self, context, scope=None):
-        client = clients.Clients(context).cinder()
+        client = clients.cinder(context)
         volumes = [utils.to_dict(item) for item in client.volumes.list()]
         volumes = self._filter_volumes_by_zone(volumes, scope)
         for volume in volumes:
@@ -85,7 +85,7 @@ class API(base_api.API):
             volumes)
 
     def delete_item(self, context, name, scope=None):
-        client = clients.Clients(context).cinder().volumes
+        client = clients.cinder(context).volumes
         volumes = client.list(search_opts={"display_name": name})
         if not volumes or len(volumes) != 1:
             raise exception.NotFound
@@ -99,7 +99,7 @@ class API(base_api.API):
         snapshot_id = None
         image_id = None
 
-        client = clients.Clients(context).cinder()
+        client = clients.cinder(context)
         if snapshot_uri:
             snapshot_name = utils._extract_name_from_url(snapshot_uri)
             snapshots = client.volume_snapshots.list(

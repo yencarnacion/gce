@@ -44,7 +44,7 @@ class API(base_api.API):
 
     def get_item(self, context, name, scope=None):
         search_opts = {'name': name}
-        client = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         networks = client.list_networks(**search_opts)["networks"]
         if not networks:
             msg = _("Network resource '%s' could not be found." % name)
@@ -56,24 +56,25 @@ class API(base_api.API):
             # when addressed by name.
             network = networks[0]
             gce_network = self._get_db_item_by_id(context, network["id"])
-            return self._prepare_network(context, network, gce_network)
+            return self._prepare_network(client, network, gce_network)
 
     def get_items(self, context, scope=None):
-        networks = clients.Clients(context).neutron().list_networks()
+        client = clients.neutron(context)
+        networks = client.list_networks()
         networks = networks["networks"]
         gce_networks = self._get_db_items_dict(context)
         result_networks = []
         for network in networks:
             if network["tenant_id"] != context.project_id:
                 continue
-            network = self._prepare_network(context, network,
+            network = self._prepare_network(client, network,
                                             gce_networks.get(network["id"]))
             result_networks.append(network)
         self._purge_db(context, result_networks, gce_networks)
         return result_networks
 
     def delete_item(self, context, name, scope=None):
-        neutron_api = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         network = self.get_item(context, name)
 
         self._process_callbacks(
@@ -82,7 +83,7 @@ class API(base_api.API):
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
 
-        neutron_api.delete_network(network["id"])
+        client.delete_network(network["id"])
 
     def add_item(self, context, name, body, scope=None):
         ip_range = body['IPv4Range']
@@ -91,7 +92,7 @@ class API(base_api.API):
             network_cidr = netaddr.IPNetwork(ip_range)
             gateway_ip = netaddr.IPAddress(network_cidr.first + 1)
             gateway = str(gateway_ip)
-        neutron_api = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         network = None
         try:
             network = self.get_item(context, name)
@@ -101,7 +102,7 @@ class API(base_api.API):
             raise exception.DuplicateVlan
         network_body = {}
         network_body["network"] = {"name": name}
-        network = neutron_api.create_network(network_body)
+        network = client.create_network(network_body)
         network = network["network"]
         if ip_range:
             subnet_body = {}
@@ -112,9 +113,9 @@ class API(base_api.API):
                 "ip_version": "4",
                 "cidr": ip_range,
                 "gateway_ip": gateway}
-            result_data = neutron_api.create_subnet(subnet_body)
+            result_data = client.create_subnet(subnet_body)
             subnet_id = result_data["subnet"]["id"]
-        network = self._prepare_network(context, network)
+        network = self._prepare_network(client, network)
         network["description"] = body.get("description")
         network = self._add_db_item(context, network)
         self._process_callbacks(
@@ -122,10 +123,10 @@ class API(base_api.API):
             network, subnet_id=subnet_id)
         return network
 
-    def _prepare_network(self, context, network, db_network=None):
+    def _prepare_network(self, client, network, db_network=None):
         subnets = network['subnets']
         if subnets and len(subnets) > 0:
-            subnet = clients.Clients(context).neutron().show_subnet(subnets[0])
+            subnet = client.show_subnet(subnets[0])
             subnet = subnet["subnet"]
             network["subnet_id"] = subnet["id"]
             network["IPv4Range"] = subnet.get("cidr", None)
@@ -134,7 +135,7 @@ class API(base_api.API):
 
     def get_public_network_id(self, context):
         """Get id of public network appointed to GCE in config"""
-        neutron_api = clients.Clients(context).neutron()
+        neutron_api = clients.neutron(context)
         search_opts = {"name": self._public_network_name,
                        "router:external": True}
         networks = neutron_api.list_networks(**search_opts)["networks"]

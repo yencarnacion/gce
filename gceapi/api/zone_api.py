@@ -40,7 +40,7 @@ class API(base_api.BaseScopeAPI):
         raise exception.NotFound
 
     def get_items(self, context, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         try:
             nova_zones = client.availability_zones.list()
         except clients.novaclient.exceptions.Forbidden as e:

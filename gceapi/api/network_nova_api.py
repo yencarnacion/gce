@@ -33,13 +33,13 @@ class API(base_api.API):
         return self.PERSISTENT_ATTRIBUTES
 
     def get_item(self, context, name, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         network = client.networks.find(label=name)
         gce_network = self._get_db_item_by_id(context, network.id)
         return self._prepare_network(utils.to_dict(network), gce_network)
 
     def get_items(self, context, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         networks = client.networks.list()
         gce_networks = self._get_db_items_dict(context)
         result_networks = []
@@ -56,7 +56,7 @@ class API(base_api.API):
         self._delete_db_item(context, network)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         client.networks.delete(network["id"])
 
     def add_item(self, context, name, body, scope=None):
@@ -74,7 +74,7 @@ class API(base_api.API):
         if network is not None:
             raise exception.DuplicateVlan
         kwargs = {'label': name, 'cidr': ip_range, 'gateway': gateway}
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         network = client.networks.create(**kwargs)
         network = self._prepare_network(utils.to_dict(network))
         if "description" in body:

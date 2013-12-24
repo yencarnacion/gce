@@ -27,20 +27,20 @@ class API(base_api.API):
         return self.KIND
 
     def get_item(self, context, name, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         return self._get_floating_ips(client, context, scope, name)[0]
 
     def get_items(self, context, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         return self._get_floating_ips(client, context, scope)
 
     def delete_item(self, context, name, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         floating_ip = self._get_floating_ips(client, context, scope, name)[0]
         client.floating_ips.delete(floating_ip["id"])
 
     def add_item(self, context, name, body, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         result = client.floating_ips.create()
         return self._prepare_floating_ip(client, context, result, scope)
 

@@ -35,21 +35,23 @@ class API(base_api.API):
         return self.KIND
 
     def get_item(self, context, name, scope=None):
-        client = clients.Clients(context).cinder().volume_snapshots
-        snapshots = client.list(search_opts={"display_name": name})
+        client = clients.cinder(context)
+        snapshots = client.volume_snapshots.list(
+            search_opts={"display_name": name})
         if snapshots and len(snapshots) == 1:
-            return self._prepare_item(context, utils.to_dict(snapshots[0]))
+            return self._prepare_item(client, utils.to_dict(snapshots[0]))
         raise exception.NotFound
 
     def get_items(self, context, scope=None):
-        client = clients.Clients(context).cinder().volume_snapshots
-        snapshots = [utils.to_dict(item) for item in client.list()]
+        client = clients.cinder(context)
+        snapshots = [utils.to_dict(item)
+                     for item in client.volume_snapshots.list()]
         for snapshot in snapshots:
-            self._prepare_item(context, snapshot)
+            self._prepare_item(client, snapshot)
         return snapshots
 
     def delete_item(self, context, name, scope=None):
-        client = clients.Clients(context).cinder().volume_snapshots
+        client = clients.cinder(context).volume_snapshots
         snapshots = client.list(search_opts={"display_name": name})
         if not snapshots or len(snapshots) != 1:
             raise exception.NotFound
@@ -58,7 +60,7 @@ class API(base_api.API):
     def add_item(self, context, body, scope=None):
         name = body["name"]
         disk_name = body["disk_name"]
-        client = clients.Clients(context).cinder()
+        client = clients.cinder(context)
         volumes = client.volumes.list(search_opts={"display_name": disk_name})
         if not volumes or len(volumes) != 1:
             raise exception.NotFound
@@ -66,13 +68,12 @@ class API(base_api.API):
         snapshot = client.volume_snapshots.create(
             volumes[0].id, True, name, body["description"])
 
-        return self._prepare_item(context, utils.to_dict(snapshot))
+        return self._prepare_item(client, utils.to_dict(snapshot))
 
-    def _prepare_item(self, context, item):
+    def _prepare_item(self, client, item):
         item["name"] = item["display_name"]
         try:
-            client = clients.Clients(context).cinder().volumes
-            item["disk"] = utils.to_dict(client.get(item["volume_id"]))
+            item["disk"] = utils.to_dict(client.volumes.get(item["volume_id"]))
         except:
             pass
         item["status"] = self._status_map.get(item["status"], item["status"])

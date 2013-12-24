@@ -49,7 +49,7 @@ class API(base_api.API):
         return self.KIND
 
     def get_item(self, context, name, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         try:
             firewall = client.security_groups.find(name=name)
         except (clients.novaclient.exceptions.NotFound,
@@ -58,7 +58,7 @@ class API(base_api.API):
         return self._prepare_item(firewall)
 
     def get_items(self, context, scope=None):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         firewalls = client.security_groups.list()
         return [self._prepare_item(firewall)
                 for firewall in firewalls]
@@ -69,7 +69,7 @@ class API(base_api.API):
         group_description = "".join([body.get("description", ""),
                                      DESCRIPTION_NETWORK_SEPARATOR,
                                      network["name"]])
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         sg = client.security_groups.create(body['name'], group_description)
         try:
             rules = self._convert_to_secgroup_rules(sg.id, body)
@@ -90,7 +90,7 @@ class API(base_api.API):
         firewall = self.get_item(context, name)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, firewall)
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         try:
             client.security_groups.delete(firewall["id"])
         except clients.novaclient.exceptions.ClientException as ex:
@@ -257,14 +257,14 @@ class API(base_api.API):
                 if network_name else None)
 
     def get_network_firewalls(self, context, network_name):
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         firewalls = [utils.to_dict(f) for f in client.security_groups.list()]
         return [f for f in firewalls
                 if self.get_firewall_network_name(f) == network_name]
 
     def delete_network_firewalls(self, context, network):
         network_name = network["name"]
-        client = clients.Clients(context).nova()
+        client = clients.nova(context)
         for secgroup in self.get_network_firewalls(context, network_name):
             try:
                 client.security_groups.delete(secgroup["id"])

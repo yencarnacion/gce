@@ -43,22 +43,23 @@ class API(base_api.API):
     def delete_item(self, context, name, scope=None):
         address = self._get_floating_ips(context, scope, name)
         ip_id = address[0]["id"]
-        clients.Clients(context).neutron().delete_floatingip(ip_id)
+        clients.neutron(context).delete_floatingip(ip_id)
 
     def add_item(self, context, name, body, scope=None):
         public_network_id = network_api.API().get_public_network_id(context)
-        floating_ip = clients.Clients(context).neutron().create_floatingip(
+        floating_ip = clients.neutron(context).create_floatingip(
             {"floatingip": {"floating_network_id": public_network_id}})
         return self._prepare_floating_ip(
-            context, floating_ip["floatingip"], scope)
+            clients.nova(context), floating_ip["floatingip"], scope)
 
     def _get_floating_ips(self, context, scope, ip=None):
-        results = clients.Clients(context).neutron().list_floatingips()
+        results = clients.neutron(context).list_floatingips()
         results = results.get("floatingips")
         if results is None:
             return []
 
-        results = [self._prepare_floating_ip(context, x, scope)
+        nova_client = clients.nova(context)
+        results = [self._prepare_floating_ip(nova_client, x, scope)
                    for x in results
                    if context.project_id == x["tenant_id"]]
         if ip is None:
@@ -70,7 +71,7 @@ class API(base_api.API):
 
         raise exception.NotFound
 
-    def _prepare_floating_ip(self, context, floating_ip, scope):
+    def _prepare_floating_ip(self, nova_client, floating_ip, scope):
         ip = floating_ip["floating_ip_address"]
         floating_ip["name"] = self._generate_floating_ip_name(ip)
         floating_ip["scope"] = scope
@@ -78,7 +79,6 @@ class API(base_api.API):
         floating_ip["status"] = "IN USE" if fixed_ip_address else "RESERVED"
 
         if fixed_ip_address is not None:
-            nova_client = clients.Clients(context).nova()
             instances = nova_client.servers.list(
                 search_opts={"fixed_ip": fixed_ip_address})
             if instances:

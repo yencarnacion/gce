@@ -71,7 +71,7 @@ class API(base_api.API):
         nexthop = route["nexthop"]
         # NOTE(ft): delete OS route only if it doesn't have aliases
         # at the moment
-        client = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         if self._get_route_key(route) not in aliased_routes:
             dummy, router = self._get_network_objects(client,
                                                       route["network"])
@@ -111,7 +111,7 @@ class API(base_api.API):
         raise exception.InvalidInput(_("Unsupported route."))
 
     def _create_internet_route(self, context, network, body):
-        client = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         port, router = self._get_network_objects(client, network)
         public_network_id = network_api.API().get_public_network_id(context)
         external_gateway_info = {"network_id": public_network_id}
@@ -131,7 +131,7 @@ class API(base_api.API):
         return route
 
     def _create_custom_route(self, context, network, body):
-        client = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         port, router = self._get_network_objects(client, network)
         destination = body.get("destRange")
         nexthop = body.get("nextHopIp")
@@ -204,7 +204,7 @@ class API(base_api.API):
                     route["destination"] + route["nexthop"])
 
     def _get_os_routes(self, context):
-        client = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         routers = client.list_routers(tenant_id=context.project_id)["routers"]
         routers = {r["id"]: r for r in routers}
         ports = client.list_ports(
@@ -265,7 +265,7 @@ class API(base_api.API):
 
     def _create_network_router(self, context, network, subnet_id):
         public_network_id = network_api.API().get_public_network_id(context)
-        client = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         router = client.create_router(body={"router": {
             "name": network["name"],
             "admin_state_up": True,
@@ -284,7 +284,7 @@ class API(base_api.API):
                 raise exception.InvalidInput(_("Network contains routes"))
         # NOTE(ft): check invisible routes not longer exists
         # must be done for routes on non default subnet and other non GCE stuff
-        client = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         checked_routers = set()
         subnets = client.list_subnets(network_id=network_id)["subnets"]
         cidrs = [netaddr.IPNetwork(subnet["cidr"]) for subnet in subnets]
@@ -305,7 +305,7 @@ class API(base_api.API):
         # but 'creationTimestamp' will be absent
 
     def _delete_network_router(self, context, network):
-        client = clients.Clients(context).neutron()
+        client = clients.neutron(context)
         ports = client.list_ports(
                 network_id=network["id"],
                 device_owner="network:router_interface")["ports"]
