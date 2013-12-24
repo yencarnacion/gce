@@ -16,8 +16,6 @@ from gceapi.api import regions
 from gceapi.tests.api import common
 
 
-FAKE_REGIONS = ['nova']
-
 EXPECTED_REGIONS = [
   {
     "id": "6643843765891209621",
@@ -28,9 +26,7 @@ EXPECTED_REGIONS = [
     "status": "UP",
     "zones": [
       "http://localhost/compute/v1beta15/projects/fake_project"
-        "/zones/nova",
-      "http://localhost/compute/v1beta15/projects/fake_project"
-        "/zones/unavailable_zone"]
+        "/zones/nova"]
   },
 ]
 

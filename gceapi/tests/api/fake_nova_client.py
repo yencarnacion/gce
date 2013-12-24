@@ -12,8 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from gceapi.tests.api import utils
 
-FAKE_DETAILED_ZONES = [{
+
+FAKE_DETAILED_ZONES = [utils.to_obj({
     u'zoneState': {
         u'available': True},
     u'hosts': {
@@ -35,7 +37,7 @@ FAKE_DETAILED_ZONES = [{
                 u'active': True,
                 u'updated_at': u'2013-12-24T14:14:49.000000'}}},
     u'zoneName': u'internal'
-}, {
+}), utils.to_obj({
     u'zoneState': {
         u'available': True},
     u'hosts': {
@@ -45,7 +47,14 @@ FAKE_DETAILED_ZONES = [{
                 u'active': True,
                 u'updated_at': u'2013-12-24T14:14:47.000000'}}},
     u'zoneName': u'nova'
-}]
+})]
+
+FAKE_SIMPLE_ZONES = [utils.to_obj({
+    u'zoneState': {
+        u'available': True},
+    u'hosts': None,
+    u'zoneName': u'nova'
+})]
 
 
 class FakeNovaClient(object):
@@ -62,7 +71,7 @@ class FakeNovaClient(object):
             def list(self, detailed=True):
                 if detailed:
                     return FAKE_DETAILED_ZONES
-                return []
+                return FAKE_SIMPLE_ZONES
 
         return FakeAvailabilityZones()
 

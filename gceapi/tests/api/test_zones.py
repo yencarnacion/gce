@@ -12,33 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import webob
 from gceapi.api import zones
 from gceapi.tests.api import common
 
 
-FAKE_ZONES = ['internal', 'nova'], ['unavailable_zone']
-
-EXPECTED_ZONES = [
-  {
-   "id": "3924463100986466035",
-   "kind": "compute#zone",
-   "selfLink": "http://localhost/compute/v1beta15/projects/fake_project"
+EXPECTED_ZONES = [{
+    "id": "3924463100986466035",
+    "kind": "compute#zone",
+    "selfLink": "http://localhost/compute/v1beta15/projects/fake_project"
         "/zones/nova",
-   "name": "nova",
-   "status": "UP",
-   "region": "nova",
-  },
-  {
-   "id": "3660105603433928984",
-   "kind": "compute#zone",
-   "selfLink": "http://localhost/compute/v1beta15/projects/fake_project"
-        "/zones/unavailable_zone",
-   "name": "unavailable_zone",
-   "status": "DOWN",
-   "region": "nova",
-  },
-]
+    "name": "nova",
+    "status": "UP",
+    "region": "nova",
+}]
 
 
 class ZonesControllerTest(common.GCEControllerTest):
