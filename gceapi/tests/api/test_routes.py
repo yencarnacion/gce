@@ -28,6 +28,7 @@ FAKE_LOCAL_ROUTE_1 = {
                   'default-route-734b9c83-3a8b-4350-8fbf-d40f571ee163-local'),
     u'network': (u'http://localhost/compute/v1beta15/projects/'
                  'fake_project/networks/private'),
+    u'creationTimestamp': u'',
 }
 FAKE_INTERNET_ROUTE_1 = {
     u'nextHopGateway': (
@@ -45,6 +46,7 @@ FAKE_INTERNET_ROUTE_1 = {
         'default-route-734b9c83-3a8b-4350-8fbf-d40f571ee163-internet'),
     u'network': (u'http://localhost/compute/v1beta15/projects/'
                  'fake_project/networks/private'),
+    u'creationTimestamp': u'',
 }
 FAKE_CUSTOM_ROUTE_1 = {
     u'kind': u'compute#route',
@@ -57,7 +59,8 @@ FAKE_CUSTOM_ROUTE_1 = {
     u'selfLink': (u'http://localhost/compute/v1beta15/projects/'
                   'fake_project/global/routes/custom-route-1'),
     u'network': (u'http://localhost/compute/v1beta15/projects/'
-                 'fake_project/networks/private')
+                 'fake_project/networks/private'),
+    u'creationTimestamp': u'2013-12-25T09:05:07.396957Z',
 }
 FAKE_CUSTOM_ROUTE_2 = {
     u'kind': u'compute#route',
@@ -73,6 +76,7 @@ FAKE_CUSTOM_ROUTE_2 = {
         '734b9c83-3a8b-4350-8fbf-d40f571ee163-dst-89-34-0-0-16-gw-10-0-0-78'),
     u'network': (u'http://localhost/compute/v1beta15/projects/'
                  'fake_project/networks/private'),
+    u'creationTimestamp': u'',
 }
 FAKE_LOCAL_ROUTE_2 = {
     u'priority': 1000,
@@ -88,6 +92,7 @@ FAKE_LOCAL_ROUTE_2 = {
                   'default-route-7aa33661-33ba-4291-a2c7-44bfd59884c1-local'),
     u'network': (u'http://localhost/compute/v1beta15/projects/'
                  'fake_project/networks/public'),
+    u'creationTimestamp': u'',
 }
 
 
@@ -202,7 +207,7 @@ class RoutesControllerTest(common.GCEControllerTest):
         response = self.request_gce('/fake_project/global/routes',
                                     method="POST",
                                     body=request_body)
-        self.assertEqual(500, response.status_int)
+        self.assertEqual(400, response.status_int)
 
     def test_add_unsupported_route(self):
         request_body = {

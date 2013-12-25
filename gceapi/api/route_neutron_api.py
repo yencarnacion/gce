@@ -97,7 +97,7 @@ class API(base_api.API):
 
         nexthop = body.get("nextHopGateway")
         if (nexthop is not None and
-                (self._extract_name_from_url(nexthop) ==
+                (utils._extract_name_from_url(nexthop) ==
                  "default-internet-gateway") and
                 # NOTE(ft): OS doesn't support IP mask for external gateway
                 body.get("destRange") == ALL_IP_CIDR):
@@ -333,7 +333,7 @@ class API(base_api.API):
         for key in self.PERSISTENT_ATTRIBUTES:
             value = route.get(key)
             if value is None:
-                value = kwargs.get(value)
+                value = kwargs.get(key)
             if value is not None or key in kwargs:
                 db_route[key] = value
 
@@ -397,7 +397,6 @@ class API(base_api.API):
         return {
             "id": None,
             "name": name,
-            "description": None,
             "network": network,
             "port": port,
             "destination": destination,

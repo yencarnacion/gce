@@ -24,7 +24,9 @@ EXPECTED_NETWORKS = [
                       "name": "private",
                        "id": "1543653731328164645",
                       "IPv4Range": "10.0.0.0/24",
-                      "gatewayIPv4": "10.0.0.1"
+                      "gatewayIPv4": "10.0.0.1",
+                      "creationTimestamp": "2013-12-25T09:05:07.396957Z",
+                      "description": "main network",
                       },
                      {
                       "kind": "compute#network",
@@ -33,7 +35,8 @@ EXPECTED_NETWORKS = [
                       "name": "public",
                       "id": "8340158205161619676",
                       "IPv4Range": "172.24.4.224/28",
-                      "gatewayIPv4": "172.24.4.225"
+                      "gatewayIPv4": "172.24.4.225",
+                      "creationTimestamp": "",
                       }
                      ]
 
