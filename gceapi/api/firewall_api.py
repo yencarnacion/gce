@@ -72,7 +72,7 @@ class API(base_api.API):
         client = clients.nova(context)
         sg = client.security_groups.create(body['name'], group_description)
         try:
-            rules = self._convert_to_secgroup_rules(sg.id, body)
+            rules = self._convert_to_secgroup_rules(body)
             for rule in rules:
                 client.security_group_rules.create(
                     sg.id, ip_protocol=rule["protocol"],
@@ -200,7 +200,7 @@ class API(base_api.API):
                 msg = _("Invalid options for icmp protocol")
                 raise exception.InvalidRequest(msg)
 
-    def _convert_to_secgroup_rules(self, group_id, firewall):
+    def _convert_to_secgroup_rules(self, firewall):
         rules = []
         for source_range in firewall['sourceRanges']:
             for allowed in firewall.get('allowed', []):
@@ -209,7 +209,6 @@ class API(base_api.API):
                 rule = {
                     "protocol": proto,
                     "cidr": source_range,
-                    "parent_group_id": group_id,
                 }
                 if proto == "icmp":
                     rule["from_port"] = -1
