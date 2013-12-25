@@ -16,12 +16,7 @@
 class to_obj(object):
     def __init__(self, obj_dict):
         for a, b in obj_dict.items():
-            if isinstance(b, (list, tuple)):
-                setattr(self, a, [to_obj(x)
-                                  if isinstance(x, dict) else x
-                                  for x in b])
-            else:
-                setattr(self, a, b)
+            setattr(self, a, b)
 
 
 def get_id(obj):

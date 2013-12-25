@@ -15,6 +15,7 @@
 import inspect
 from novaclient.client import exceptions as nova_exceptions
 from gceapi.tests.api import utils
+from gceapi.tests.api import fake_security_group
 
 
 FAKE_DETAILED_ZONES = [utils.to_obj({
@@ -140,6 +141,9 @@ class FakeClassWithFind(object):
 
 
 class FakeNovaClient(object):
+
+    security_groups, security_group_rules = fake_security_group.get_fakes()
+
     def __init__(self, version, *args, **kwargs):
         pass
 
