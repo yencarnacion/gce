@@ -17,16 +17,16 @@ from gceapi.tests.api import common
 
 EXPECTED_ADDRESSES = [{
     "kind": "compute#address",
-    "id": "7878386898874730669",
+    "id": "2729532145628373701",
     "creationTimestamp": "",
     "status": "IN USE",
     "region": "http://localhost/compute/v1beta15/projects/"
         "fake_project/regions/nova",
-    "name": "ip-172-24-4-227",
+    "name": "address-172-24-4-227",
     "description": "",
     "address": "172.24.4.227",
     "selfLink": "http://localhost/compute/v1beta15/projects/"
-        "fake_project/regions/nova/addresses/ip-172-24-4-227",
+        "fake_project/regions/nova/addresses/address-172-24-4-227",
     "users": ["http://localhost/compute/v1beta15/projects/"
         "fake_project/zones/nova/instances/i1"]
 }]
@@ -45,14 +45,14 @@ class AddressesTest(common.GCEControllerTest):
 
     def test_get_address_by_name(self):
         response = self.request_gce("/fake_project/regions/"
-                                    "nova/addresses/ip-172-24-4-227")
+                                    "nova/addresses/address-172-24-4-227")
 
         self.assertEqual(200, response.status_int)
         self.assertEqual(response.json_body, EXPECTED_ADDRESSES[0])
 
     def test_get_address_list_filtered(self):
         response = self.request_gce("/fake_project/regions/nova/addresses"
-                                    "?filter=name+eq+ip-172-24-4-227")
+                                    "?filter=name+eq+address-172-24-4-227")
         expected = {
                 "kind": "compute#addressList",
                 "id": "projects/fake_project/regions/nova/addresses",
@@ -117,7 +117,7 @@ class AddressesTest(common.GCEControllerTest):
 
     def test_delete_address(self):
         response = self.request_gce(
-                "/fake_project/regions/nova/addresses/ip-172-24-4-227",
+                "/fake_project/regions/nova/addresses/address-172-24-4-227",
                 method="DELETE")
         expected = {
             "status": "DONE",
@@ -126,11 +126,11 @@ class AddressesTest(common.GCEControllerTest):
             "region": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/regions/nova",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
-                "fake_project/regions/nova/addresses/ip-172-24-4-227",
+                "fake_project/regions/nova/addresses/address-172-24-4-227",
             "operationType": "delete",
             "id": "0",
             "progress": 100,
-            "targetId": "7878386898874730669",
+            "targetId": "2729532145628373701",
             "selfLink": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/regions/nova/operations/stub"
         }
@@ -152,11 +152,11 @@ class AddressesTest(common.GCEControllerTest):
             "region": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/regions/nova",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
-                "fake_project/regions/nova/addresses/ip-10-20-30-40",
+                "fake_project/regions/nova/addresses/fake-address",
             "operationType": "insert",
             "id": "0",
             "progress": 100,
-            "targetId": "3196393817195045231",
+            "targetId": "5571612063911429008",
             "selfLink": "http://localhost/compute/v1beta15/projects/"
                         "fake_project/regions/nova/operations/stub"
         }
