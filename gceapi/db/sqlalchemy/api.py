@@ -79,9 +79,10 @@ def add_item(context, kind, data):
 
 
 @require_context
-def delete_item(context, item_id):
+def delete_item(context, kind, item_id):
     model_query(context, models.Item).\
-            filter_by(id=item_id).\
+            filter_by(kind=kind,
+                      id=item_id).\
             delete()
 
 
@@ -94,9 +95,10 @@ def get_items(context, kind):
 
 
 @require_context
-def get_item_by_id(context, item_id):
+def get_item_by_id(context, kind, item_id):
     return _unpack_item_data(model_query(context, models.Item).\
-            filter_by(id=item_id).\
+            filter_by(kind=kind,
+                      id=item_id).\
             first())
 
 

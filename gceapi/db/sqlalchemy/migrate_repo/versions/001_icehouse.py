@@ -12,7 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from sqlalchemy import Column, Index, MetaData, String, Table, Text
+from sqlalchemy import Column, Index, MetaData, PrimaryKeyConstraint
+from sqlalchemy import String, Table, Text
 
 
 def upgrade(migrate_engine):
@@ -20,21 +21,17 @@ def upgrade(migrate_engine):
     meta.bind = migrate_engine
 
     items = Table('items', meta,
-        Column("id", String(length=255), primary_key=True),
+        Column("id", String(length=255)),
         Column("project_id", String(length=255)),
         Column("kind", String(length=50)),
         Column("name", String(length=63)),
         Column("data", Text()),
+        PrimaryKeyConstraint('kind', 'id'),
+        Index('items_project_kind_name_idx', 'project_id', 'kind', 'name'),
         mysql_engine="InnoDB",
         mysql_charset="utf8"
     )
     items.create()
-
-    items_index = Index('items_project_kind_name_idx',
-                        items.c.project_id,
-                        items.c.kind,
-                        items.c.name)
-    items_index.create()
 
 
 def downgrade(migrate_engine):

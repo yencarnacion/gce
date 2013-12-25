@@ -137,7 +137,7 @@ class API(object):
         return item
 
     def _delete_db_item(self, context, item):
-        return db.delete_item(context, item["id"])
+        return db.delete_item(context, self._get_type(), item["id"])
 
     def _get_db_items(self, context):
         return db.get_items(context, self._get_type())
@@ -146,7 +146,7 @@ class API(object):
         return {item["id"]: item for item in self._get_db_items(context)}
 
     def _get_db_item_by_id(self, context, item_id):
-        return db.get_item_by_id(context, item_id)
+        return db.get_item_by_id(context, self._get_type(), item_id)
 
     def _get_db_item_by_name(self, context, name):
         return db.get_item_by_name(context, self._get_type(), name)
@@ -155,11 +155,11 @@ class API(object):
         only_os_items = []
         existed_db_items = set()
         for item in os_items:
-            db_item = db_items_dict.get(item["id"])
+            db_item = db_items_dict.get(str(item["id"]))
             if db_item is None:
                 only_os_items.append(item)
             else:
-                existed_db_items.add(item["id"])
+                existed_db_items.add(db_item["id"])
         for item in db_items_dict.itervalues():
             if item["id"] not in existed_db_items:
                 self._delete_db_item(context, item)
