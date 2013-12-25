@@ -20,7 +20,6 @@ from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import network_api
 from gceapi.api import utils
-from gceapi import db
 from gceapi import exception
 
 
