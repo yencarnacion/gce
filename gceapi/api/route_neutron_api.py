@@ -276,7 +276,7 @@ class API(base_api.API):
         network_id = network["id"]
         # NOTE(ft): check non default routes not longer exists
         # must be done for internet routes
-        routes = self._sync_routes(context)
+        routes, dummy = self._sync_routes(context)
         for route in routes.itervalues():
             if (route["network_id"] == network_id and
                     not route["is_default"]):
