@@ -16,29 +16,26 @@ from gceapi.api import networks
 from gceapi.tests.api import common
 
 
-EXPECTED_NETWORKS = [
-                     {
-                      "kind": "compute#network",
-                      "selfLink": "http://localhost/compute/v1beta15/projects"
-                                  "/fake_project/global/networks/private",
-                      "name": "private",
-                       "id": "1543653731328164645",
-                      "IPv4Range": "10.0.0.0/24",
-                      "gatewayIPv4": "10.0.0.1",
-                      "creationTimestamp": "2013-12-25T09:05:07.396957Z",
-                      "description": "main network",
-                      },
-                     {
-                      "kind": "compute#network",
-                      "selfLink": "http://localhost/compute/v1beta15/projects"
-                                  "/fake_project/global/networks/public",
-                      "name": "public",
-                      "id": "8340158205161619676",
-                      "IPv4Range": "172.24.4.224/28",
-                      "gatewayIPv4": "172.24.4.225",
-                      "creationTimestamp": "",
-                      }
-                     ]
+EXPECTED_NETWORKS = [{
+    "kind": "compute#network",
+    "selfLink": "http://localhost/compute/v1beta15/projects"
+                "/fake_project/global/networks/private",
+    "name": "private",
+    "id": "1543653731328164645",
+    "IPv4Range": "10.0.0.0/24",
+    "gatewayIPv4": "10.0.0.1",
+    "creationTimestamp": "2013-12-25T09:05:07.396957Z",
+    "description": "main network",
+}, {
+    "kind": "compute#network",
+    "selfLink": "http://localhost/compute/v1beta15/projects"
+                "/fake_project/global/networks/public",
+    "name": "public",
+    "id": "8340158205161619676",
+    "IPv4Range": "172.24.4.224/28",
+    "gatewayIPv4": "172.24.4.225",
+    "creationTimestamp": "",
+}]
 
 
 class NetworksControllerTest(common.GCEControllerTest):

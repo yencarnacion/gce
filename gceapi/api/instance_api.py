@@ -150,7 +150,7 @@ class API(base_api.API):
         instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
-        instances[0].reboot("HARD")
+        client.servers.reboot(instances[0], "HARD")
 
     def delete_item(self, context, name, scope=None):
         client = clients.nova(context)

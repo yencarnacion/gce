@@ -37,6 +37,8 @@ class Controller(gce_common.Controller):
         }
         if "description" in floating_ip:
             result_dict["description"] = floating_ip["description"]
+        else:
+            result_dict["description"] = ""
 
         if "instance_name" in floating_ip:
             result_dict["users"] = [self._qualify(

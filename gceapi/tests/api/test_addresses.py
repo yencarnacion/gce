@@ -77,7 +77,7 @@ class AddressesTest(common.GCEControllerTest):
 
     def test_get_address_aggregated_list_filtered(self):
         response = self.request_gce("/fake_project/aggregated/addresses"
-                                    "?filter=name+eq+ip-172-24-4-227")
+                                    "?filter=name+eq+address-172-24-4-227")
 
         expected = {
             "kind": "compute#addressAggregatedList",

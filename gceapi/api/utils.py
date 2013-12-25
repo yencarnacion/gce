@@ -109,7 +109,8 @@ def apply_template(template_string, json):
 def to_dict(obj, recursive=False, classkey=None):
     if hasattr(obj, "__dict__"):
         data = dict()
-        for key, value in obj.__dict__.iteritems():
+        for key in dir(obj):
+            value = getattr(obj, key)
             if not callable(value) and not key.startswith('_'):
                 data[key] = (value if not recursive
                     else to_dict(value, recursive, classkey))

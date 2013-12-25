@@ -12,12 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
-
-from gceapi import exception
-from gceapi.api import instances
 from gceapi.tests.api import common
-from gceapi.tests.api import fake_instance
 
 EXPECTED_INSTANCES = [{
     "kind": "compute#instance",
@@ -85,30 +80,6 @@ EXPECTED_INSTANCES = [{
     "selfLink": "http://localhost/compute/v1beta15/projects/fake_project"
         "/zones/nova/instances/i2"
 }]
-
-
-def fake_reset_instance(self, context, instance, reset_type):
-    if reset_type != 'HARD':
-        raise exception.InvalidParameterValue(err=reset_type)
-
-
-def fake_delete_instance(self, context, instance):
-    pass
-
-
-def fake_create_instance(self, context, instance_type,
-        image_href, kernel_id=None, ramdisk_id=None,
-        min_count=None, max_count=None,
-        display_name=None, display_description=None,
-        key_name=None, key_data=None, security_group=None,
-        availability_zone=None, user_data=None, metadata=None,
-        injected_files=None, admin_password=None,
-        block_device_mapping=None, access_ip_v4=None,
-        access_ip_v6=None, requested_networks=None, config_drive=None,
-        auto_disk_config=None, scheduler_hints=None):
-    instance = copy.deepcopy(fake_instance.FAKE_INSTANCES[1])
-    instance['display_name'] = display_name
-    return ([instance], "reservation_id")
 
 
 class InstancesTest(common.GCEControllerTest):
@@ -299,7 +270,7 @@ class InstancesTest(common.GCEControllerTest):
 
     def test_delete_access_config(self):
         response = self.request_gce("/fake_project/zones/nova/"
-            "instances/i2/deleteAccessConfig?access-config=192.168.138.196",
+            "instances/i2/deleteAccessConfig?accessConfig=External NAT",
             method="POST")
         expected = {
             "status": "DONE",
