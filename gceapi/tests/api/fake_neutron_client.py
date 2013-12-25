@@ -14,108 +14,116 @@
 
 import copy
 
+from gceapi.tests.api import fake_request
 
-FAKE_NETWORKS = {'networks':
-                 [
-                  {u'status': u'ACTIVE',
-                   u'subnets': [u'cd84a13b-6246-424f-9dd2-04c324ed4da0'],
-                   u'name': u'private',
-                   u'provider:physical_network': None,
-                   u'admin_state_up': True,
-                   u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
-                   u'provider:network_type': u'local',
-                   u'router:external': False,
-                   u'shared': False,
-                   u'id': u'734b9c83-3a8b-4350-8fbf-d40f571ee163',
-                   u'provider:segmentation_id': None},
-                  {u'status': u'ACTIVE',
-                   u'subnets': [u'7a2800b8-0e66-4271-b26c-6af01dcba66f'],
-                   u'name': u'public',
-                   u'provider:physical_network': None,
-                   u'admin_state_up': True,
-                   u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
-                   u'provider:network_type': u'local',
-                   u'router:external': True,
-                   u'shared': False,
-                   u'id': u'7aa33661-33ba-4291-a2c7-44bfd59884c1',
-                   u'provider:segmentation_id': None},
-                  {u'status': u'ACTIVE',
-                   u'subnets': [],
-                   u'name': u'public',
-                   u'provider:physical_network': None,
-                   u'admin_state_up': True,
-                   u'tenant_id': u'ae7d3f067c3c4243bb0c6ea0fa8fb6e4',
-                   u'provider:network_type': u'local',
-                   u'router:external': True,
-                   u'shared': False,
-                   u'id': u'439fa4f9-cdd7-4ee2-b3cf-5e764cf644af',
-                   u'provider:segmentation_id': None},
-                  ]}
 
-FAKE_SUBNETS = [
-                {u'subnet':
-                 {u'name': u'',
-                  u'enable_dhcp': True,
-                  u'network_id': u'734b9c83-3a8b-4350-8fbf-d40f571ee163',
-                  u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
-                  u'dns_nameservers': [],
-                  u'allocation_pools': [
-                                        {u'start': u'10.0.0.2',
-                                         u'end': u'10.0.0.254'}
-                                       ],
-                  u'host_routes': [],
-                  u'ip_version': 4,
-                  u'gateway_ip': u'10.0.0.1',
-                  u'cidr': u'10.0.0.0/24',
-                  u'id': u'cd84a13b-6246-424f-9dd2-04c324ed4da0'}
-                },
-                {u'subnet':
-                 {u'name': u'',
-                  u'enable_dhcp': False,
-                  u'network_id': u'7aa33661-33ba-4291-a2c7-44bfd59884c1',
-                  u'tenant_id': u'ae7d3f067c3c4243bb0c6ea0fa8fb6e4',
-                  u'dns_nameservers': [],
-                  u'allocation_pools': [
-                                        {u'start': u'172.24.4.226',
-                                         u'end': u'172.24.4.238'}
-                                        ],
-                  u'host_routes': [],
-                  u'ip_version': 4,
-                  u'gateway_ip': u'172.24.4.225',
-                  u'cidr': u'172.24.4.224/28',
-                  u'id': u'7a2800b8-0e66-4271-b26c-6af01dcba66f'}
-                 }
-                ]
+FAKE_NETWORKS = {
+    'networks': [{
+        u'status': u'ACTIVE',
+        u'subnets': [u'cd84a13b-6246-424f-9dd2-04c324ed4da0'],
+        u'name': u'private',
+        u'provider:physical_network': None,
+        u'admin_state_up': True,
+        u'tenant_id': fake_request.PROJECT_ID,
+        u'provider:network_type': u'local',
+        u'router:external': False,
+        u'shared': False,
+        u'id': u'734b9c83-3a8b-4350-8fbf-d40f571ee163',
+        u'provider:segmentation_id': None
+    }, {
+        u'status': u'ACTIVE',
+        u'subnets': [u'7a2800b8-0e66-4271-b26c-6af01dcba66f'],
+        u'name': u'public',
+        u'provider:physical_network': None,
+        u'admin_state_up': True,
+        u'tenant_id': fake_request.PROJECT_ID,
+        u'provider:network_type': u'local',
+        u'router:external': True,
+        u'shared': False,
+        u'id': u'7aa33661-33ba-4291-a2c7-44bfd59884c1',
+        u'provider:segmentation_id': None
+    }, {
+        u'status': u'ACTIVE',
+        u'subnets': [],
+        u'name': u'public',
+        u'provider:physical_network': None,
+        u'admin_state_up': True,
+        u'tenant_id': u'ae7d3f067c3c4243bb0c6ea0fa8fb6e4',
+        u'provider:network_type': u'local',
+        u'router:external': True,
+        u'shared': False,
+        u'id': u'439fa4f9-cdd7-4ee2-b3cf-5e764cf644af',
+        u'provider:segmentation_id': None
+    },
+]}
 
-FAKE_ROUTERS = [
-                {u'id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
-                 u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
-                 u'external_gateway_info':
-                    {"network_id": u'503b83b5-bec0-4071-b8ba-789595c8f7b2'},
-                 u'routes': [
-                             {u'destination': u'32.44.64.0/24',
-                              u'nexthop': u'10.0.0.32'},
-                             {u'destination': u'89.34.0.0/16',
-                              u'nexthop': u'10.0.0.78'},
-                             ],
-                 }
-                ]
-FAKE_PORTS = [
-              {u'id': u'3e10c6ac-9fcc-492d-95fb-1b7ea93529f2',
-               u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
-               u'device_owner': u'network:router_gateway',
-               u'network_id': u'503b83b5-bec0-4071-b8ba-789595c8f7b2',
-               u'device_id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
-               },
-              {u'id': u'eee5ba4f-c67e-40ec-8595-61b8e2bb715a',
-               u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
-               u'device_owner': u'network:router_interface',
-               u'network_id': u'734b9c83-3a8b-4350-8fbf-d40f571ee163',
-               u'device_id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
-               u'fixed_ips': [{
-                       u'subnet_id': u'cd84a13b-6246-424f-9dd2-04c324ed4da0'}],
-               },
-              ]
+FAKE_SUBNETS = [{
+    u'subnet': {
+        u'name': u'',
+        u'enable_dhcp': True,
+        u'network_id': u'734b9c83-3a8b-4350-8fbf-d40f571ee163',
+        u'tenant_id': fake_request.PROJECT_ID,
+        u'dns_nameservers': [],
+        u'allocation_pools': [{
+            u'start': u'10.0.0.2',
+            u'end': u'10.0.0.254'
+        }],
+        u'host_routes': [],
+        u'ip_version': 4,
+        u'gateway_ip': u'10.0.0.1',
+        u'cidr': u'10.0.0.0/24',
+        u'id': u'cd84a13b-6246-424f-9dd2-04c324ed4da0'
+    }
+}, {
+    u'subnet': {
+        u'name': u'',
+        u'enable_dhcp': False,
+        u'network_id': u'7aa33661-33ba-4291-a2c7-44bfd59884c1',
+        u'tenant_id': u'ae7d3f067c3c4243bb0c6ea0fa8fb6e4',
+        u'dns_nameservers': [],
+        u'allocation_pools': [{
+            u'start': u'172.24.4.226',
+            u'end': u'172.24.4.238'
+        }],
+        u'host_routes': [],
+        u'ip_version': 4,
+        u'gateway_ip': u'172.24.4.225',
+        u'cidr': u'172.24.4.224/28',
+        u'id': u'7a2800b8-0e66-4271-b26c-6af01dcba66f'
+    }
+}]
+
+FAKE_ROUTERS = [{
+    u'id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
+    u'tenant_id': fake_request.PROJECT_ID,
+    u'external_gateway_info': {
+        "network_id": u'503b83b5-bec0-4071-b8ba-789595c8f7b2'
+    },
+    u'routes': [{
+        u'destination': u'32.44.64.0/24',
+        u'nexthop': u'10.0.0.32'
+    }, {
+        u'destination': u'89.34.0.0/16',
+        u'nexthop': u'10.0.0.78'
+    }],
+}]
+
+FAKE_PORTS = [{
+    u'id': u'3e10c6ac-9fcc-492d-95fb-1b7ea93529f2',
+    u'tenant_id': fake_request.PROJECT_ID,
+    u'device_owner': u'network:router_gateway',
+    u'network_id': u'503b83b5-bec0-4071-b8ba-789595c8f7b2',
+    u'device_id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
+}, {
+    u'id': u'eee5ba4f-c67e-40ec-8595-61b8e2bb715a',
+    u'tenant_id': fake_request.PROJECT_ID,
+    u'device_owner': u'network:router_interface',
+    u'network_id': u'734b9c83-3a8b-4350-8fbf-d40f571ee163',
+    u'device_id': u'45d8de89-0e40-4d9d-977f-db3573a6e7cf',
+    u'fixed_ips': [{
+        u'subnet_id': u'cd84a13b-6246-424f-9dd2-04c324ed4da0'
+    }],
+}]
 
 
 class FakeNeutronClient(object):
@@ -151,7 +159,7 @@ class FakeNeutronClient(object):
                  u'name': body["network"]["name"],
                  u'provider:physical_network': None,
                  u'admin_state_up': True,
-                 u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
+                 u'tenant_id': fake_request.PROJECT_ID,
                  u'provider:network_type': u'local',
                  u'router:external': False,
                  u'shared': False,
@@ -163,7 +171,7 @@ class FakeNeutronClient(object):
                 {u'name': u'',
                  u'enable_dhcp': True,
                  u'network_id': u'f1b1bc03-9955-4fd8-bdf9-d2ec7d2777e7',
-                 u'tenant_id': u'4a5cc7d8893544a9babb3b890227d75e',
+                 u'tenant_id': fake_request.PROJECT_ID,
                  u'dns_nameservers': [],
                  u'allocation_pools': [
                                        {u'start': u'10.100.0.2',
@@ -209,7 +217,7 @@ class FakeNeutronClient(object):
                  if all(p.get(a) == kwargs[a] for a in kwargs)]
         return {"ports": ports}
 
-    def list_floatingips(self):
+    def list_floatingips(self, tenant_id):
         return {"floatingips": [{
             u"fixed_ip_address": u"192.168.138.196",
             u"floating_ip_address": u"172.24.4.227",
@@ -217,7 +225,7 @@ class FakeNeutronClient(object):
             u"id": u"81c45d28-3699-4116-bacd-7488996c5293",
             u"port_id": u"8984b23b-f945-4b1e-8eb0-7e735285c0cc",
             u"router_id": u"59e96d7b-749d-433e-b592-a55ba94b935e",
-            u"tenant_id": u"4a5cc7d8893544a9babb3b890227d75e"}]}
+            u"tenant_id": fake_request.PROJECT_ID}]}
 
     def create_floatingip(self, body=None):
         return {"floatingip": {"floating_ip_address": "10.20.30.40"}}

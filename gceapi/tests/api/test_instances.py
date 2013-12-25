@@ -16,7 +16,6 @@ import copy
 
 from gceapi import exception
 from gceapi.api import instances
-from gceapi.compute import api as compute_api
 from gceapi.tests.api import common
 from gceapi.tests.api import fake_instance
 
@@ -116,12 +115,6 @@ class InstancesTest(common.GCEControllerTest):
 
     def setUp(self):
         super(InstancesTest, self).setUp()
-
-        self.stubs.Set(compute_api.API, 'create', fake_create_instance)
-        self.stubs.Set(compute_api.API, 'delete', fake_delete_instance)
-        self.stubs.Set(compute_api.API, 'reboot', fake_reset_instance)
-
-        self.controller = instances.Controller()
 
     def test_get_instance_by_invalid_name(self):
         response = self.request_gce('/fake_project/zones/nova/instances/fake')

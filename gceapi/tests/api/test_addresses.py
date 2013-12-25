@@ -18,7 +18,7 @@ from gceapi.tests.api import common
 EXPECTED_ADDRESSES = [{
     "kind": "compute#address",
     "id": "7878386898874730669",
-    "creationTimestamp": None,
+    "creationTimestamp": "",
     "status": "IN USE",
     "region": "http://localhost/compute/v1beta15/projects/"
         "fake_project/regions/nova",

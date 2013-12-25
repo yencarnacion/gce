@@ -189,6 +189,39 @@ class FakeNovaClient(object):
 
         return FakeKeypairs()
 
+    @property
+    def servers(self):
+        class FakeServers(object):
+            def get(self, server):
+                pass
+
+            def list(self, detailed=True, search_opts=None,
+                     marker=None, limit=None):
+                return []
+
+            def create(self, name, image, flavor, meta=None, files=None,
+                       reservation_id=None, min_count=None,
+                       max_count=None, security_groups=None, userdata=None,
+                       key_name=None, availability_zone=None,
+                       block_device_mapping=None, block_device_mapping_v2=None,
+                       nics=None, scheduler_hints=None,
+                       config_drive=None, disk_config=None, **kwargs):
+                pass
+
+            def add_floating_ip(self, server, address, fixed_address=None):
+                pass
+
+            def remove_floating_ip(self, server, address):
+                pass
+
+            def delete(self, server):
+                pass
+
+            def reboot(self, server, reboot_type):
+                pass
+
+        return FakeServers()
+
 
 def fake_discover_extensions(self, version):
     return list()
