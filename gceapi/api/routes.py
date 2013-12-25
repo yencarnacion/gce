@@ -30,6 +30,7 @@ class Controller(gce_common.Controller):
             "name": route["name"],
             "network": network_name,
             "destRange": route.get("destination"),
+            "creationTimestamp": route.get("creationTimestamp", ""),
             "priority": 1000,
         }
         if "external_gateway_info" in route:
@@ -41,12 +42,8 @@ class Controller(gce_common.Controller):
                 result_dict["nextHopIp"] = nextHop
             else:
                 result_dict["nextHopNetwork"] = network_name
-        description = route.get("description")
-        if description is not None:
-            result_dict["description"] = description
-        creationTimestamp = route.get("creationTimestamp")
-        if creationTimestamp is not None:
-            result_dict["creationTimestamp"] = creationTimestamp
+        if "description" in route:
+            result_dict["description"] = route["description"]
 
         return self._format_item(request, result_dict, scope)
 

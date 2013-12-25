@@ -44,8 +44,9 @@ class API(base_api.API):
         gce_networks = self._get_db_items_dict(context)
         result_networks = []
         for network in networks:
-            result_networks.append(self._prepare_network(utils.to_dict(network),
-                                   gce_networks.get(network["id"])))
+            result_networks.append(
+                    self._prepare_network(utils.to_dict(network),
+                                          gce_networks.get(network["id"])))
         self._purge_db(context, result_networks, gce_networks)
         return result_networks
 

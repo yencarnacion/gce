@@ -38,16 +38,16 @@ def add_item(context, kind, data):
     IMPL.add_item(context, kind, data)
 
 
-def delete_item(context, item_id):
-    IMPL.delete_item(context, item_id)
+def delete_item(context, kind, item_id):
+    IMPL.delete_item(context, kind, item_id)
 
 
 def get_items(context, kind):
     return IMPL.get_items(context, kind)
 
 
-def get_item_by_id(context, item_id):
-    return IMPL.get_item_by_id(context, item_id)
+def get_item_by_id(context, kind, item_id):
+    return IMPL.get_item_by_id(context, kind, item_id)
 
 
 def get_item_by_name(context, kind, name):

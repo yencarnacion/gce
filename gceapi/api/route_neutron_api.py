@@ -20,7 +20,6 @@ from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import network_api
 from gceapi.api import utils
-from gceapi import db
 from gceapi import exception
 
 
@@ -173,7 +172,7 @@ class API(base_api.API):
             port = os_route["port"]
             route = self._add_gce_route(context, network, port, os_route,
                                        is_default=True,
-                                       creationTimestamp=None)
+                                       creationTimestamp="")
             os_route.update(route)
             routes[os_route["name"]] = os_route
 

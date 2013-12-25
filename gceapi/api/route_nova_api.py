@@ -22,6 +22,11 @@ NOT_SUPPORTED_MESSAGE = _("Routes are not supported with nova network")
 class API(base_api.API):
     """GCE Address API - nova-network implementation"""
 
+    KIND = "route"
+
+    def _get_type(self):
+        return self.KIND
+
     def get_item(self, context, name, scope_id=None):
         raise exception.InvalidInput(reason=NOT_SUPPORTED_MESSAGE)
 

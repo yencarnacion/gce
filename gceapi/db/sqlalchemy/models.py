@@ -17,7 +17,7 @@ SQLAlchemy models for gceapi data.
 """
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Index, String, Text
+from sqlalchemy import Column, Index, PrimaryKeyConstraint, String, Text
 
 from gceapi.openstack.common.db.sqlalchemy import models
 
@@ -27,9 +27,10 @@ BASE = declarative_base()
 class Item(BASE, models.ModelBase):
     __tablename__ = 'items'
     __table_args__ = (
+        PrimaryKeyConstraint('kind', 'id'),
         Index('items_project_kind_name_idx', 'project_id', 'kind', 'name'),
     )
-    id = Column(String(length=255), primary_key=True)
+    id = Column(String(length=255))
     project_id = Column(String(length=255))
     kind = Column(String(length=50))
     name = Column(String(length=63))
