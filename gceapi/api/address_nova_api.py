@@ -22,9 +22,13 @@ class API(base_api.API):
     """GCE Address API - nova-network implementation"""
 
     KIND = "address"
+    PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "name", "description"]
 
     def _get_type(self):
         return self.KIND
+
+    def _get_persistent_attributes(self):
+        return self.PERSISTENT_ATTRIBUTES
 
     def get_item(self, context, name, scope=None):
         client = clients.nova(context)
@@ -37,37 +41,52 @@ class API(base_api.API):
     def delete_item(self, context, name, scope=None):
         client = clients.nova(context)
         floating_ip = self._get_floating_ips(client, context, scope, name)[0]
+        self._delete_db_item(context, floating_ip)
         client.floating_ips.delete(floating_ip["id"])
 
     def add_item(self, context, name, body, scope=None):
         client = clients.nova(context)
+        if any(x["name"] == name
+               for x in self._get_floating_ips(client, context, scope)):
+            raise exception.InvalidInput(
+                    _("The resource '%s' already exists.") % name)
         result = client.floating_ips.create()
-        return self._prepare_floating_ip(client, context, result, scope)
+        floating_ip = self._prepare_floating_ip(client, context, result, scope)
+        floating_ip["name"] = body["name"]
+        if "description" in body:
+            floating_ip["description"] = body["description"]
+        floating_ip = self._add_db_item(context, floating_ip)
+        return floating_ip
 
-    def _get_floating_ips(self, client, context, scope, ip=None):
+    def _get_floating_ips(self, client, context, scope, name=None):
         results = client.floating_ips.list()
-        results = [self._prepare_floating_ip(client, context, x, scope)
+        gce_floating_ips = self._get_db_items_dict(context)
+        results = [self._prepare_floating_ip(
+                      client, context, x, scope,
+                      gce_floating_ips.get(str(x.id)))
                    for x in results]
+        unnamed_ips = self._purge_db(context, results, gce_floating_ips)
+        self._add_nonnamed_items(context, unnamed_ips)
 
-        if ip is None:
+        if name is None:
             return results
 
         for item in results:
-            if item["name"] == ip:
+            if item["name"] == name:
                 return [item]
 
         raise exception.NotFound
 
-    def _prepare_floating_ip(self, client, context, floating_ip, scope):
+    def _prepare_floating_ip(self, client, context, floating_ip, scope,
+                             db_item=None):
         floating_ip = utils.to_dict(floating_ip)
         fixed_ip = floating_ip.get("fixed_ip")
-        result = {
+        floating_ip = {
             "fixed_ip_address": fixed_ip if fixed_ip else None,
             "floating_ip_address": floating_ip["ip"],
             "id": floating_ip["id"],
             "port_id": None,
             "tenant_id": context.project_id,
-            "name": self._generate_floating_ip_name(floating_ip["ip"]),
             "scope": scope,
             "status": "IN USE" if fixed_ip else "RESERVED",
         }
@@ -75,14 +94,15 @@ class API(base_api.API):
         instance_id = floating_ip.get("instance_id")
         if instance_id is not None:
             instance = client.servers.get(instance_id)
-            result["instance_name"] = instance.name
-            result["instance_zone"] = getattr(
+            floating_ip["instance_name"] = instance.name
+            floating_ip["instance_zone"] = getattr(
                 instance, "OS-EXT-AZ:availability_zone")
 
-        return result
+        return self._prepare_item(floating_ip, db_item)
 
-    # TODO(apavlov): Until we have own DB for gce names translation
-    # we should generate new ones. As a result, some clients code may not
-    # work correctly.
-    def _generate_floating_ip_name(self, ip):
-        return "ip-" + ip.replace(".", "-")
+    def _add_nonnamed_items(self, context, items):
+        for item in items:
+            item["name"] = ("address-" +
+                            item["floating_ip_address"].replace(".", "-"))
+            item["creationTimestamp"] = ""
+            self._add_db_item(context, item)

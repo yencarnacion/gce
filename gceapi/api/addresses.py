@@ -29,13 +29,14 @@ class Controller(gce_common.Controller):
 
     def format_item(self, request, floating_ip, scope):
         result_dict = {
-            "creationTimestamp": None,
+            "creationTimestamp": floating_ip.get("creationTimestamp", ""),
             "status": floating_ip["status"],
             "region": scope.get_name(),
             "name": floating_ip["name"],
-            "description": "",
             "address": floating_ip["floating_ip_address"],
         }
+        if "description" in floating_ip:
+            result_dict["description"] = floating_ip["description"]
 
         if "instance_name" in floating_ip:
             result_dict["users"] = [self._qualify(
