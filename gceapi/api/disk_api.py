@@ -53,9 +53,6 @@ class API(base_api.API):
                 return self._prepare_item(client, volume)
         raise exception.NotFound
 
-    def get_item_by_id(self, context, item_id):
-        return self._volume_service.get(context, item_id)
-
     def get_items(self, context, scope=None):
         client = clients.cinder(context)
         volumes = [utils.to_dict(item) for item in client.volumes.list()]

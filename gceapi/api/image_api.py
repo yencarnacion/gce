@@ -82,10 +82,3 @@ class API(base_api.API):
         image = image_service.create(**meta)
 
         return self._prepare_item(utils.to_dict(image))
-
-    def get_item_by_id(self, context, image_id):
-        try:
-            image_service = clients.glance(context).images
-            return utils.to_dict(image_service.get(image_id))
-        except exception.NotFound:
-            return None
