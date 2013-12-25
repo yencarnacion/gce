@@ -20,11 +20,6 @@ from gceapi.tests.api import utils
 from gceapi.tests.api import fake_request
 
 
-#'attachments': [],
-#'snapshot_id': None,
-#'snapshot': None,
-#'source_volid': None,
-
 FAKE_DISKS = [utils.to_obj({
     "status": "available",
     "volume_type": None,
@@ -40,6 +35,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:name_id": None,
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
+    "attachments": [],
 }), utils.to_obj({
     "status": "available",
     "volume_type": None,
@@ -60,6 +56,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:name_id": None,
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
+    "attachments": [],
 }), utils.to_obj({
     "status": "available",
     "volume_type": None,
@@ -75,6 +72,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:name_id": None,
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
+    "attachments": [],
 }), utils.to_obj({
     "status": "available",
     "volume_type": None,
@@ -90,6 +88,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:name_id": None,
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
+    "attachments": [],
 }), utils.to_obj({
     "status": "in-use",
     "instance_uuid": "d0a267df-be69-45cf-9cc3-9f8db99cb767",
@@ -112,6 +111,13 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:name_id": None,
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
+    "attachments": [{
+        "device": "vdc",
+        "server_id": "d0a267df-be69-45cf-9cc3-9f8db99cb767",
+        "volume_id": "ab8829ad-eec1-44a2-8068-d7f00c53ee90",
+        "host_name": None,
+        "id": "7f862e44-5f41-4a1f-b2f8-dbd2f6bef86f"
+    }],
 })]
 
 FAKE_SNAPSHOTS = [utils.to_obj({
@@ -142,6 +148,7 @@ FAKE_NEW_DISKS = {
         "os-vol-mig-status-attr:name_id": None,
         "os-vol-mig-status-attr:migstat": None,
         "os-vol-host-attr:host": "grizzly",
+        "attachments": [],
     },
     "new-image-disk": {
         "status": "available",
@@ -162,6 +169,7 @@ FAKE_NEW_DISKS = {
         "os-vol-mig-status-attr:name_id": None,
         "os-vol-mig-status-attr:migstat": None,
         "os-vol-host-attr:host": "grizzly",
+        "attachments": [],
     },
     "new-sn-disk": {
         "status": "creating",
@@ -177,6 +185,7 @@ FAKE_NEW_DISKS = {
         "os-vol-mig-status-attr:name_id": None,
         "os-vol-mig-status-attr:migstat": None,
         "os-vol-host-attr:host": "grizzly",
+        "attachments": [],
     },
 }
 
@@ -217,7 +226,22 @@ class FakeCinderClient(object):
                     volume_type=None, user_id=None,
                     project_id=None, availability_zone=None,
                     metadata=None, imageRef=None):
-                pass
+                volume = copy.deepcopy(FAKE_NEW_DISKS[display_name])
+                volume["display_name"] = display_name
+                volume["availability_zone"] = availability_zone
+                volume["display_description"] = display_description
+                volume["size"] = size
+                if project_id:
+                    volume["os-vol-tenant-attr:tenant_id"] = project_id
+                if snapshot_id is not None:
+                    volume["snapshot_id"] = snapshot_id
+                if imageRef is not None:
+                    volume["volume_image_metadata"] = {
+                        "image_id": imageRef,
+                        "image_name": "fake-image-2"
+                    }
+                FAKE_DISKS.append(utils.to_obj(volume))
+                return utils.to_obj(volume)
 
         return FakeVolumes()
 
@@ -230,5 +254,20 @@ class FakeCinderClient(object):
                     if snapshot.id == snapshot_id:
                         return snapshot
                 raise exc.NotFound()
+
+            def list(self, detailed=True, search_opts=None):
+                result = FAKE_SNAPSHOTS
+                if search_opts:
+                    if "display_name" in search_opts:
+                        result = [d for d in result
+                            if d.display_name == search_opts["display_name"]]
+                return result
+
+            def delete(self, snapshot):
+                pass
+
+            def create(self, volume_id, force=False,
+                       display_name=None, display_description=None):
+                return FAKE_SNAPSHOTS[0]
 
         return FakeVolumeSnapshots()

@@ -82,6 +82,7 @@ NEW_IMAGE_DISK = {
     "sizeGb": 1,
     "sourceImage": "http://localhost/compute/v1beta15/projects/"
                    "fake_project/global/images/fake-image-2",
+    "sourceImageId": "5721131091780319468",
     "zone": "http://localhost/compute/v1beta15/projects/"
             "fake_project/zones/nova",
     "creationTimestamp": "2013-08-14T15:56:00Z",

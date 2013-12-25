@@ -123,4 +123,4 @@ class API(base_api.API):
             imageRef=image_id,
             availability_zone=scope.get_name())
 
-        return self._prepare_item(context, utils.to_dict(volume))
+        return self._prepare_item(client, utils.to_dict(volume))
