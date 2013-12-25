@@ -46,17 +46,17 @@ class API(base_api.API):
     def get_item(self, context, name, scope=None):
         client = clients.cinder(context)
         volumes = client.volumes.list(search_opts={"display_name": name})
-        volumes = [utils.to_dict(item) for item in volumes]
         volumes = self._filter_volumes_by_zone(volumes, scope)
-        for volume in volumes:
-            if volume["display_name"] == name:
-                return self._prepare_item(client, volume)
-        raise exception.NotFound
+        volumes = [utils.to_dict(item) for item in volumes]
+        if not volumes or len(volumes) != 1:
+            raise exception.NotFound
+        return self._prepare_item(client, volumes[0])
 
     def get_items(self, context, scope=None):
         client = clients.cinder(context)
-        volumes = [utils.to_dict(item) for item in client.volumes.list()]
+        volumes = client.volumes.list()
         volumes = self._filter_volumes_by_zone(volumes, scope)
+        volumes = [utils.to_dict(item) for item in volumes]
         for volume in volumes:
             self._prepare_item(client, volume)
         return volumes
@@ -72,13 +72,16 @@ class API(base_api.API):
         item["snapshot"] = snapshot
         item["status"] = self._status_map.get(item["status"], item["status"])
         item["name"] = item["display_name"]
+        image = item.get("volume_image_metadata")
+        if image:
+            item["image_name"] = image["image_name"]
         return item
 
     def _filter_volumes_by_zone(self, volumes, scope):
         if scope is None:
             return volumes
         return filter(
-            lambda volume: volume["availability_zone"] == scope.get_name(),
+            lambda volume: volume.availability_zone == scope.get_name(),
             volumes)
 
     def delete_item(self, context, name, scope=None):

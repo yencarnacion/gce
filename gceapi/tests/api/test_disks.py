@@ -17,7 +17,7 @@ import copy
 from gceapi.tests.api import common
 
 
-FAKE_DISK_1 = {
+EXPECTED_DISK_1 = {
     "status": "READY",
     "sourceSnapshot": "http://localhost/compute/v1beta15/projects/"
                       "fake_project/global/snapshots/fake-snapshot",
@@ -33,22 +33,23 @@ FAKE_DISK_1 = {
                 "fake_project/zones/nova/disks/fake-disk-1",
     "description": "fake disk from snapshot",
 }
-FAKE_DISK_2 = {
+EXPECTED_DISK_2 = {
     "status": "READY",
     "sizeGb": 1,
     "kind": "compute#disk",
     "name": "fake-disk-2",
     "zone": "http://localhost/compute/v1beta15/projects/"
             "fake_project/zones/nova",
-    "sourceImage": "http://localhost/compute/v1beta15/projects/"
-                   "fake_project/global/images/fake-image-1",
     "creationTimestamp": "2013-08-14T12:19:35Z",
     "id": "9202387718698825405",
     "selfLink": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/zones/nova/disks/fake-disk-2",
     "description": "",
+    "sourceImage": "http://localhost/compute/v1beta15/projects/fake_project"
+                   "/global/images/fake-image-1",
+    "sourceImageId": "5721131091780319465",
 }
-FAKE_DISK_3 = {
+EXPECTED_DISK_3 = {
     "status": "READY",
     "sizeGb": 3,
     "kind": "compute#disk",
@@ -129,7 +130,7 @@ class DisksControllerTest(common.GCEControllerTest):
         }
         response_disks = response_body["items"]["zones/nova"].pop("disks")
         self.assertDictEqual(expected_common, response_body)
-        self.assertDictInListBySelfLink(FAKE_DISK_3, response_disks)
+        self.assertDictInListBySelfLink(EXPECTED_DISK_3, response_disks)
 
     def test_get_disk_list(self):
         response = self.request_gce("/fake_project/aggregated/disks")
@@ -148,15 +149,15 @@ class DisksControllerTest(common.GCEControllerTest):
         }
         response_disks = response_body["items"]["zones/nova"].pop("disks")
         self.assertDictEqual(expected_common, response_body)
-        self.assertDictInListBySelfLink(FAKE_DISK_1, response_disks)
-        self.assertDictInListBySelfLink(FAKE_DISK_2, response_disks)
-        self.assertDictInListBySelfLink(FAKE_DISK_3, response_disks)
+        self.assertDictInListBySelfLink(EXPECTED_DISK_1, response_disks)
+        self.assertDictInListBySelfLink(EXPECTED_DISK_2, response_disks)
+        self.assertDictInListBySelfLink(EXPECTED_DISK_3, response_disks)
 
     def test_get_disk_by_name(self):
         response = self.request_gce(
                 "/fake_project/zones/nova/disks/fake-disk-1")
         self.assertEqual(200, response.status_int)
-        self.assertDictEqual(FAKE_DISK_1, response.json_body)
+        self.assertDictEqual(EXPECTED_DISK_1, response.json_body)
 
     def test_get_disk_by_invalid_name(self):
         response = self.request_gce(

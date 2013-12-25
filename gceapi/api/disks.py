@@ -41,6 +41,12 @@ class Controller(gce_common.Controller):
                 "snapshots", snapshot["display_name"],
                 gce_common.Scope.create_global())
             result_dict["sourceSnapshotId"] = snapshot["id"]
+        image_name = volume.get("image_name")
+        if image_name:
+            result_dict["sourceImage"] = self._qualify(request,
+                "images", image_name, gce_common.Scope.create_global())
+            result_dict["sourceImageId"] = self._get_id(
+                result_dict["sourceImage"])
 
         return self._format_item(request, result_dict, scope)
 
