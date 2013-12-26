@@ -15,6 +15,7 @@
 from gceapi.api import clients
 from gceapi import exception
 from gceapi.api import base_api
+from gceapi.api import utils
 
 
 class API(base_api.API):
@@ -32,9 +33,20 @@ class API(base_api.API):
         project = [t for t in keystone.tenants.list()
                 if t.name == project_name][0]
 
-        result = {}
-        result["project"] = project
+        result = utils.to_dict(project)
         result["keypair"] = self._get_gce_keypair(context)
+        project_id = project.id
+
+        nova_limits = clients.nova(context).limits.get(tenant_id=project_id)
+        result["nova_limits"] = [utils.to_dict(l)
+                                 for l in nova_limits.absolute]
+
+        cinder_client = clients.cinder(context)
+        result["cinder_quotas"] = utils.to_dict(
+            cinder_client.quotas.get(project_id, usage=True))
+
+        result["neutron_quota"] = (
+            clients.neutron(context).show_quota(project_id)["quota"])
         return result
 
     def get_items(self, context, scope=None):

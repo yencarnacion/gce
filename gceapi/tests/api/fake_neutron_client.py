@@ -139,6 +139,19 @@ FAKE_ADDRESSES = {
 }
 
 
+FAKE_QUOTAS = {
+    "quota": {
+        "subnet": 10,
+        "network": 10,
+        "floatingip": 50,
+        "security_group_rule": 100,
+        "security_group": 10,
+        "router": 10,
+        "port": 50
+    }
+}
+
+
 class FakeNeutronClient(object):
 
     def __init__(self, **kwargs):
@@ -238,3 +251,6 @@ class FakeNeutronClient(object):
 
     def delete_floatingip(self, floatingip):
         pass
+
+    def show_quota(self, tenant_id, **_params):
+        return FAKE_QUOTAS

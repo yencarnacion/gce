@@ -403,6 +403,32 @@ FAKE_FLOATING_IPS = [utils.FakeObject({
 })]
 
 
+FAKE_LIMITS = utils.FakeObject({
+    "rate": [],
+    "human_id": None,
+    "NAME_ATTR": "name",
+    "HUMAN_ID": False,
+    "absolute": [
+        utils.FakeObject({"name": "maxServerMeta", "value": 128}),
+        utils.FakeObject({"name": "maxPersonality", "value": 5}),
+        utils.FakeObject({"name": "maxImageMeta", "value": 128}),
+        utils.FakeObject({"name": "maxPersonalitySize", "value": 10240}),
+        utils.FakeObject({"name": "maxTotalRAMSize", "value": 41000}),
+        utils.FakeObject({"name": "maxSecurityGroupRules", "value": 20}),
+        utils.FakeObject({"name": "maxTotalKeypairs", "value": 100}),
+        utils.FakeObject({"name": "maxSecurityGroups", "value": 10}),
+        utils.FakeObject({"name": "maxTotalFloatingIps", "value": 10}),
+        utils.FakeObject({"name": "maxTotalInstances", "value": 10}),
+        utils.FakeObject({"name": "maxTotalCores", "value": 17}),
+        utils.FakeObject({"name": "totalRAMUsed", "value": 512}),
+        utils.FakeObject({"name": "totalFloatingIpsUsed", "value": 0}),
+        utils.FakeObject({"name": "totalInstancesUsed", "value": 1}),
+        utils.FakeObject({"name": "totalSecurityGroupsUsed", "value": 0}),
+        utils.FakeObject({"name": "totalCoresUsed", "value": 1}),
+    ]
+})
+
+
 class FakeClassWithFind(object):
     def list(self):
         pass
@@ -634,6 +660,11 @@ class FakeFloatingIps(object):
         return FAKE_FLOATING_IPS
 
 
+class FakeLimits(object):
+    def get(self, tenant_id):
+        return FAKE_LIMITS
+
+
 class FakeNovaClient(object):
     def __init__(self, version, *args, **kwargs):
         self._security_group = None
@@ -671,6 +702,10 @@ class FakeNovaClient(object):
     @property
     def floating_ips(self):
         return FakeFloatingIps()
+
+    @property
+    def limits(self):
+        return FakeLimits()
 
 
 def fake_discover_extensions(self, version):

@@ -110,10 +110,13 @@ def to_dict(obj, recursive=False, classkey=None):
     if hasattr(obj, "__dict__"):
         data = dict()
         for key in dir(obj):
-            value = getattr(obj, key)
-            if not callable(value) and not key.startswith('_'):
-                data[key] = (value if not recursive
-                    else to_dict(value, recursive, classkey))
+            try:
+                value = getattr(obj, key)
+                if not callable(value) and not key.startswith('_'):
+                    data[key] = (value if not recursive
+                        else to_dict(value, recursive, classkey))
+            except AttributeError:
+                pass
         if classkey is not None and hasattr(obj, "__class__"):
             data[classkey] = obj.__class__.__name__
         return data

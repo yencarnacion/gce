@@ -29,9 +29,9 @@ class Controller(gce_common.Controller):
         self._collection_name = None
 
     def format_item(self, request, project, scope):
-        desc = project["project"].description
+        desc = project["description"]
         result_dict = {
-            "name": project["project"].name,
+            "name": project["name"],
             "description": desc if desc else "",
             "commonInstanceMetadata": {
                 "kind": "compute#metadata",
@@ -63,6 +63,13 @@ class Controller(gce_common.Controller):
             raise webob.exc.HTTPConflict(explanation=msg)
 
         return self._format_operation(req, "", "setMetadata", None)
+
+    def _add_quota(self, quotas, metric, limit, usage):
+        quotas.append({
+            "metric": metric,
+            "limit": limit,
+            "usage": usage,
+        })
 
 
 def create_resource():

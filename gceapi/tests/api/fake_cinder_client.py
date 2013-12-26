@@ -190,6 +190,27 @@ FAKE_NEW_DISKS = {
 }
 
 
+FAKE_QUOTAS = utils.FakeObject({
+    "gigabytes": {
+        "limit": 1000,
+        "reserved": 0,
+        "in_use": 1
+    },
+    "snapshots": {
+        "limit": 10,
+        "reserved": 0,
+        "in_use": 0
+    },
+    "human_id": None,
+    "volumes": {
+        "limit": 10,
+        "reserved": 0,
+        "in_use": 1
+    },
+    "HUMAN_ID": False
+})
+
+
 class FakeVolumes(object):
     def list(self, detailed=True, search_opts=None):
         result = FAKE_DISKS
@@ -258,6 +279,13 @@ class FakeVolumeSnapshots(object):
         return FAKE_SNAPSHOTS[0]
 
 
+class FakeQuotas(object):
+    def get(self, tenant_id, **kwargs):
+        if "usage" not in kwargs:
+            raise exc.BadRequest("There is no arg 'usage' in request")
+        return FAKE_QUOTAS
+
+
 class FakeCinderClient(object):
     def __init__(self, version, *args, **kwargs):
         pass
@@ -273,3 +301,7 @@ class FakeCinderClient(object):
     @property
     def volume_snapshots(self):
         return FakeVolumeSnapshots()
+
+    @property
+    def quotas(self):
+        return FakeQuotas()
