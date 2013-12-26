@@ -16,7 +16,6 @@ import copy
 
 import gceapi.context
 from gceapi.tests.api import common
-import gceapi.tests.api.fake_security_group as fake_security_group
 
 
 DEFAULT_FIREWALL = {

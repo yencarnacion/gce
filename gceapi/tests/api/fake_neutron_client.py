@@ -126,6 +126,19 @@ FAKE_PORTS = [{
 }]
 
 
+FAKE_ADDRESSES = {
+    "floatingips": [{
+        u"fixed_ip_address": u"192.168.138.196",
+        u"floating_ip_address": u"172.24.4.227",
+        u"floating_network_id": u"7aa33661-33ba-4291-a2c7-44bfd59884c1",
+        u"id": u"81c45d28-3699-4116-bacd-7488996c5293",
+        u"port_id": u"8984b23b-f945-4b1e-8eb0-7e735285c0cc",
+        u"router_id": u"59e96d7b-749d-433e-b592-a55ba94b935e",
+        u"tenant_id": fake_request.PROJECT_ID
+    }]
+}
+
+
 class FakeNeutronClient(object):
 
     def __init__(self, **kwargs):
@@ -218,14 +231,7 @@ class FakeNeutronClient(object):
         return {"ports": ports}
 
     def list_floatingips(self, tenant_id):
-        return {"floatingips": [{
-            u"fixed_ip_address": u"192.168.138.196",
-            u"floating_ip_address": u"172.24.4.227",
-            u"floating_network_id": u"7aa33661-33ba-4291-a2c7-44bfd59884c1",
-            u"id": u"81c45d28-3699-4116-bacd-7488996c5293",
-            u"port_id": u"8984b23b-f945-4b1e-8eb0-7e735285c0cc",
-            u"router_id": u"59e96d7b-749d-433e-b592-a55ba94b935e",
-            u"tenant_id": fake_request.PROJECT_ID}]}
+        return FAKE_ADDRESSES
 
     def create_floatingip(self, body=None):
         return {"floatingip": {"floating_ip_address": "10.20.30.40"}}

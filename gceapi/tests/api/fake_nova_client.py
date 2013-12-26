@@ -524,7 +524,7 @@ class FakeNovaClient(object):
                                     filtered.append(i)
                                     break
 
-                    result = [i for i in result if i.name == name]
+                    result = filtered
 
                 return result
 
