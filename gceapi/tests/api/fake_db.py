@@ -12,16 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
+import fixtures
+
 from gceapi import db
-from gceapi import exception
-
-
-def setStubs(stubs):
-    stubs.Set(db, "add_item", fake_add_item)
-    stubs.Set(db, "delete_item", fake_delete_item)
-    stubs.Set(db, "get_items", fake_get_items)
-    stubs.Set(db, "get_item_by_id", fake_get_item_by_id)
-    stubs.Set(db, "get_item_by_name", fake_get_item_by_name)
 
 
 ITEMS = [
@@ -54,33 +48,43 @@ ITEMS = [
 ]
 
 
-def fake_add_item(context, kind, data):
-    if any(item["kind"] == kind and item["id"] == data["id"] and
-           (data.get("name") is None or
-            item.get("name") == data.get("name") and data.get)
-           for item in ITEMS):
-        raise Exception("Duplicate entry")
-    return data
+class DBFixture(fixtures.Fixture):
+    def __init__(self, stubs):
+        super(DBFixture, self).__init__()
+        self.stubs = stubs
+        self.items = copy.copy(ITEMS)
 
+    def setUp(self):
+        super(DBFixture, self).setUp()
+        self.stubs.Set(db, "add_item", self.fake_add_item)
+        self.stubs.Set(db, "delete_item", self.fake_delete_item)
+        self.stubs.Set(db, "get_items", self.fake_get_items)
+        self.stubs.Set(db, "get_item_by_id", self.fake_get_item_by_id)
+        self.stubs.Set(db, "get_item_by_name", self.fake_get_item_by_name)
 
-def fake_delete_item(context, kind, item_id):
-    # TODO(ft): uncomment this when switch to fixtures
-#     item = next((item for item in ITEMS
-#                  if item["kind"] == kind and item["id"] == item_id), None)
-#     if item is None:
-#         raise Exception("Item not found")
-    pass
+    def fake_add_item(self, context, kind, data):
+        if any(item["kind"] == kind and item["id"] == data["id"] and
+               (data.get("name") is None or
+                item.get("name") == data.get("name") and data.get)
+               for item in self.items):
+            raise Exception("Duplicate entry")
+        item = copy.copy(data)
+        item["kind"] = kind
+        self.items.append(item)
+        return data
 
+    def fake_delete_item(self, context, kind, item_id):
+        self.items = [item for item in self.items
+                      if item["kind"] == kind and item["id"] == item_id]
 
-def fake_get_items(context, kind):
-    return [item for item in ITEMS if item["kind"] == kind]
+    def fake_get_items(self, context, kind):
+        return [copy.copy(item) for item in self.items
+                if item["kind"] == kind]
 
+    def fake_get_item_by_id(self, context, kind, item_id):
+        return next((copy.copy(item) for item in self.items
+                     if item["kind"] == kind and item["id"] == item_id), None)
 
-def fake_get_item_by_id(context, kind, item_id):
-    return next((item for item in ITEMS
-                 if item["kind"] == kind and item["id"] == item_id), None)
-
-
-def fake_get_item_by_name(context, kind, name):
-    return next((item for item in ITEMS
-                 if item["kind"] == kind and item["name"] == name), None)
+    def fake_get_item_by_name(self, context, kind, name):
+        return next((copy.copy(item) for item in self.items
+                     if item["kind"] == kind and item["name"] == name), None)
