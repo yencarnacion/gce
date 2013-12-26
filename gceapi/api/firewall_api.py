@@ -179,7 +179,7 @@ class API(base_api.API):
             description = "".join(prefixes)
             firewall["description"] = description
 
-        firewall["network_name"] = self.get_firewall_network_name(firewall)
+        firewall["network_name"] = self._get_firewall_network_name(firewall)
         return firewall
 
     def _get_network_by_url(self, context, url):
@@ -225,33 +225,13 @@ class API(base_api.API):
                         rules.append(copy.copy(rule))
         return rules
 
-    # TODO(ft): implement common safe method
-    # to run add/remove with exception logging
-    def add_security_group_to_instances(self, context, group, instances):
-        for instance in instances:
-            try:
-                instance.add_security_group(group["name"])
-            except Exception:
-                LOG.exception(("Failed to add instance "
-                               "(%s) to security group (%s)"),
-                              instance.id, group["name"])
-
-    def remove_security_group_from_instances(self, context, group, instances):
-        for instance in instances:
-            try:
-                instance.remove_security_group(group["name"])
-            except Exception:
-                LOG.exception(("Failed to remove securiy group (%s) "
-                               "from instance (%s)"),
-                              group["name"], instance.id)
-
-    def get_firewall_network_name(self, firewall):
+    def _get_firewall_network_name(self, firewall):
         description = firewall.get("description")
         desc_parts = description.split(DESCRIPTION_NETWORK_SEPARATOR)
         return desc_parts[1] if len(desc_parts) > 1 else None
 
     def get_firewall_network(self, context, firewall):
-        network_name = self.get_firewall_network_name(firewall)
+        network_name = self._get_firewall_network_name(firewall)
         return (network_api.API().get_item(context, network_name)
                 if network_name else None)
 
@@ -259,7 +239,7 @@ class API(base_api.API):
         client = clients.nova(context)
         firewalls = [utils.to_dict(f) for f in client.security_groups.list()]
         return [f for f in firewalls
-                if self.get_firewall_network_name(f) == network_name]
+                if self._get_firewall_network_name(f) == network_name]
 
     def delete_network_firewalls(self, context, network):
         network_name = network["name"]

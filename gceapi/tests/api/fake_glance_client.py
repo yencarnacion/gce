@@ -22,7 +22,7 @@ from gceapi.tests.api import utils
 
 
 _TIMESTAMP = timeutils.parse_isotime('2013-08-01T11:30:25')
-FAKE_IMAGES = [utils.to_obj({
+FAKE_IMAGES = [utils.FakeObject({
     'id': '60ff30c2-64b6-4a97-9c17-322eebc8bd60',
     'name': 'fake-image-1',
     'created_at': _TIMESTAMP,
@@ -40,7 +40,7 @@ FAKE_IMAGES = [utils.to_obj({
     'checksum': u'50bdc35edb03a38d91b1b071afb20a3c',
     'min_disk': 0,
     'size': 1
-}), utils.to_obj({
+}), utils.FakeObject({
     'id': 'a2459075-d96c-40d5-893e-577ff92e721c',
     'name': 'fake-image-2',
     'created_at': _TIMESTAMP,
@@ -58,7 +58,7 @@ FAKE_IMAGES = [utils.to_obj({
     'checksum': u'20bdc35edb03a38d91b1b071afb20a3c',
     'min_disk': 0,
     'size': 2,
- }), utils.to_obj({
+ }), utils.FakeObject({
     'id': '0aa076e2-def4-43d1-ae81-c77a9f9279e6',
     'name': 'image-to-delete',
     'created_at': _TIMESTAMP,
@@ -130,7 +130,7 @@ class FakeGlanceClient(object):
                     "deleted": False,
                     "status": "active",
                 })
-                FAKE_IMAGES.append(utils.to_obj(image))
-                return copy.deepcopy(utils.to_obj(image))
+                FAKE_IMAGES.append(utils.FakeObject(image))
+                return copy.deepcopy(utils.FakeObject(image))
 
         return FakeImages()

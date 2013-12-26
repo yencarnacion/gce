@@ -134,8 +134,15 @@ class API(base_api.API):
             return
         affected_instances = self._get_instances_with_network(
                 context, network, kwargs.get("scope"))
-        firewall_api.API().add_security_group_to_instances(context, secgroup,
-                                                            affected_instances)
+        # TODO(ft): implement common safe method
+        # to run add/remove with exception logging
+        for instance in affected_instances:
+            try:
+                instance.add_security_group(secgroup["name"])
+            except Exception:
+                LOG.exception(("Failed to add instance "
+                               "(%s) to security group (%s)"),
+                              instance.id, secgroup["name"])
 
     def _remove_secgroup_from_instances(self, context, secgroup, **kwargs):
         network = firewall_api.API().get_firewall_network(context, secgroup)
@@ -143,22 +150,27 @@ class API(base_api.API):
             return
         affected_instances = self._get_instances_with_network(
                 context, network, kwargs.get("scope"))
-        firewall_api.API().remove_security_group_from_instances(
-                context, secgroup, affected_instances)
+        for instance in affected_instances:
+            try:
+                instance.remove_security_group(secgroup["name"])
+            except Exception:
+                LOG.exception(("Failed to remove securiy group (%s) "
+                               "from instance (%s)"),
+                              secgroup["name"], instance.id)
 
     def reset_instance(self, context, scope, name):
         client = clients.nova(context)
         instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
-        client.servers.reboot(instances[0], "HARD")
+        instances[0].reboot("HARD")
 
     def delete_item(self, context, name, scope=None):
         client = clients.nova(context)
         instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
-        client.servers.delete(instances[0])
+        instances[0].delete()
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']

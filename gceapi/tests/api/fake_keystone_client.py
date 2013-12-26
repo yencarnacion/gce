@@ -16,7 +16,7 @@ from gceapi.tests.api import utils
 from gceapi.tests.api import fake_request
 
 
-FAKE_PROJECTS = [utils.to_obj({
+FAKE_PROJECTS = [utils.FakeObject({
     "name": "fake_project",
     "description": None,
     "id": fake_request.PROJECT_ID,

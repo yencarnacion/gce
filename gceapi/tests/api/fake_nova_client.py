@@ -22,7 +22,7 @@ from gceapi.tests.api import fake_request
 from gceapi.tests.api import utils
 
 
-FAKE_DETAILED_ZONES = [utils.to_obj({
+FAKE_DETAILED_ZONES = [utils.FakeObject({
     "zoneState": {
         "available": True},
     "hosts": {
@@ -44,7 +44,7 @@ FAKE_DETAILED_ZONES = [utils.to_obj({
                 "active": True,
                 "updated_at": "2013-12-24T14:14:49.000000"}}},
     "zoneName": "internal"
-}), utils.to_obj({
+}), utils.FakeObject({
     "zoneState": {
         "available": True},
     "hosts": {
@@ -57,7 +57,7 @@ FAKE_DETAILED_ZONES = [utils.to_obj({
 })]
 
 
-FAKE_SIMPLE_ZONES = [utils.to_obj({
+FAKE_SIMPLE_ZONES = [utils.FakeObject({
     "zoneState": {
         "available": True},
     "hosts": None,
@@ -65,7 +65,7 @@ FAKE_SIMPLE_ZONES = [utils.to_obj({
 })]
 
 
-FAKE_FLAVORS = [utils.to_obj({
+FAKE_FLAVORS = [utils.FakeObject({
     "name": "m1.small",
     "links": [],
     "ram": 2048,
@@ -77,7 +77,7 @@ FAKE_FLAVORS = [utils.to_obj({
     "OS-FLV-EXT-DATA:ephemeral": 0,
     "disk": 20,
     "id": "2"
-}), utils.to_obj({
+}), utils.FakeObject({
     "name": "m1.large",
     "links": [],
     "ram": 8192,
@@ -93,7 +93,7 @@ FAKE_FLAVORS = [utils.to_obj({
 
 
 FAKE_SECURITY_GROUPS = [
-    utils.to_obj({
+    utils.FakeObject({
         "rules": [
             {
                 "from_port": None,
@@ -115,7 +115,7 @@ FAKE_SECURITY_GROUPS = [
         "name": "default",
         "description": "default",
     }),
-    utils.to_obj({
+    utils.FakeObject({
         "rules": [
             {
                 "from_port": 223,
@@ -165,14 +165,14 @@ FAKE_SECURITY_GROUPS = [
         "name": "fake-firewall-1",
         "description": "simple firewall-=#=-private",
     }),
-    utils.to_obj({
+    utils.FakeObject({
         "rules": [],
         "project_id": "6678c02984ce4df8b26912db30481637",
         "id": "c3859194-f111-4f24-b93b-095b056f38e2",
         "name": "fake-firewall-2",
         "description": "openstack sg w/o rules",
     }),
-    utils.to_obj({
+    utils.FakeObject({
         "rules": [
             {
                 "from_port": 1000,
@@ -202,7 +202,7 @@ FAKE_SECURITY_GROUPS = [
         "description": ("openstack sg with cidr & secgroup rules"
                         "-=#=-private"),
     }),
-    utils.to_obj({
+    utils.FakeObject({
         "rules": [
             {
                 "from_port": 5678,
@@ -232,7 +232,7 @@ FAKE_SECURITY_GROUPS = [
         "description": ("openstack sg too complex to translate into gce "
                         "rules"),
     }),
-    utils.to_obj({
+    utils.FakeObject({
         "rules": [
             {
                 "from_port": 6666,
@@ -261,7 +261,7 @@ FAKE_SECURITY_GROUPS = [
         "name": "fake-firewall-5",
         "description": "openstack sg with combined & too complex rules",
     }),
-    utils.to_obj({
+    utils.FakeObject({
         "rules": [
             {
                 "from_port": 0,
@@ -276,7 +276,7 @@ FAKE_SECURITY_GROUPS = [
         "name": "fake-firewall-6",
         "description": "openstack sg with too complex icmp rule",
     }),
-    utils.to_obj({
+    utils.FakeObject({
         "rules": [
             {
                 "from_port": -1,
@@ -294,7 +294,7 @@ FAKE_SECURITY_GROUPS = [
 ]
 
 
-FAKE_INSTANCES = [utils.to_obj({
+FAKE_INSTANCES = [{
     "OS-DCF:diskConfig": "MANUAL",
     "OS-EXT-AZ:availability_zone": "nova",
     "OS-EXT-SRV-ATTR:host": "apavlov-VirtualBox",
@@ -345,7 +345,7 @@ FAKE_INSTANCES = [utils.to_obj({
         "id": "ab8829ad-eec1-44a2-8068-d7f00c53ee90"
     }],
     "metadata": {}
-}), utils.to_obj({
+}, {
     "OS-DCF:diskConfig": "MANUAL",
     "OS-EXT-AZ:availability_zone": "nova",
     "OS-EXT-SRV-ATTR:host": "apavlov-VirtualBox",
@@ -391,7 +391,7 @@ FAKE_INSTANCES = [utils.to_obj({
     "tenant_id": fake_request.PROJECT_ID,
     "os-extended-volumes:volumes_attached": [],
     "metadata": {}
-})]
+}]
 
 
 class FakeClassWithFind(object):
@@ -499,17 +499,43 @@ class FakeNovaClient(object):
 
     @property
     def servers(self):
+        class FakeInstance(utils.FakeObject):
+
+            _manager = None
+
+            def __init__(self, manager, obj_dict):
+                super(FakeInstance, self).__init__(obj_dict)
+                self._manager = manager
+
+            def reboot(self, reboot_type):
+                self._manager.reboot(self, reboot_type)
+
+            def add_security_group(self, security_group):
+                pass
+
+            def remove_security_group(self, security_group):
+                pass
+
+            def delete(self):
+                self._manager.delete(self)
+
         class FakeServers(object):
+            _fake_instances = None
+
+            def __init__(self):
+                self._fake_instances = [FakeInstance(self, i)
+                                   for i in FAKE_INSTANCES]
+
             def get(self, server):
                 server_id = utils.get_id(server)
-                for server in FAKE_INSTANCES:
+                for server in self._fake_instances:
                     if server.id == server_id:
                         return server
                 raise nova_exc.NotFound(nova_exc.NotFound.http_status)
 
             def list(self, detailed=True, search_opts=None,
                      marker=None, limit=None):
-                result = FAKE_INSTANCES
+                result = self._fake_instances
                 if search_opts and "name" in search_opts:
                     name = search_opts["name"]
                     result = [i for i in result if i.name == name]
@@ -535,7 +561,7 @@ class FakeNovaClient(object):
                        block_device_mapping=None, block_device_mapping_v2=None,
                        nics=None, scheduler_hints=None,
                        config_drive=None, disk_config=None, **kwargs):
-                instance = copy.deepcopy(FAKE_INSTANCES[1])
+                instance = copy.deepcopy(self._fake_instances[1])
                 instance.name = name
                 return instance
 
@@ -574,7 +600,7 @@ class FakeNovaClient(object):
                 return secgroup
 
             def create(self, name, description):
-                secgroup = utils.to_obj({
+                secgroup = utils.FakeObject({
                     "name": name,
                     "description": description,
                     "rules": [],

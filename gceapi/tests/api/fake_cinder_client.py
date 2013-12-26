@@ -20,7 +20,7 @@ from gceapi.tests.api import utils
 from gceapi.tests.api import fake_request
 
 
-FAKE_DISKS = [utils.to_obj({
+FAKE_DISKS = [utils.FakeObject({
     "status": "available",
     "volume_type": None,
     "display_name": "fake-disk-1",
@@ -36,7 +36,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
     "attachments": [],
-}), utils.to_obj({
+}), utils.FakeObject({
     "status": "available",
     "volume_type": None,
     "bootable": u"true",
@@ -57,7 +57,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
     "attachments": [],
-}), utils.to_obj({
+}), utils.FakeObject({
     "status": "available",
     "volume_type": None,
     "display_name": "fake-disk-3",
@@ -73,7 +73,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
     "attachments": [],
-}), utils.to_obj({
+}), utils.FakeObject({
     "status": "available",
     "volume_type": None,
     "display_name": "disk-to-delete",
@@ -89,7 +89,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-mig-status-attr:migstat": None,
     "os-vol-host-attr:host": "grizzly",
     "attachments": [],
-}), utils.to_obj({
+}), utils.FakeObject({
     "status": "in-use",
     "instance_uuid": "6472359b-d46b-4629-83a9-d2ec8d99468c",
     "bootable": u"true",
@@ -120,7 +120,7 @@ FAKE_DISKS = [utils.to_obj({
     }],
 })]
 
-FAKE_SNAPSHOTS = [utils.to_obj({
+FAKE_SNAPSHOTS = [utils.FakeObject({
     "status": "available",
     "display_name": "fake-snapshot",
     "created_at": "2013-08-14T12:32:28.000000",
@@ -240,8 +240,8 @@ class FakeCinderClient(object):
                         "image_id": imageRef,
                         "image_name": "fake-image-2"
                     }
-                FAKE_DISKS.append(utils.to_obj(volume))
-                return utils.to_obj(volume)
+                FAKE_DISKS.append(utils.FakeObject(volume))
+                return utils.FakeObject(volume)
 
         return FakeVolumes()
 

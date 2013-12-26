@@ -13,7 +13,7 @@
 #    under the License.
 
 
-class to_obj(object):
+class FakeObject(object):
     def __init__(self, obj_dict):
         for a, b in obj_dict.items():
             setattr(self, a, b)
