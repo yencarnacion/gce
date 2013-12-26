@@ -51,8 +51,7 @@ class GCEControllerTest(test.TestCase):
         self.stubs.Set(novashell.OpenStackComputeShell, '_discover_extensions',
                        fake_nova_client.fake_discover_extensions)
         self.stubs.Set(novaclient, 'Client', fake_nova_client.FakeNovaClient)
-
-        fake_db.setStubs(self.stubs)
+        self.db_fixture = self.useFixture(fake_db.DBFixture(self.stubs))
 
     def request_gce(self, url, method="GET", body=None):
         fake_req = fake_request.HTTPRequest.blank(url, method=method,
