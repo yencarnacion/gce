@@ -91,7 +91,7 @@ FAKE_DISKS = [utils.to_obj({
     "attachments": [],
 }), utils.to_obj({
     "status": "in-use",
-    "instance_uuid": "d0a267df-be69-45cf-9cc3-9f8db99cb767",
+    "instance_uuid": "6472359b-d46b-4629-83a9-d2ec8d99468c",
     "bootable": u"true",
     "volume_image_metadata": {
         "image_id": "60ff30c2-64b6-4a97-9c17-322eebc8bd60",
@@ -113,7 +113,7 @@ FAKE_DISKS = [utils.to_obj({
     "os-vol-host-attr:host": "grizzly",
     "attachments": [{
         "device": "vdc",
-        "server_id": "d0a267df-be69-45cf-9cc3-9f8db99cb767",
+        "server_id": "6472359b-d46b-4629-83a9-d2ec8d99468c",
         "volume_id": "ab8829ad-eec1-44a2-8068-d7f00c53ee90",
         "host_name": None,
         "id": "7f862e44-5f41-4a1f-b2f8-dbd2f6bef86f"
@@ -214,12 +214,12 @@ class FakeCinderClient(object):
                 for disk in FAKE_DISKS:
                     if disk.id == disk_id:
                         return disk
-                raise exc.NotFound()
+                raise exc.NotFound(exc.NotFound.http_status)
 
             def delete(self, volume):
+                global FAKE_DISKS
                 volume_id = utils.get_id(volume)
-                disks = [v for v in FAKE_DISKS if v.id != volume_id]
-                #FAKE_DISKS = disks
+                FAKE_DISKS = [v for v in FAKE_DISKS if v.id != volume_id]
 
             def create(self, size, snapshot_id=None, source_volid=None,
                     display_name=None, display_description=None,
@@ -253,7 +253,7 @@ class FakeCinderClient(object):
                 for snapshot in FAKE_SNAPSHOTS:
                     if snapshot.id == snapshot_id:
                         return snapshot
-                raise exc.NotFound()
+                raise exc.NotFound(exc.NotFound.http_status)
 
             def list(self, detailed=True, search_opts=None):
                 result = FAKE_SNAPSHOTS

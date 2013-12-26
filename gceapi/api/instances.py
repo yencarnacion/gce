@@ -37,8 +37,8 @@ class Controller(gce_common.Controller):
         result_dict = {
             "creationTimestamp": self._format_date(instance["created"]),
             "status": instance["status"],
+            "statusMessage": instance["statusMessage"],
             "name": instance["name"],
-            "description": instance.get("display_description", ""),
             "machineType": self._qualify(request,
                 "machineTypes", instance["flavor"]["name"], scope),
             "networkInterfaces": [],
@@ -48,6 +48,11 @@ class Controller(gce_common.Controller):
                 "items": list(),
             },
         }
+
+        # TODO(apavlov): implement db storing
+        description = instance.get("description")
+        if description:
+            result_dict["description"] = description
 
         metadata = instance.get("metadata", {})
         for i in metadata:
@@ -84,13 +89,12 @@ class Controller(gce_common.Controller):
 
         disk_index = 0
         for volume in instance["volumes"]:
+            readonly = volume.get("metadata", {}).get("readonly", "False")
             google_disk = {
                 "kind": "compute#attachedDisk",
                 "index": disk_index,
                 "type": "PERSISTENT",
-                "mode": "READ_ONLY"
-                    if volume["metadata"]["readonly"] == "True"
-                    else "READ_WRITE",
+                "mode": "READ_ONLY" if readonly == "True" else "READ_WRITE",
                 "source": self._qualify(request,
                     "disks", volume["display_name"], scope),
                 "deviceName": volume["attachments"][0]["device"],

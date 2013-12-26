@@ -93,6 +93,7 @@ class API(base_api.API):
         return filtered_instances
 
     def _prepare_instance(self, client, context, instance):
+        instance["statusMessage"] = instance["status"]
         instance["status"] = self._status_map.get(
             instance["status"].lower(), instance["status"])
         instance["flavor"]["name"] = machine_type_api.API().get_item_by_id(
@@ -157,7 +158,7 @@ class API(base_api.API):
         instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
-        instances[0].delete()
+        client.servers.delete(instances[0])
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']

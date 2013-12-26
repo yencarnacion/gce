@@ -13,11 +13,10 @@
 #    under the License.
 
 import copy
-import datetime
 import inspect
 import uuid
 
-from novaclient.client import exceptions as nova_exceptions
+from novaclient.client import exceptions as nova_exc
 
 from gceapi.tests.api import fake_request
 from gceapi.tests.api import utils
@@ -296,177 +295,102 @@ FAKE_SECURITY_GROUPS = [
 
 
 FAKE_INSTANCES = [utils.to_obj({
-    "status": "active",
-    "availability_zone": None,
-    "terminated_at": None,
-    "ephemeral_gb": 0L,
-    "instance_type_id": 2L,
-    "user_data": None,
-    "vm_mode": None,
-    "deleted_at": None,
-    "reservation_id": "r-un0un40j",
-    "id": 76L,
-#    "security_groups": [
-#        <nova.db.sqlalchemy.models.SecurityGroup object at 0x4bca250>,
-#        <nova.db.sqlalchemy.models.SecurityGroup object at 0x4bca590>],
-    "disable_terminate": False,
-    "user_id": "0ed9ed7b2004443f802142ecf364738b",
-    "uuid": "d0a267df-be69-45cf-9cc3-9f8db99cb767",
-    "default_swap_device": None,
-    "hostname": "i1",
-    "launched_on": "apavlov-VirtualBox",
-    "display_description": "i1",
-    "key_data": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDho5JqOxmtLsAcHi"\
-        "bkBdsqzd0CrQ1TNDb9IDetG+c/XiSaG4Mhr+mXSDWvste9yAtqYojzkK58FN7mV"\
-        "f6gAupAKFxuMOfDGuRNEl2JXZYDdiU22DtbMFJUwMH4j21xSqG+Oo51U7BhT9uY"\
-        "DaPCD2c4PlpNcEMHiEMb4ZYzOM1WTIIpvQOFBCAtLu+l644snqbn4RvXHfeIWQb"\
-        "ab2O9/E0TEnoUHKujk6ASnDue/7brNWtVTlcVBDlhdrgj9PwpuSJGGJcAyGuRgd"\
-        "+hALEBWGyXJIJGmNuSyp4+jgAqiahjrkAqw8PiGKzWKVHHITRuEj0/BlsYC3NVh"\
-        "y5TBjAxwlib devman@apavlov-VirtualBox",
-    "kernel_id": "",
-    "config_drive": "",
-    "power_state": 1L,
-    "default_ephemeral_device": None,
-    "progress": 0L,
-    "project_id": "bf907fe9f01342949e9693ca47e7d856",
-    "launched_at": datetime.datetime(2013, 8, 14, 13, 46, 23),
-    "scheduled_at": datetime.datetime(2013, 8, 14, 13, 45, 32),
-    "node": "apavlov-VirtualBox",
-    "ramdisk_id": "",
-    "access_ip_v6": None,
-    "access_ip_v4": None,
-    "deleted": 0L,
-    "key_name": "admin",
-    "updated_at": datetime.datetime(2013, 8, 14, 13, 46, 23),
-    "host": "apavlov-VirtualBox",
-    "architecture": None,
-    "task_state": None,
-    "shutdown_terminate": False,
-    "cell_name": None,
-    "root_gb": 0L,
-    "locked": False,
-    "name": "i1",
-    "created_at": datetime.datetime(2013, 8, 14, 13, 45, 32),
-    "launch_index": 0L,
-    "memory_mb": 512L,
-    "vcpus": 1L,
-    "image_ref": "60ff30c2-64b6-4a97-9c17-322eebc8bd60",
-    "root_device_name": "/dev/vda",
-    "auto_disk_config": None,
-    "os_type": None,
-    "metadata": [],
+    "OS-DCF:diskConfig": "MANUAL",
     "OS-EXT-AZ:availability_zone": "nova",
-    "networks": {
-        "private": ["10.0.1.3", "192.168.138.196"]
+    "OS-EXT-SRV-ATTR:host": "apavlov-VirtualBox",
+    "OS-EXT-SRV-ATTR:hypervisor_hostname": "apavlov-VirtualBox",
+    "OS-EXT-SRV-ATTR:instance_name": "instance-00000001",
+    "OS-EXT-STS:task_state": None,
+    "OS-EXT-STS:vm_state": "active",
+    "OS-EXT-STS:power_state": 1,
+    "OS-SRV-USG:launched_at": "2013-08-14T13:46:23.000000",
+    "OS-SRV-USG:terminated_at": None,
+    "addresses": {
+        "private": [{
+            "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:ea:ae:56",
+            "version": 4,
+            "addr": "10.0.1.3",
+            "OS-EXT-IPS:type": "fixed"
+        }, {
+            "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:ea:ae:56",
+            "version": 4,
+            "addr": "192.168.138.196",
+            "OS-EXT-IPS:type": "floating"
+        }]
     },
-}), utils.to_obj({
-    "status": "suspended",
-    "availability_zone": None,
-    "terminated_at": None,
-    "ephemeral_gb": 0L,
-    "instance_type_id": 2L,
-    "user_data": None,
-    "vm_mode": None,
-    "deleted_at": None,
-    "reservation_id": "r-qbz5701v",
-    "id": 77L,
-#    "security_groups": [
-#        <nova.db.sqlalchemy.models.SecurityGroup object at 0x4bca250>],
-    "disable_terminate": False,
+    "image": None,
+    "flavor": {
+        "id": "2",
+    },
+    "id": "d6957005-3ce7-4727-91d2-ae37fe5a199a",
+    "security_groups": [{
+        "name": "default"
+    }],
+    "name": "i1",
+    "status": "active",
+    "created": "2013-08-14T13:45:32Z",
+    "updated": "2013-08-14T13:46:23Z",
     "user_id": "0ed9ed7b2004443f802142ecf364738b",
-    "uuid": "d6957005-3ce7-4727-91d2-ae37fe5a199a",
-    "default_swap_device": None,
-    "hostname": "i2",
-    "launched_on": "apavlov-VirtualBox",
-    "display_description": "i2",
-    "key_data": None,
-    "kernel_id": "",
+    "accessIPv4": "",
+    "accessIPv6": "",
+    "progress": 0,
     "config_drive": "",
-    "power_state": 4L,
-    "default_ephemeral_device": None,
-    "progress": 0L,
-    "project_id": "bf907fe9f01342949e9693ca47e7d856",
-    "launched_at": datetime.datetime(2013, 8, 14, 13, 46, 50),
-    "scheduled_at": datetime.datetime(2013, 8, 14, 13, 46, 36),
-    "node": "apavlov-VirtualBox",
-    "ramdisk_id": "",
-    "access_ip_v6": None,
-    "access_ip_v4": None,
-    "deleted": 0L,
-    "key_name": None,
-    "updated_at": datetime.datetime(2013, 8, 14, 13, 47, 11),
-    "host": "apavlov-VirtualBox",
-    "architecture": None,
-    "task_state": None,
-    "shutdown_terminate": False,
-    "cell_name": None,
-    "root_gb": 0L,
-    "locked": False,
-    "name": "i2",
-    "created_at": datetime.datetime(2013, 8, 14, 13, 46, 36),
-    "launch_index": 0L,
-    "memory_mb": 512L,
-    "vcpus": 1L,
-    "image_ref": "60ff30c2-64b6-4a97-9c17-322eebc8bd60",
-    "root_device_name": "/dev/vda",
-    "auto_disk_config": None,
-    "os_type": None,
-    "metadata": [],
+    "hostId": "cbf5e76abf66aa4363dbf17cfe0305093d903fe10389210856d85585",
+    "key_name": "admin",
+    "networks": {
+        u'private': [u'10.0.1.3', u'192.168.138.196']
+    },
+    "tenant_id": fake_request.PROJECT_ID,
+    "os-extended-volumes:volumes_attached": [{
+        "id": "ab8829ad-eec1-44a2-8068-d7f00c53ee90"
+    }],
+    "metadata": {}
+}), utils.to_obj({
+    "OS-DCF:diskConfig": "MANUAL",
     "OS-EXT-AZ:availability_zone": "nova",
+    "OS-EXT-SRV-ATTR:host": "apavlov-VirtualBox",
+    "OS-EXT-SRV-ATTR:hypervisor_hostname": "apavlov-VirtualBox",
+    "OS-EXT-SRV-ATTR:instance_name": "instance-00000001",
+    "OS-EXT-STS:task_state": None,
+    "OS-EXT-STS:vm_state": "active",
+    "OS-EXT-STS:power_state": 4,
+    "OS-SRV-USG:terminated_at": None,
+    "OS-SRV-USG:launched_at": "2013-08-14T13:47:11.000000",
+    "addresses": {
+        "default": [{
+            "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:ea:ae:50",
+            "version": 4,
+            "addr": "10.100.0.3",
+            "OS-EXT-IPS:type": "fixed"
+        }]
+    },
+    "image": {
+        "id": "60ff30c2-64b6-4a97-9c17-322eebc8bd60",
+    },
+    "flavor": {
+        "id": "4",
+    },
+    "id": "6472359b-d46b-4629-83a9-d2ec8d99468c",
+    "security_groups": [{
+        "name": "default"
+    }],
+    "name": "i2",
+    "status": "suspended",
+    "created": "2013-08-14T13:46:36Z",
+    "updated": "2013-08-14T13:47:11Z",
+    "user_id": "0ed9ed7b2004443f802142ecf364738b",
+    "accessIPv4": "",
+    "accessIPv6": "",
+    "progress": 0,
+    "config_drive": "",
+    "hostId": "cbf5e76abf66aa4363dbf17cfe0305093d903fe10389210856d85585",
+    "key_name": None,
     "networks": {
         "default": ["10.100.0.3"]
     },
-# }), utils.to_obj({
-#     "OS-EXT-STS:task_state": None,
-#     "addresses": {
-#         "private": [{
-#             "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:ea:ae:56",
-#             "version": 4,
-#             "addr": "10.0.0.3",
-#             "OS-EXT-IPS:type": "fixed"
-#         }, {
-#             "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:ea:ae:56",
-#             "version": 4,
-#             "addr": "172.24.4.227",
-#             "OS-EXT-IPS:type": "floating"
-#         }]
-#     },
-#     "image": "",
-#     "OS-EXT-STS:vm_state": "active",
-#     "OS-EXT-SRV-ATTR:instance_name": "instance-00000001",
-#     "OS-SRV-USG:launched_at": "2013-12-25T18:21:34.000000",
-#     "flavor": {
-#         "id": "42",
-#     },
-#     "id": "6472359b-d46b-4629-83a9-d2ec8d99468c",
-#     "security_groups": [{
-#         "name": "default"
-#     }],
-#     "user_id": "18f485bf699642429102cc55b3f5ce08",
-#     "OS-DCF:diskConfig": "MANUAL",
-#     "accessIPv4": "",
-#     "accessIPv6": "",
-#     "progress": 0,
-#     "OS-EXT-STS:power_state": 1,
-#     "OS-EXT-AZ:availability_zone": "nova",
-#     "config_drive": "",
-#     "status": "ACTIVE",
-#     "updated": "2013-12-25T18:21:34Z",
-#     "hostId": "cbf5e76abf66aa4363dbf17cfe0305093d903fe10389210856d85585",
-#     "OS-EXT-SRV-ATTR:host": "grizzly",
-#     "OS-SRV-USG:terminated_at": None,
-#     "key_name": None,
-#     "OS-EXT-SRV-ATTR:hypervisor_hostname": "grizzly",
-#     "name": "e1",
-#     "networks": {
-#         u'private': [u'10.0.0.3', u'172.24.4.227']
-#     },
-#     "created": "2013-12-25T18:21:13Z",
-#     "tenant_id": fake_request.PROJECT_ID,
-#     "os-extended-volumes:volumes_attached": [{
-#         "id": "c47f9b08-477e-4183-b0bd-9c696378189c"
-#     }],
-#     "metadata": {}
+    "tenant_id": fake_request.PROJECT_ID,
+    "os-extended-volumes:volumes_attached": [],
+    "metadata": {}
 })]
 
 
@@ -479,9 +403,9 @@ class FakeClassWithFind(object):
         num_matches = len(matches)
         if num_matches == 0:
             msg = "No %s matching %s." % (self.__class__.__name__, kwargs)
-            raise nova_exceptions.NotFound(404, msg)
+            raise nova_exc.NotFound(404, msg)
         elif num_matches > 1:
-            raise nova_exceptions.NoUniqueMatch
+            raise nova_exc.NoUniqueMatch
         else:
             return matches[0]
 
@@ -552,7 +476,7 @@ class FakeNovaClient(object):
                 for flavor in FAKE_FLAVORS:
                     if flavor.id == flavor_id:
                         return flavor
-                raise nova_exceptions.NotFound()
+                raise nova_exc.NotFound(nova_exc.NotFound.http_status)
 
         return FakeFlavors()
 
@@ -560,13 +484,13 @@ class FakeNovaClient(object):
     def keypairs(self):
         class FakeKeypairs(object):
             def get(self, keypair):
-                raise nova_exceptions.NotFound()
+                raise nova_exc.NotFound(nova_exc.NotFound.http_status)
 
             def create(self, name, public_key=None):
                 pass
 
             def delete(self, key):
-                raise nova_exceptions.NotFound()
+                raise nova_exc.NotFound(nova_exc.NotFound.http_status)
 
             def list(self):
                 return []
@@ -581,7 +505,7 @@ class FakeNovaClient(object):
                 for server in FAKE_INSTANCES:
                     if server.id == server_id:
                         return server
-                raise nova_exceptions.NotFound()
+                raise nova_exc.NotFound(nova_exc.NotFound.http_status)
 
             def list(self, detailed=True, search_opts=None,
                      marker=None, limit=None):
@@ -589,10 +513,18 @@ class FakeNovaClient(object):
                 if search_opts and "name" in search_opts:
                     name = search_opts["name"]
                     result = [i for i in result if i.name == name]
-                elif search_opts and "fixed_ip" in search_opts:
-                    pass
-                else:
-                    pass
+                if search_opts and "fixed_ip" in search_opts:
+                    name = search_opts["fixed_ip"]
+                    filtered = []
+                    for i in result:
+                        for network in i.addresses:
+                            for address in i.addresses[network]:
+                                atype = address["OS-EXT-IPS:type"]
+                                if atype == "fixed":
+                                    filtered.append(i)
+                                    break
+
+                    result = [i for i in result if i.name == name]
 
                 return result
 
@@ -605,21 +537,22 @@ class FakeNovaClient(object):
                        config_drive=None, disk_config=None, **kwargs):
                 instance = copy.deepcopy(FAKE_INSTANCES[1])
                 instance.name = name
-                return utils.to_obj(instance)
+                return instance
 
             def add_floating_ip(self, server, address, fixed_address=None):
-                pass
+                self.get(server)
 
             def remove_floating_ip(self, server, address):
-                pass
+                self.get(server)
 
             def delete(self, server):
-                pass
+                self.get(server)
 
             def reboot(self, server, reboot_type):
                 if reboot_type != "HARD":
                     msg = _("Argument 'type' for reboot is not HARD or SOFT")
-                    raise nova_exceptions.BadRequest(message=msg)
+                    raise nova_exc.BadRequest(message=msg)
+                self.get(server)
 
         return FakeServers()
 
@@ -636,7 +569,7 @@ class FakeNovaClient(object):
                                  for secgroup in self._secgroups
                                  if secgroup.id == sg_id), None)
                 if secgroup is None:
-                    raise nova_exceptions.NotFound(
+                    raise nova_exc.NotFound(
                             404, "Security group %s not found" % sg_id)
                 return secgroup
 

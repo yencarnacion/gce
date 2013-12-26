@@ -212,7 +212,7 @@ class FirewallsControllerTest(common.GCEControllerTest):
 
         def add_to_instance(dummy, context, instance, sg_id):
             self.assertIsInstance(context, gceapi.context.RequestContext)
-            self.assertEqual("d0a267df-be69-45cf-9cc3-9f8db99cb767",
+            self.assertEqual("6472359b-d46b-4629-83a9-d2ec8d99468c",
                              instance["uuid"])
             self.assertEqual("5707a6f0-799d-4739-8740-3efc73f122aa", sg_id)
             self.add_to_instance_was_called = True
@@ -263,7 +263,7 @@ class FirewallsControllerTest(common.GCEControllerTest):
 
         def remove_from_instance(dummy, context, instance, sg_name):
             self.assertIsInstance(context, gceapi.context.RequestContext)
-            self.assertEqual("d0a267df-be69-45cf-9cc3-9f8db99cb767",
+            self.assertEqual("6472359b-d46b-4629-83a9-d2ec8d99468c",
                              instance["uuid"])
             self.assertEqual("1aaa637b-87f4-4e27-bc86-ff63d30264b2", sg_name)
             self.remove_from_instance_was_called = True

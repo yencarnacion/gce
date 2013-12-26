@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
+
 from gceapi.tests.api import common
 
 EXPECTED_INSTANCES = [{
@@ -23,10 +25,10 @@ EXPECTED_INSTANCES = [{
     "status": "RUNNING",
     "statusMessage": "active",
     "name": "i1",
-    "description": "i1",
+    # TODO(apavlov): implement db storing
+    #"description": "i1",
     "machineType": "http://localhost/compute/v1beta15/projects/fake_project"
-        "/zones/nova/machineTypes/m1-tiny",
-#    "canIpForward": false,
+        "/zones/nova/machineTypes/m1-small",
     "networkInterfaces": [{
         "network": "http://localhost/compute/v1beta15/projects/fake_project"
             "/global/networks/private",
@@ -46,10 +48,12 @@ EXPECTED_INSTANCES = [{
         "mode": "READ_WRITE",
         "source": "http://localhost/compute/v1beta15/projects/fake_project"
             "/zones/nova/disks/i1",
-        "deviceName": "vdc"
+        "deviceName": "vdc",
+        "boot": True,
     }],
     "metadata": {
         "kind": "compute#metadata",
+        "items": [],
     },
     "selfLink": "http://localhost/compute/v1beta15/projects/fake_project"
         "/zones/nova/instances/i1"
@@ -62,10 +66,10 @@ EXPECTED_INSTANCES = [{
     "status": "STOPPED",
     "statusMessage": "suspended",
     "name": "i2",
-    "description": "i2",
+    # TODO(apavlov): implement db storing
+    #"description": "i2",
     "machineType": "http://localhost/compute/v1beta15/projects/fake_project"
-        "/zones/nova/machineTypes/m1-tiny",
-#    "canIpForward": false,
+        "/zones/nova/machineTypes/m1-large",
     "networkInterfaces": [{
         "network": "http://localhost/compute/v1beta15/projects/fake_project"
             "/global/networks/default",
@@ -76,6 +80,7 @@ EXPECTED_INSTANCES = [{
     "disks": [],
     "metadata": {
         "kind": "compute#metadata",
+        "items": [],
     },
     "selfLink": "http://localhost/compute/v1beta15/projects/fake_project"
         "/zones/nova/instances/i2"
@@ -105,10 +110,13 @@ class InstancesTest(common.GCEControllerTest):
                 "id": "projects/fake_project/zones/nova/instances",
                 "selfLink": "http://localhost/compute/v1beta15/projects"
                     "/fake_project/zones/nova/instances",
-                "items": [EXPECTED_INSTANCES[0]]
                 }
 
-        self.assertEqual(response.json_body, expected)
+        response_body = copy.deepcopy(response.json_body)
+        instances = response_body.pop("items")
+        self.assertDictEqual(response_body, expected)
+        self.assertEqual(len(instances), 1)
+        self.assertDictEqual(instances[0], EXPECTED_INSTANCES[0])
 
     def test_get_instance_list(self):
         response = self.request_gce('/fake_project/zones/nova/instances')
@@ -132,13 +140,15 @@ class InstancesTest(common.GCEControllerTest):
             "selfLink": "http://localhost/compute/v1beta15/projects"
                 "/fake_project/aggregated/instances",
             "items": {
-                "zones/nova": {
-                    "instances": [EXPECTED_INSTANCES[1]]
-                },
+                "zones/nova": {},
             }
         }
 
-        self.assertEqual(response.json_body, expected)
+        response_body = copy.deepcopy(response.json_body)
+        instances = response_body["items"]["zones/nova"].pop("instances")
+        self.assertDictEqual(response_body, expected)
+        self.assertEqual(len(instances), 1)
+        self.assertDictEqual(instances[0], EXPECTED_INSTANCES[1])
 
     def test_get_instance_aggregated_list(self):
         response = self.request_gce('/fake_project/aggregated/instances')
@@ -149,13 +159,16 @@ class InstancesTest(common.GCEControllerTest):
             "selfLink": "http://localhost/compute/v1beta15/projects"
                 "/fake_project/aggregated/instances",
             "items": {
-                "zones/nova": {
-                    "instances": EXPECTED_INSTANCES
-                },
+                "zones/nova": {},
             }
         }
 
-        self.assertEqual(response.json_body, expected)
+        response_body = copy.deepcopy(response.json_body)
+        instances = response_body["items"]["zones/nova"].pop("instances")
+        self.assertDictEqual(response_body, expected)
+        self.assertEqual(len(instances), 2)
+        self.assertDictInListBySelfLink(EXPECTED_INSTANCES[0], instances)
+        self.assertDictInListBySelfLink(EXPECTED_INSTANCES[1], instances)
 
     def test_delete_instance_with_invalid_name(self):
         response = self.request_gce("/fake_project/zones/nova"
