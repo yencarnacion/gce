@@ -150,6 +150,8 @@ class API(base_api.API):
             return
         affected_instances = self._get_instances_with_network(
                 context, network, kwargs.get("scope"))
+        # TODO(ft): implement common safe method
+        # to run add/remove with exception logging
         for instance in affected_instances:
             try:
                 instance.remove_security_group(secgroup["name"])

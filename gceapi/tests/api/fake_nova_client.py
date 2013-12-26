@@ -394,6 +394,15 @@ FAKE_INSTANCES = [{
 }]
 
 
+FAKE_FLOATING_IPS = [utils.FakeObject({
+    "instance_id": None,
+    "ip": "192.168.138.195",
+}), utils.FakeObject({
+    "instance_id": "d6957005-3ce7-4727-91d2-ae37fe5a199a",
+    "ip": "192.168.138.196",
+})]
+
+
 class FakeClassWithFind(object):
     def list(self):
         pass
@@ -519,6 +528,12 @@ class FakeNovaClient(object):
             def delete(self):
                 self._manager.delete(self)
 
+            def add_floating_ip(self, address, fixed_address=None):
+                pass
+
+            def remove_floating_ip(self, address):
+                pass
+
         class FakeServers(object):
             _fake_instances = None
 
@@ -640,6 +655,14 @@ class FakeNovaClient(object):
                                               to_port, cidr)
 
         return FakeSecurityGroupRules(self)
+
+    @property
+    def floating_ips(self):
+        class FakeFloatingIps(object):
+            def list(self):
+                return FAKE_FLOATING_IPS
+
+        return FakeFloatingIps()
 
 
 def fake_discover_extensions(self, version):

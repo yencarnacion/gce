@@ -255,12 +255,12 @@ class InstancesTest(common.GCEControllerTest):
 
     def test_add_access_config(self):
         request_body = {
-            "name": "192.168.138.196",
+            "name": "External NAT",
             "type": "ONE_TO_ONE_NAT",
-            "natIP": "192.168.138.196"
+            "natIP": "192.168.138.195"
         }
         response = self.request_gce("/fake_project/zones/nova"
-            "/instances/i1/addAccessConfig?networkInterface=private",
+            "/instances/i2/addAccessConfig?networkInterface=default",
             method="POST",
             body=request_body)
         expected = {
@@ -270,10 +270,10 @@ class InstancesTest(common.GCEControllerTest):
             "zone": "http://localhost/compute/v1beta15/projects/"
                     "fake_project/zones/nova",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
-                          "fake_project/zones/nova/instances/i1",
+                          "fake_project/zones/nova/instances/i2",
             "operationType": "addAccessConfig",
             "id": "0",
-            "targetId": "3991024138321713624",
+            "targetId": "3991024138321713621",
             "progress": 100,
             "selfLink": "http://localhost/compute/v1beta15/projects/"
                         "fake_project/zones/nova/operations/stub"
@@ -283,7 +283,9 @@ class InstancesTest(common.GCEControllerTest):
 
     def test_delete_access_config(self):
         response = self.request_gce("/fake_project/zones/nova/"
-            "instances/i2/deleteAccessConfig?accessConfig=External NAT",
+            "instances/i1/deleteAccessConfig"
+            "?accessConfig=External NAT"
+            "&networkInterface=private",
             method="POST")
         expected = {
             "status": "DONE",
@@ -292,10 +294,10 @@ class InstancesTest(common.GCEControllerTest):
             "zone": "http://localhost/compute/v1beta15/projects/"
                     "fake_project/zones/nova",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
-                          "fake_project/zones/nova/instances/i2",
+                          "fake_project/zones/nova/instances/i1",
             "operationType": "deleteAccessConfig",
             "id": "0",
-            "targetId": "3991024138321713621",
+            "targetId": "3991024138321713624",
             "progress": 100,
             "selfLink": "http://localhost/compute/v1beta15/projects/"
                         "fake_project/zones/nova/operations/stub"
