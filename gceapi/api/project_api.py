@@ -75,7 +75,7 @@ class API(base_api.API):
             if keypair.public_key == ssh_key:
                 return
 
-            nova_client.keypairs.delete(user_name)
+            keypair.delete()
         except clients.novaclient.exceptions.NotFound:
             pass
 
