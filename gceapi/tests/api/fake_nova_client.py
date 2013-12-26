@@ -456,6 +456,184 @@ class FakeClassWithFind(object):
         return found
 
 
+class FakeAvailabilityZones(object):
+    def list(self, detailed=True):
+        if detailed:
+            return FAKE_DETAILED_ZONES
+        return FAKE_SIMPLE_ZONES
+
+
+class FakeFlavors(FakeClassWithFind):
+    def list(self, detailed=True, is_public=True):
+        return FAKE_FLAVORS
+
+    def get(self, flavor):
+        flavor_id = utils.get_id(flavor)
+        for flavor in FAKE_FLAVORS:
+            if flavor.id == flavor_id:
+                return flavor
+        raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+
+
+class FakeKeypairs(object):
+    def get(self, keypair):
+        raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+
+    def create(self, name, public_key=None):
+        pass
+
+    def delete(self, key):
+        raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+
+    def list(self):
+        return []
+
+
+class FakeServer(utils.FakeObject):
+
+    _manager = None
+
+    def __init__(self, manager, obj_dict):
+        super(FakeServer, self).__init__(obj_dict)
+        self._manager = manager
+
+    def reboot(self, reboot_type):
+        self._manager.reboot(self, reboot_type)
+
+    def add_security_group(self, security_group):
+        pass
+
+    def remove_security_group(self, security_group):
+        pass
+
+    def delete(self):
+        self._manager.delete(self)
+
+    def add_floating_ip(self, address, fixed_address=None):
+        pass
+
+    def remove_floating_ip(self, address):
+        pass
+
+
+class FakeServers(object):
+    _fake_instances = None
+
+    def __init__(self):
+        self._fake_instances = [FakeServer(self, i)
+                           for i in FAKE_INSTANCES]
+
+    def get(self, server):
+        server_id = utils.get_id(server)
+        for server in self._fake_instances:
+            if server.id == server_id:
+                return server
+        raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+
+    def list(self, detailed=True, search_opts=None,
+             marker=None, limit=None):
+        result = self._fake_instances
+        if search_opts and "name" in search_opts:
+            name = search_opts["name"]
+            result = [i for i in result if i.name == name]
+        if search_opts and "fixed_ip" in search_opts:
+            name = search_opts["fixed_ip"]
+            filtered = []
+            for i in result:
+                for network in i.addresses:
+                    for address in i.addresses[network]:
+                        atype = address["OS-EXT-IPS:type"]
+                        if atype == "fixed":
+                            filtered.append(i)
+                            break
+
+            result = filtered
+
+        return result
+
+    def create(self, name, image, flavor, meta=None, files=None,
+               reservation_id=None, min_count=None,
+               max_count=None, security_groups=None, userdata=None,
+               key_name=None, availability_zone=None,
+               block_device_mapping=None, block_device_mapping_v2=None,
+               nics=None, scheduler_hints=None,
+               config_drive=None, disk_config=None, **kwargs):
+        instance = copy.deepcopy(self._fake_instances[1])
+        instance.name = name
+        return instance
+
+    def add_floating_ip(self, server, address, fixed_address=None):
+        self.get(server)
+
+    def remove_floating_ip(self, server, address):
+        self.get(server)
+
+    def delete(self, server):
+        self.get(server)
+
+    def reboot(self, server, reboot_type):
+        if reboot_type != "HARD":
+            msg = _("Argument 'type' for reboot is not HARD or SOFT")
+            raise nova_exc.BadRequest(message=msg)
+        self.get(server)
+
+
+class FakeSecurityGroups(FakeClassWithFind):
+    _secgroups = FAKE_SECURITY_GROUPS
+
+    def list(self):
+        return self._secgroups
+
+    def get(self, sg_id):
+        secgroup = next((secgroup
+                         for secgroup in self._secgroups
+                         if secgroup.id == sg_id), None)
+        if secgroup is None:
+            raise nova_exc.NotFound(
+                    404, "Security group %s not found" % sg_id)
+        return secgroup
+
+    def create(self, name, description):
+        secgroup = utils.FakeObject({
+            "name": name,
+            "description": description,
+            "rules": [],
+            "project_id": "6678c02984ce4df8b26912db30481637",
+            "id": "5707a6f0-799d-4739-8740-3efc73f122aa",
+        })
+        self._secgroups = copy.deepcopy(self._secgroups)
+        self._secgroups.append(secgroup)
+        return secgroup
+
+    def delete(self, security_group):
+        pass
+
+    def add_rule(self, sg_id, ip_protocol, from_port, to_port, cidr):
+        secgroup = self.get(sg_id)
+        rule = {
+            "id": uuid.uuid4(),
+            "ip_protocol": ip_protocol,
+            "from_port": from_port,
+            "to_port": to_port,
+            "ip_range": {"cidr": cidr},
+        }
+        secgroup.rules.append(rule)
+
+
+class FakeSecurityGroupRules(object):
+    def __init__(self, nova_client):
+        self.security_groups = nova_client.security_groups
+
+    def create(self, sg_id, ip_protocol, from_port, to_port, cidr):
+        self.security_groups.add_rule(sg_id, ip_protocol, from_port,
+                                      to_port, cidr)
+
+
+class FakeFloatingIps(object):
+    def list(self):
+        return FAKE_FLOATING_IPS
+
+
 class FakeNovaClient(object):
     def __init__(self, version, *args, **kwargs):
         self._security_group = None
@@ -466,202 +644,32 @@ class FakeNovaClient(object):
 
     @property
     def availability_zones(self):
-        class FakeAvailabilityZones(object):
-            def list(self, detailed=True):
-                if detailed:
-                    return FAKE_DETAILED_ZONES
-                return FAKE_SIMPLE_ZONES
-
         return FakeAvailabilityZones()
 
     @property
     def flavors(self):
-        class FakeFlavors(FakeClassWithFind):
-            def list(self, detailed=True, is_public=True):
-                return FAKE_FLAVORS
-
-            def get(self, flavor):
-                flavor_id = utils.get_id(flavor)
-                for flavor in FAKE_FLAVORS:
-                    if flavor.id == flavor_id:
-                        return flavor
-                raise nova_exc.NotFound(nova_exc.NotFound.http_status)
-
         return FakeFlavors()
 
     @property
     def keypairs(self):
-        class FakeKeypairs(object):
-            def get(self, keypair):
-                raise nova_exc.NotFound(nova_exc.NotFound.http_status)
-
-            def create(self, name, public_key=None):
-                pass
-
-            def delete(self, key):
-                raise nova_exc.NotFound(nova_exc.NotFound.http_status)
-
-            def list(self):
-                return []
-
         return FakeKeypairs()
 
     @property
     def servers(self):
-        class FakeInstance(utils.FakeObject):
-
-            _manager = None
-
-            def __init__(self, manager, obj_dict):
-                super(FakeInstance, self).__init__(obj_dict)
-                self._manager = manager
-
-            def reboot(self, reboot_type):
-                self._manager.reboot(self, reboot_type)
-
-            def add_security_group(self, security_group):
-                pass
-
-            def remove_security_group(self, security_group):
-                pass
-
-            def delete(self):
-                self._manager.delete(self)
-
-            def add_floating_ip(self, address, fixed_address=None):
-                pass
-
-            def remove_floating_ip(self, address):
-                pass
-
-        class FakeServers(object):
-            _fake_instances = None
-
-            def __init__(self):
-                self._fake_instances = [FakeInstance(self, i)
-                                   for i in FAKE_INSTANCES]
-
-            def get(self, server):
-                server_id = utils.get_id(server)
-                for server in self._fake_instances:
-                    if server.id == server_id:
-                        return server
-                raise nova_exc.NotFound(nova_exc.NotFound.http_status)
-
-            def list(self, detailed=True, search_opts=None,
-                     marker=None, limit=None):
-                result = self._fake_instances
-                if search_opts and "name" in search_opts:
-                    name = search_opts["name"]
-                    result = [i for i in result if i.name == name]
-                if search_opts and "fixed_ip" in search_opts:
-                    name = search_opts["fixed_ip"]
-                    filtered = []
-                    for i in result:
-                        for network in i.addresses:
-                            for address in i.addresses[network]:
-                                atype = address["OS-EXT-IPS:type"]
-                                if atype == "fixed":
-                                    filtered.append(i)
-                                    break
-
-                    result = filtered
-
-                return result
-
-            def create(self, name, image, flavor, meta=None, files=None,
-                       reservation_id=None, min_count=None,
-                       max_count=None, security_groups=None, userdata=None,
-                       key_name=None, availability_zone=None,
-                       block_device_mapping=None, block_device_mapping_v2=None,
-                       nics=None, scheduler_hints=None,
-                       config_drive=None, disk_config=None, **kwargs):
-                instance = copy.deepcopy(self._fake_instances[1])
-                instance.name = name
-                return instance
-
-            def add_floating_ip(self, server, address, fixed_address=None):
-                self.get(server)
-
-            def remove_floating_ip(self, server, address):
-                self.get(server)
-
-            def delete(self, server):
-                self.get(server)
-
-            def reboot(self, server, reboot_type):
-                if reboot_type != "HARD":
-                    msg = _("Argument 'type' for reboot is not HARD or SOFT")
-                    raise nova_exc.BadRequest(message=msg)
-                self.get(server)
-
         return FakeServers()
 
     @property
     def security_groups(self):
-        class FakeSecurityGroups(FakeClassWithFind):
-            _secgroups = FAKE_SECURITY_GROUPS
-
-            def list(self):
-                return self._secgroups
-
-            def get(self, sg_id):
-                secgroup = next((secgroup
-                                 for secgroup in self._secgroups
-                                 if secgroup.id == sg_id), None)
-                if secgroup is None:
-                    raise nova_exc.NotFound(
-                            404, "Security group %s not found" % sg_id)
-                return secgroup
-
-            def create(self, name, description):
-                secgroup = utils.FakeObject({
-                    "name": name,
-                    "description": description,
-                    "rules": [],
-                    "project_id": "6678c02984ce4df8b26912db30481637",
-                    "id": "5707a6f0-799d-4739-8740-3efc73f122aa",
-                })
-                self._secgroups = copy.deepcopy(self._secgroups)
-                self._secgroups.append(secgroup)
-                return secgroup
-
-            def delete(self, security_group):
-                pass
-
-            def add_rule(self, sg_id, ip_protocol, from_port, to_port, cidr):
-                secgroup = self.get(sg_id)
-                rule = {
-                    "id": uuid.uuid4(),
-                    "ip_protocol": ip_protocol,
-                    "from_port": from_port,
-                    "to_port": to_port,
-                    "ip_range": {"cidr": cidr},
-                }
-                secgroup.rules.append(rule)
-
         if self._security_group is None:
             self._security_group = FakeSecurityGroups()
         return self._security_group
 
     @property
     def security_group_rules(self):
-        class FakeSecurityGroupRules(object):
-            def __init__(self, nova_client):
-                self.security_groups = nova_client.security_groups
-
-            def create(self, sg_id, ip_protocol, from_port, to_port, cidr):
-                self.security_groups.add_rule(sg_id, ip_protocol, from_port,
-                                              to_port, cidr)
-
         return FakeSecurityGroupRules(self)
 
     @property
     def floating_ips(self):
-        class FakeFloatingIps(object):
-            def list(self):
-                return FAKE_FLOATING_IPS
-
         return FakeFloatingIps()
 
 

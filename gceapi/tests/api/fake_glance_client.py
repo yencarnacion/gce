@@ -87,50 +87,51 @@ FAKE_NEW_IMAGE = {
 }
 
 
+class FakeImages(object):
+    def get(self, image):
+        image_id = utils.get_id(image)
+        for i in FAKE_IMAGES:
+            if i.id == image_id:
+                return i
+
+        raise glance_exc.HTTPNotFound()
+
+    def list(self, **kwargs):
+        filters = kwargs.get('filters', {})
+        if "name" in filters:
+            return [i for i in FAKE_IMAGES
+                    if i.name == filters["name"]]
+
+        return FAKE_IMAGES
+
+    def delete(self, image):
+        image_id = utils.get_id(image)
+        image_index = 0
+        for image in FAKE_IMAGES:
+            if image.id != image_id:
+                image_index += 1
+                continue
+            del FAKE_IMAGES[image_index]
+            return True
+        raise glance_exc.HTTPNotFound()
+
+    def create(self, **kwargs):
+        image = copy.deepcopy(FAKE_NEW_IMAGE[kwargs["name"]])
+        image.update(kwargs)
+        image["updated_at"] = image["created_at"]
+        image.update({
+            "deleted_at": False,
+            "deleted": False,
+            "status": "active",
+        })
+        FAKE_IMAGES.append(utils.FakeObject(image))
+        return copy.deepcopy(utils.FakeObject(image))
+
+
 class FakeGlanceClient(object):
     def __init__(self, version, *args, **kwargs):
         pass
 
     @property
     def images(self):
-        class FakeImages(object):
-            def get(self, image):
-                image_id = utils.get_id(image)
-                for i in FAKE_IMAGES:
-                    if i.id == image_id:
-                        return i
-
-                raise glance_exc.HTTPNotFound()
-
-            def list(self, **kwargs):
-                filters = kwargs.get('filters', {})
-                if "name" in filters:
-                    return [i for i in FAKE_IMAGES
-                            if i.name == filters["name"]]
-
-                return FAKE_IMAGES
-
-            def delete(self, image):
-                image_id = utils.get_id(image)
-                image_index = 0
-                for image in FAKE_IMAGES:
-                    if image.id != image_id:
-                        image_index += 1
-                        continue
-                    del FAKE_IMAGES[image_index]
-                    return True
-                raise glance_exc.HTTPNotFound()
-
-            def create(self, **kwargs):
-                image = copy.deepcopy(FAKE_NEW_IMAGE[kwargs["name"]])
-                image.update(kwargs)
-                image["updated_at"] = image["created_at"]
-                image.update({
-                    "deleted_at": False,
-                    "deleted": False,
-                    "status": "active",
-                })
-                FAKE_IMAGES.append(utils.FakeObject(image))
-                return copy.deepcopy(utils.FakeObject(image))
-
         return FakeImages()

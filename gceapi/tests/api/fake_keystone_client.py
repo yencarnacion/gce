@@ -24,14 +24,15 @@ FAKE_PROJECTS = [utils.FakeObject({
 })]
 
 
+class FakeTenants(object):
+    def list(self):
+        return FAKE_PROJECTS
+
+
 class FakeKeystoneClient(object):
     def __init__(self, **kwargs):
         pass
 
     @property
     def tenants(self):
-        class FakeTenants(object):
-            def list(self):
-                return FAKE_PROJECTS
-
         return FakeTenants()

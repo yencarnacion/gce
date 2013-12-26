@@ -190,6 +190,74 @@ FAKE_NEW_DISKS = {
 }
 
 
+class FakeVolumes(object):
+    def list(self, detailed=True, search_opts=None):
+        result = FAKE_DISKS
+        if search_opts:
+            if "display_name" in search_opts:
+                result = [d for d in result
+                    if d.display_name == search_opts["display_name"]]
+        return result
+
+    def get(self, disk):
+        disk_id = utils.get_id(disk)
+        for disk in FAKE_DISKS:
+            if disk.id == disk_id:
+                return disk
+        raise exc.NotFound(exc.NotFound.http_status)
+
+    def delete(self, volume):
+        global FAKE_DISKS
+        volume_id = utils.get_id(volume)
+        FAKE_DISKS = [v for v in FAKE_DISKS if v.id != volume_id]
+
+    def create(self, size, snapshot_id=None, source_volid=None,
+            display_name=None, display_description=None,
+            volume_type=None, user_id=None,
+            project_id=None, availability_zone=None,
+            metadata=None, imageRef=None):
+        volume = copy.deepcopy(FAKE_NEW_DISKS[display_name])
+        volume["display_name"] = display_name
+        volume["availability_zone"] = availability_zone
+        volume["display_description"] = display_description
+        volume["size"] = size
+        if project_id:
+            volume["os-vol-tenant-attr:tenant_id"] = project_id
+        if snapshot_id is not None:
+            volume["snapshot_id"] = snapshot_id
+        if imageRef is not None:
+            volume["volume_image_metadata"] = {
+                "image_id": imageRef,
+                "image_name": "fake-image-2"
+            }
+        FAKE_DISKS.append(utils.FakeObject(volume))
+        return utils.FakeObject(volume)
+
+
+class FakeVolumeSnapshots(object):
+    def get(self, snapshot):
+        snapshot_id = utils.get_id(snapshot)
+        for snapshot in FAKE_SNAPSHOTS:
+            if snapshot.id == snapshot_id:
+                return snapshot
+        raise exc.NotFound(exc.NotFound.http_status)
+
+    def list(self, detailed=True, search_opts=None):
+        result = FAKE_SNAPSHOTS
+        if search_opts:
+            if "display_name" in search_opts:
+                result = [d for d in result
+                    if d.display_name == search_opts["display_name"]]
+        return result
+
+    def delete(self, snapshot):
+        pass
+
+    def create(self, volume_id, force=False,
+               display_name=None, display_description=None):
+        return FAKE_SNAPSHOTS[0]
+
+
 class FakeCinderClient(object):
     def __init__(self, version, *args, **kwargs):
         pass
@@ -200,74 +268,8 @@ class FakeCinderClient(object):
 
     @property
     def volumes(self):
-        class FakeVolumes(object):
-            def list(self, detailed=True, search_opts=None):
-                result = FAKE_DISKS
-                if search_opts:
-                    if "display_name" in search_opts:
-                        result = [d for d in result
-                            if d.display_name == search_opts["display_name"]]
-                return result
-
-            def get(self, disk):
-                disk_id = utils.get_id(disk)
-                for disk in FAKE_DISKS:
-                    if disk.id == disk_id:
-                        return disk
-                raise exc.NotFound(exc.NotFound.http_status)
-
-            def delete(self, volume):
-                global FAKE_DISKS
-                volume_id = utils.get_id(volume)
-                FAKE_DISKS = [v for v in FAKE_DISKS if v.id != volume_id]
-
-            def create(self, size, snapshot_id=None, source_volid=None,
-                    display_name=None, display_description=None,
-                    volume_type=None, user_id=None,
-                    project_id=None, availability_zone=None,
-                    metadata=None, imageRef=None):
-                volume = copy.deepcopy(FAKE_NEW_DISKS[display_name])
-                volume["display_name"] = display_name
-                volume["availability_zone"] = availability_zone
-                volume["display_description"] = display_description
-                volume["size"] = size
-                if project_id:
-                    volume["os-vol-tenant-attr:tenant_id"] = project_id
-                if snapshot_id is not None:
-                    volume["snapshot_id"] = snapshot_id
-                if imageRef is not None:
-                    volume["volume_image_metadata"] = {
-                        "image_id": imageRef,
-                        "image_name": "fake-image-2"
-                    }
-                FAKE_DISKS.append(utils.FakeObject(volume))
-                return utils.FakeObject(volume)
-
         return FakeVolumes()
 
     @property
     def volume_snapshots(self):
-        class FakeVolumeSnapshots(object):
-            def get(self, snapshot):
-                snapshot_id = utils.get_id(snapshot)
-                for snapshot in FAKE_SNAPSHOTS:
-                    if snapshot.id == snapshot_id:
-                        return snapshot
-                raise exc.NotFound(exc.NotFound.http_status)
-
-            def list(self, detailed=True, search_opts=None):
-                result = FAKE_SNAPSHOTS
-                if search_opts:
-                    if "display_name" in search_opts:
-                        result = [d for d in result
-                            if d.display_name == search_opts["display_name"]]
-                return result
-
-            def delete(self, snapshot):
-                pass
-
-            def create(self, volume_id, force=False,
-                       display_name=None, display_description=None):
-                return FAKE_SNAPSHOTS[0]
-
         return FakeVolumeSnapshots()
