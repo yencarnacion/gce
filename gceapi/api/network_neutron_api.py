@@ -43,9 +43,9 @@ class API(base_api.API):
         return self.PERSISTENT_ATTRIBUTES
 
     def get_item(self, context, name, scope=None):
-        search_opts = {'name': name}
         client = clients.neutron(context)
-        networks = client.list_networks(**search_opts)["networks"]
+        networks = client.list_networks(
+            tenant_id=context.project_id, name=name)["networks"]
         if not networks:
             msg = _("Network resource '%s' could not be found." % name)
             raise exception.NotFound(msg)
@@ -60,7 +60,7 @@ class API(base_api.API):
 
     def get_items(self, context, scope=None):
         client = clients.neutron(context)
-        networks = client.list_networks()
+        networks = client.list_networks(tenant_id=context.project_id)
         networks = networks["networks"]
         gce_networks = self._get_db_items_dict(context)
         result_networks = []
@@ -135,8 +135,9 @@ class API(base_api.API):
 
     def get_public_network_id(self, context):
         """Get id of public network appointed to GCE in config"""
-        neutron_api = clients.neutron(context)
+        client = clients.neutron(context)
         search_opts = {"name": self._public_network_name,
-                       "router:external": True}
-        networks = neutron_api.list_networks(**search_opts)["networks"]
+                       "router:external": True,
+                       "tenant_id": context.project_id}
+        networks = client.list_networks(**search_opts)["networks"]
         return networks[0]["id"]

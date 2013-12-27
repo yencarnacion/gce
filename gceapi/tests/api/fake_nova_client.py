@@ -421,9 +421,9 @@ FAKE_LIMITS = utils.FakeObject({
         utils.FakeObject({"name": "maxTotalInstances", "value": 10}),
         utils.FakeObject({"name": "maxTotalCores", "value": 17}),
         utils.FakeObject({"name": "totalRAMUsed", "value": 512}),
-        utils.FakeObject({"name": "totalFloatingIpsUsed", "value": 0}),
-        utils.FakeObject({"name": "totalInstancesUsed", "value": 1}),
-        utils.FakeObject({"name": "totalSecurityGroupsUsed", "value": 0}),
+        utils.FakeObject({"name": "totalFloatingIpsUsed", "value": 3}),
+        utils.FakeObject({"name": "totalInstancesUsed", "value": 4}),
+        utils.FakeObject({"name": "totalSecurityGroupsUsed", "value": 2}),
         utils.FakeObject({"name": "totalCoresUsed", "value": 1}),
     ]
 })

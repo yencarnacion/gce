@@ -38,15 +38,21 @@ class API(base_api.API):
         project_id = project.id
 
         nova_limits = clients.nova(context).limits.get(tenant_id=project_id)
-        result["nova_limits"] = [utils.to_dict(l)
-                                 for l in nova_limits.absolute]
+        result["nova_limits"] = {l.name: l.value for l in nova_limits.absolute}
 
         cinder_client = clients.cinder(context)
         result["cinder_quotas"] = utils.to_dict(
             cinder_client.quotas.get(project_id, usage=True))
 
+        neutron_client = clients.neutron(context)
         result["neutron_quota"] = (
-            clients.neutron(context).show_quota(project_id)["quota"])
+            neutron_client.show_quota(project_id)["quota"])
+        result["neutron_quota"]["network_used"] = len(neutron_client
+            .list_networks(tenant_id=project_id)["networks"])
+        result["neutron_quota"]["floatingip_used"] = len(neutron_client
+            .list_floatingips(tenant_id=project_id)["floatingips"])
+        result["neutron_quota"]["security_group_used"] = len(neutron_client
+            .list_security_groups(tenant_id=project_id)["security_groups"])
         return result
 
     def get_items(self, context, scope=None):

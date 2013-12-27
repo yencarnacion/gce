@@ -17,57 +17,55 @@ from gceapi.tests.api import common
 
 
 EXPECTED_PROJECT = {
- "kind": "compute#project",
- "selfLink": "http://localhost/compute/v1beta15/projects/fake_project",
- "id": "504224095749693425",
- "name": "fake_project",
- "description": "",
- "commonInstanceMetadata": {
-  "kind": "compute#metadata"
- },
- "quotas": [
-#   {
-#    "metric": "SNAPSHOTS",
-#    "limit": 1000.0,
-#    "usage": 0.0
-#   },
-#   {
-#    "metric": "NETWORKS",
-#    "limit": 5.0,
-#    "usage": 1.0
-#   },
-#   {
-#    "metric": "FIREWALLS",
-#    "limit": 100.0,
-#    "usage": 2.0
-#   },
-#   {
-#    "metric": "IMAGES",
-#    "limit": 100.0,
-#    "usage": 0.0
-#   },
-#   {
-#    "metric": "ROUTES",
-#    "limit": 100.0,
-#    "usage": 2.0
-#   },
-#   {
-#    "metric": "FORWARDING_RULES",
-#    "limit": 50.0,
-#    "usage": 0.0
-#   },
-#   {
-#    "metric": "TARGET_POOLS",
-#    "limit": 50.0,
-#    "usage": 0.0
-#   },
-#   {
-#    "metric": "HEALTH_CHECKS",
-#    "limit": 50.0,
-#    "usage": 0.0
-#   }
- ]
-}
+    "kind": "compute#project",
+    "selfLink": "http://localhost/compute/v1beta15/projects/fake_project",
+    "id": "504224095749693425",
+    "name": "fake_project",
+    "description": "",
+    "commonInstanceMetadata": {
+        "kind": "compute#metadata"
+    },
+    "quotas": [{
+        "metric": "CPU",
+        "limit": 17.0,
+        "usage": 1.0
+    },
+    {
+        "metric": "INSTANCES",
+        "limit": 10.0,
+        "usage": 4.0
+    },
+    {
+        "usage": 2.0,
+        "metric": "DISKS_TOTAL_GB",
+        "limit": 1000.0
+    },
+    {
+        "usage": 1.0,
+        "metric": "SNAPSHOTS",
+        "limit": 10.0
+    },
+    {
+        "usage": 1.0,
+        "metric": "DISKS",
+        "limit": 10.0
+    },
+    {
+        "usage": 2.0,
+        "metric": "FIREWALLS",
+        "limit": 10.0
+    },
+    {
+        "usage": 1.0,
+        "metric": "STATIC_ADDRESSES",
+        "limit": 50.0
+    },
+    {
+        "usage": 3.0,
+        "metric": "NETWORKS",
+        "limit": 10.0
+    }
+]}
 
 
 class ProjectsTest(common.GCEControllerTest):

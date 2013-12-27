@@ -42,6 +42,33 @@ class Controller(gce_common.Controller):
             "quotas": []
         }
 
+        self._add_quota(result_dict["quotas"], "CPU",
+            project["nova_limits"].get("maxTotalCores", -1),
+            project["nova_limits"].get("totalCoresUsed", -1))
+        self._add_quota(result_dict["quotas"], "INSTANCES",
+            project["nova_limits"].get("maxTotalInstances", -1),
+            project["nova_limits"].get("totalInstancesUsed", -1))
+
+        quota = project["cinder_quotas"].get("gigabytes", {})
+        self._add_quota(result_dict["quotas"], "DISKS_TOTAL_GB",
+            quota.get("limit", -1), quota.get("in_use", -1))
+        quota = project["cinder_quotas"].get("snapshots", {})
+        self._add_quota(result_dict["quotas"], "SNAPSHOTS",
+            quota.get("limit", -1), quota.get("in_use", -1))
+        quota = project["cinder_quotas"].get("volumes", {})
+        self._add_quota(result_dict["quotas"], "DISKS",
+            quota.get("limit", -1), quota.get("in_use", -1))
+
+        self._add_quota(result_dict["quotas"], "FIREWALLS",
+            project["neutron_quota"].get("security_group", -1),
+            project["neutron_quota"].get("security_group_used", -1))
+        self._add_quota(result_dict["quotas"], "STATIC_ADDRESSES",
+            project["neutron_quota"].get("floatingip", -1),
+            project["neutron_quota"].get("floatingip_used", -1))
+        self._add_quota(result_dict["quotas"], "NETWORKS",
+            project["neutron_quota"].get("network", -1),
+            project["neutron_quota"].get("network_used", -1))
+
         return self._format_item(request, result_dict, scope)
 
     def set_common_instance_metadata(self, req, body):
@@ -67,8 +94,8 @@ class Controller(gce_common.Controller):
     def _add_quota(self, quotas, metric, limit, usage):
         quotas.append({
             "metric": metric,
-            "limit": limit,
-            "usage": usage,
+            "limit": float(limit),
+            "usage": float(usage),
         })
 
 

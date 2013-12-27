@@ -194,12 +194,12 @@ FAKE_QUOTAS = utils.FakeObject({
     "gigabytes": {
         "limit": 1000,
         "reserved": 0,
-        "in_use": 1
+        "in_use": 2
     },
     "snapshots": {
         "limit": 10,
         "reserved": 0,
-        "in_use": 0
+        "in_use": 1
     },
     "human_id": None,
     "volumes": {

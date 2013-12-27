@@ -152,6 +152,11 @@ FAKE_QUOTAS = {
 }
 
 
+FAKE_SECURITY_GROUPS = {
+    "security_groups": [{}, {}]
+}
+
+
 class FakeNeutronClient(object):
 
     def __init__(self, **kwargs):
@@ -254,3 +259,6 @@ class FakeNeutronClient(object):
 
     def show_quota(self, tenant_id, **_params):
         return FAKE_QUOTAS
+
+    def list_security_groups(self, retrieve_all=True, **_params):
+        return FAKE_SECURITY_GROUPS
