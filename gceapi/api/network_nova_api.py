@@ -32,6 +32,9 @@ class API(base_api.API):
     def _get_persistent_attributes(self):
         return self.PERSISTENT_ATTRIBUTES
 
+    def _are_api_operations_pending(self):
+        return False
+
     def get_item(self, context, name, scope=None):
         client = clients.nova(context)
         network = client.networks.find(label=name)
@@ -59,6 +62,7 @@ class API(base_api.API):
             context, base_api._callback_reasons.pre_delete, network)
         client = clients.nova(context)
         client.networks.delete(network["id"])
+        return network
 
     def add_item(self, context, name, body, scope=None):
         ip_range = body['IPv4Range']

@@ -46,7 +46,8 @@ class API(base_api.API):
 
     def get_scopes(self, context, item):
         # TODO(apavlov): too slow for all...
-        return zone_api.API().get_item_names(context)
+        return [("zone", zone)
+                for zone in zone_api.API().get_item_names(context)]
 
     def get_item_by_id(self, context, machine_type_id):
         client = clients.nova(context)

@@ -94,19 +94,12 @@ class NetworksControllerTest(common.GCEControllerTest):
                                     body=request_body)
 
         expected = {
-                    "status": "DONE",
-                    "kind": "compute#operation",
-                    "name": "stub",
+                    "operationType": "insert",
+                    "targetId": "7132179741530156151",
                     "targetLink": "http://localhost/compute/v1beta15/projects"
                                   "/fake_project/global/networks/mynet",
-                    "operationType": "insert",
-                    "id": "0",
-                    "progress": 100,
-                    "targetId": "7132179741530156151",
-                    "selfLink": "http://localhost/compute/v1beta15/projects"
-                                "/fake_project/global/operations/stub"
                     }
-
+        expected.update(common.COMMON_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertEqual(response.json_body, expected)
 
@@ -114,17 +107,11 @@ class NetworksControllerTest(common.GCEControllerTest):
         response = self.request_gce(
                 '/fake_project/global/networks/public', method='DELETE')
         expected = {
-            "kind": "compute#operation",
-            "id": "0",
-            "progress": 100,
-            "targetId": "8340158205161619676",
-            "name": "stub",
             "operationType": "delete",
+            "targetId": "8340158205161619676",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/global/networks/public",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub",
-            "status": "DONE",
         }
+        expected.update(common.COMMON_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertEqual(expected, response.json_body)

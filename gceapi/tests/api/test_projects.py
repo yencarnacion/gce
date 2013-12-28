@@ -79,19 +79,12 @@ class ProjectsTest(common.GCEControllerTest):
 
     def test_set_common_instance_metadata(self):
         expected = {
-            "kind": "compute#operation",
-            "id": "0",
-            "name": "stub",
             "operationType": "setMetadata",
+            "targetId": "504224095749693425",
             "targetLink": "http://localhost/compute/v1beta15/projects"
                 "/fake_project",
-            "targetId": "504224095749693425",
-            "status": "DONE",
-            "progress": 100,
-            "selfLink": "http://localhost/compute/v1beta15/projects"
-                "/fake_project/global/operations/stub"
         }
-
+        expected.update(common.COMMON_FINISHED_OPERATION)
         body = {"items": [], "kind": "compute#metadata"}
         response = self.request_gce("/fake_project/setCommonInstanceMetadata",
                                     method="POST",

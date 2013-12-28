@@ -16,7 +16,7 @@ from gceapi.api import common as gce_common
 from gceapi.api import disk_api
 from gceapi.api import snapshot_api
 from gceapi.api import wsgi as gce_wsgi
-from gceapi.api import zone_api
+from gceapi.openstack.common import timeutils
 
 
 class Controller(gce_common.Controller):
@@ -24,7 +24,6 @@ class Controller(gce_common.Controller):
 
     def __init__(self, *args, **kwargs):
         super(Controller, self).__init__(disk_api.API(),
-                                         scope_api=zone_api.API(),
                                          *args, **kwargs)
 
     def format_item(self, request, volume, scope):
@@ -58,10 +57,12 @@ class Controller(gce_common.Controller):
 
     def create_snapshot(self, req, body, scope_id, id):
         body["disk_name"] = id
+        start_time = timeutils.isotime(None, True)
         scope = self._get_scope(req, scope_id)
         context = self._get_context(req)
         snapshot_api.API().add_item(context, body, scope)
-        return self._format_operation(req, id, "createSnapshot", scope)
+        return self._create_operation(req, "createSnapshot", scope,
+                                      start_time, id)
 
 
 def create_resource():

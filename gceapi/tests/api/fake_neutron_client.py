@@ -13,6 +13,7 @@
 #    under the License.
 
 import copy
+import uuid
 
 from gceapi.tests.api import fake_request
 
@@ -227,7 +228,7 @@ class FakeNeutronClient(object):
                                              if r["id"] == router))}
 
     def create_router(self, body=None):
-        return {"router": {"id": 111}}
+        return {"router": {"id": str(uuid.uuid4())}}
 
     def update_router(self, router, body=None):
         pass
@@ -252,7 +253,8 @@ class FakeNeutronClient(object):
         return FAKE_ADDRESSES
 
     def create_floatingip(self, body=None):
-        return {"floatingip": {"floating_ip_address": "10.20.30.40"}}
+        return {"floatingip": {"id": str(uuid.uuid4()),
+                               "floating_ip_address": "10.20.30.40"}}
 
     def delete_floatingip(self, floatingip):
         pass

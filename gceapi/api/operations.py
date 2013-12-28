@@ -12,28 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from gceapi.api import base_api
-from gceapi import exception
+from gceapi.api import common as gce_common
+from gceapi.api import operation_api
+from gceapi.api import wsgi as gce_wsgi
 
 
-class API(base_api.API):
-    """GCE Regions API
+class Controller(gce_common.Controller):
+    """GCE Route controller"""
 
-    Stubbed now for support only one predefined region nova
-    """
+    def __init__(self, *args, **kwargs):
+        super(Controller, self).__init__(operation_api.API(), *args, **kwargs)
 
-    KIND = "region"
-    _REGIONS = ["nova"]
+    def format_item(self, request, operation, scope):
+        return self._format_operation(request, operation, scope)
 
-    def _get_type(self):
-        return self.KIND
-
-    def get_item(self, context, name, scope=None):
-        regions = self.get_items(context)
-        for region in regions:
-            if region["name"] == name:
-                return region
-        raise exception.NotFound
-
-    def get_items(self, context, scope=None):
-        return [{"name": item for item in self._REGIONS}]
+def create_resource():
+    return gce_wsgi.GCEResource(Controller())

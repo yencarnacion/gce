@@ -17,7 +17,7 @@ from gceapi.api import clients
 from gceapi import exception
 
 
-class API(base_api.BaseScopeAPI):
+class API(base_api.API):
     """GCE Zones API."""
 
     KIND = "zone"
@@ -25,12 +25,6 @@ class API(base_api.BaseScopeAPI):
 
     def _get_type(self):
         return self.KIND
-
-    def get_name(self):
-        return "zones"
-
-    def get_scope_qualifier(self):
-        return "zone"
 
     def get_item(self, context, name, scope=None):
         zones = self.get_items(context)

@@ -34,6 +34,9 @@ class API(base_api.API):
     def _get_type(self):
         return self.KIND
 
+    def _are_api_operations_pending(self):
+        return True
+
     def get_item(self, context, name, scope=None):
         image_service = clients.glance(context).images
         images = image_service.list(
@@ -66,6 +69,7 @@ class API(base_api.API):
         image = self.get_item(context, name, scope)
         image_service = clients.glance(context).images
         image_service.delete(image["id"])
+        return image
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']

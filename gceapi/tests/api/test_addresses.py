@@ -120,20 +120,12 @@ class AddressesTest(common.GCEControllerTest):
                 "/fake_project/regions/nova/addresses/address-172-24-4-227",
                 method="DELETE")
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "region": "http://localhost/compute/v1beta15/projects/"
-                "fake_project/regions/nova",
+            "operationType": "delete",
+            "targetId": "2729532145628373701",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/regions/nova/addresses/address-172-24-4-227",
-            "operationType": "delete",
-            "id": "0",
-            "progress": 100,
-            "targetId": "2729532145628373701",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                "fake_project/regions/nova/operations/stub"
         }
+        expected.update(common.COMMON_REGION_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -146,18 +138,10 @@ class AddressesTest(common.GCEControllerTest):
                                     body=request_body)
         self.assertEqual(200, response.status_int)
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "region": "http://localhost/compute/v1beta15/projects/"
-                "fake_project/regions/nova",
+            "operationType": "insert",
+            "targetId": "5571612063911429008",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/regions/nova/addresses/fake-address",
-            "operationType": "insert",
-            "id": "0",
-            "progress": 100,
-            "targetId": "5571612063911429008",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/regions/nova/operations/stub"
         }
+        expected.update(common.COMMON_REGION_FINISHED_OPERATION)
         self.assertDictEqual(expected, response.json_body)

@@ -43,6 +43,9 @@ class API(base_api.API):
     def _get_type(self):
         return self.KIND
 
+    def _are_api_operations_pending(self):
+        return True
+
     def get_item(self, context, name, scope=None):
         client = clients.cinder(context)
         volumes = client.volumes.list(search_opts={"display_name": name})
@@ -62,7 +65,7 @@ class API(base_api.API):
         return volumes
 
     def get_scopes(self, context, item):
-        return [item["availability_zone"]]
+        return [("zone", item["availability_zone"])]
 
     def _prepare_item(self, client, item):
         snapshot = None
@@ -90,6 +93,7 @@ class API(base_api.API):
         if not volumes or len(volumes) != 1:
             raise exception.NotFound
         client.delete(volumes[0])
+        return self._prepare_item(client, utils.to_dict(volumes[0]))
 
     def add_item(self, context, name, body, scope=None):
         sizeGb = int(body['sizeGb']) if 'sizeGb' in body else None

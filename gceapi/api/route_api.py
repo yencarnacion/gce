@@ -17,9 +17,10 @@ from gceapi.api import route_neutron_api
 from gceapi.api import route_nova_api
 
 
-class API(base_api.BaseNetAPI):
+class API(base_api.API):
     """GCE Route API"""
 
-    def __init__(self, *args, **kwargs):
-        super(API, self).__init__(
-            route_neutron_api, route_nova_api, *args, **kwargs)
+    NEUTRON_API_MODULE = route_neutron_api
+    NOVA_API_MODULE = route_nova_api
+
+    __metaclass__ = base_api.NetSingleton

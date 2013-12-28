@@ -15,18 +15,12 @@
 from gceapi.api import address_neutron_api
 from gceapi.api import address_nova_api
 from gceapi.api import base_api
-from gceapi.api import region_api
 
 
-class API(base_api.BaseNetAPI):
+class API(base_api.API):
     """GCE Address API"""
 
-    def __init__(self, *args, **kwargs):
-        super(API, self).__init__(
-            address_neutron_api, address_nova_api, *args, **kwargs)
+    NEUTRON_API_MODULE = address_neutron_api
+    NOVA_API_MODULE = address_nova_api
 
-    def get_scopes(self, context, item):
-        region = item["scope"]
-        if region is not None:
-            return [region]
-        return [item["name"] for item in region_api.API().get_items(context)]
+    __metaclass__ = base_api.NetSingleton

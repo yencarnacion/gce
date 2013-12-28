@@ -88,18 +88,12 @@ class SnapshotsTest(common.GCEControllerTest):
                 "/fake_project/global/snapshots/fake-snapshot",
                 method="DELETE")
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
+            "operationType": "delete",
+            "targetId": "8386122516930476063",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/global/snapshots/fake-snapshot",
-            "operationType": "delete",
-            "id": "0",
-            "progress": 100,
-            "targetId": "8386122516930476063",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                "fake_project/global/operations/stub"
         }
+        expected.update(common.COMMON_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -114,18 +108,10 @@ class SnapshotsTest(common.GCEControllerTest):
             body=request_body)
         self.assertEqual(200, response.status_int)
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "zone": "http://localhost/compute/v1beta15/projects/fake_project"
-                "/zones/nova",
-            "name": "stub",
+            "operationType": "createSnapshot",
+            "targetId": "9202387718698825406",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/zones/nova/disks/fake-disk-3",
-            "operationType": "createSnapshot",
-            "id": "0",
-            "progress": 100,
-            "targetId": "9202387718698825406",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertDictEqual(expected, response.json_body)

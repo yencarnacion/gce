@@ -34,6 +34,9 @@ class API(base_api.API):
     def _get_type(self):
         return self.KIND
 
+    def _are_api_operations_pending(self):
+        return True
+
     def get_item(self, context, name, scope=None):
         client = clients.cinder(context)
         snapshots = client.volume_snapshots.list(
@@ -56,6 +59,7 @@ class API(base_api.API):
         if not snapshots or len(snapshots) != 1:
             raise exception.NotFound
         client.delete(snapshots[0])
+        return self._prepare_item(client, utils.to_dict(snapshots[0]))
 
     def add_item(self, context, body, scope=None):
         name = body["name"]

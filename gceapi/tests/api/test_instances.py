@@ -180,20 +180,12 @@ class InstancesTest(common.GCEControllerTest):
                 "/fake_project/zones/nova/instances/i2",
                 method="DELETE")
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "targetId": "3991024138321713621",
+            "operationType": "delete",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/instances/i2",
-            "operationType": "delete",
-            "id": "0",
-            "progress": 100,
-            "targetId": "3991024138321713621",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -202,20 +194,12 @@ class InstancesTest(common.GCEControllerTest):
                 "/fake_project/zones/nova/instances/i1/reset",
                 method="POST")
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "operationType": "reset",
+            "targetId": "3991024138321713624",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/instances/i1",
-            "operationType": "reset",
-            "id": "0",
-            "progress": 100,
-            "targetId": "3991024138321713624",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -237,20 +221,12 @@ class InstancesTest(common.GCEControllerTest):
                                     body=request_body)
         self.assertEqual(200, response.status_int)
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "operationType": "insert",
+            "targetId": "3991024138321713621",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/instances/i2",
-            "operationType": "insert",
-            "id": "0",
-            "progress": 100,
-            "targetId": "3991024138321713621",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertDictEqual(expected, response.json_body)
 
     def test_add_access_config(self):
@@ -264,20 +240,12 @@ class InstancesTest(common.GCEControllerTest):
             method="POST",
             body=request_body)
         expected = {
-            "status": "DONE",
-            'kind': 'compute#operation',
-            'name': 'stub',
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "operationType": "addAccessConfig",
+            "targetId": "3991024138321713621",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/instances/i2",
-            "operationType": "addAccessConfig",
-            "id": "0",
-            "targetId": "3991024138321713621",
-            "progress": 100,
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -288,19 +256,11 @@ class InstancesTest(common.GCEControllerTest):
             "&networkInterface=private",
             method="POST")
         expected = {
-            "status": "DONE",
-            'kind': 'compute#operation',
-            'name': 'stub',
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "operationType": "deleteAccessConfig",
+            "targetId": "3991024138321713624",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/instances/i1",
-            "operationType": "deleteAccessConfig",
-            "id": "0",
-            "targetId": "3991024138321713624",
-            "progress": 100,
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)

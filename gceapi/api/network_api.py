@@ -17,13 +17,10 @@ from gceapi.api import network_neutron_api
 from gceapi.api import network_nova_api
 
 
-class API(base_api.BaseNetAPI):
+class API(base_api.API):
     """GCE Network API"""
 
-    def __init__(self, *args, **kwargs):
-        super(API, self).__init__(
-            network_neutron_api, network_nova_api, *args, **kwargs)
+    NEUTRON_API_MODULE = network_neutron_api
+    NOVA_API_MODULE = network_nova_api
 
-    def get_public_network_id(self, context):
-        """Get id of public network appointed to GCE in config"""
-        return self._api.get_public_network_id(context)
+    __metaclass__ = base_api.NetSingleton

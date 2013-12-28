@@ -234,18 +234,12 @@ class FirewallsControllerTest(common.GCEControllerTest):
                                     body=request_body)
         self.assertEqual(200, response.status_int)
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
+            "operationType": "insert",
+            "targetId": "8518771050733866051",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/global/firewalls/new-firewall",
-            "operationType": "insert",
-            "id": "0",
-            "progress": 100,
-            "targetId": "8518771050733866051",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub"
         }
+        expected.update(common.COMMON_FINISHED_OPERATION)
         self.assertDictEqual(expected, response.json_body)
         # TODO(apavlov): reanimate this
         #self.assertTrue(self.add_to_instance_was_called)
@@ -269,18 +263,12 @@ class FirewallsControllerTest(common.GCEControllerTest):
                 method="DELETE")
         self.assertEqual(200, response.status_int)
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
+            "operationType": "delete",
+            "targetId": "7536069615864894672",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/global/firewalls/to-delete-firewall",
-            "operationType": "delete",
-            "progress": 100,
-            "id": "0",
-            "targetId": "7536069615864894672",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub"
         }
+        expected.update(common.COMMON_FINISHED_OPERATION)
         self.assertDictEqual(expected, response.json_body)
         # TODO(apavlov): reanimate this
         #self.assertTrue(self.remove_from_instance_was_called)

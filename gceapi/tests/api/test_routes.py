@@ -154,25 +154,19 @@ class RoutesControllerTest(common.GCEControllerTest):
                                     method="POST",
                                     body=request_body)
         expected = {
-            "kind": "compute#operation",
-            "id": "0",
-            "progress": 100,
-            "targetId": "3171351404482340798",
-            "name": "stub",
             "operationType": "insert",
+            "targetId": "3171351404482340798",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/global/routes/custom-internet-route",
-            "status": "DONE",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub",
         }
+        expected.update(common.COMMON_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
     def test_add_custom_route(self):
         request_body = {
             'destRange': '40.81.234.0/24',
-            'name': 'obsolete-route',
+            'name': 'custom-route',
             'network': 'private',
             'nextHopIp': '10.0.0.107',
             'priority': 1000,
@@ -181,18 +175,12 @@ class RoutesControllerTest(common.GCEControllerTest):
                                     method="POST",
                                     body=request_body)
         expected = {
-            "kind": "compute#operation",
-            "id": "0",
-            "progress": 100,
-            "targetId": "3636686940882802837",
-            "name": "stub",
             "operationType": "insert",
+            "targetId": "7622192026776022193",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
-                          "fake_project/global/routes/obsolete-route",
-            "status": "DONE",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub",
+                          "fake_project/global/routes/custom-route",
         }
+        expected.update(common.COMMON_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -235,19 +223,13 @@ class RoutesControllerTest(common.GCEControllerTest):
                 'default-route-734b9c83-3a8b-4350-8fbf-d40f571ee163-internet',
                 method="DELETE")
         expected = {
-            "kind": "compute#operation",
-            "id": "0",
-            "progress": 100,
-            "targetId": "6686112297298011631",
-            "name": "stub",
             "operationType": "delete",
+            "targetId": "6686112297298011631",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/global/routes/default-route-"
                           "734b9c83-3a8b-4350-8fbf-d40f571ee163-internet",
-            "status": "DONE",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub",
         }
+        expected.update(common.COMMON_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -256,18 +238,12 @@ class RoutesControllerTest(common.GCEControllerTest):
                 '/fake_project/global/routes/custom-route-1',
                 method="DELETE")
         expected = {
-            "kind": "compute#operation",
-            "id": "0",
-            "progress": 100,
-            "targetId": "8814469654458772789",
-            "name": "stub",
             "operationType": "delete",
+            "targetId": "8814469654458772789",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/global/routes/custom-route-1",
-            "status": "DONE",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub",
         }
+        expected.update(common.COMMON_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 

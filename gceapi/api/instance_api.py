@@ -69,6 +69,9 @@ class API(base_api.API):
     def _get_type(self):
         return self.KIND
 
+    def _are_api_operations_pending(self):
+        return True
+
     def get_item(self, context, name, scope=None):
         return self.search_items(context, {"name": name}, scope)[0]
 
@@ -76,7 +79,7 @@ class API(base_api.API):
         return self.search_items(context, None, scope)
 
     def get_scopes(self, context, item):
-        return [item["OS-EXT-AZ:availability_zone"]]
+        return [("zone", item["OS-EXT-AZ:availability_zone"])]
 
     def search_items(self, context, search_opts, scope):
         client = clients.nova(context)
@@ -172,7 +175,10 @@ class API(base_api.API):
         instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
-        instances[0].delete()
+        instance = instances[0]
+        instance.delete()
+        instance = utils.to_dict(instance)
+        return self._prepare_instance(client, context, instance)
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']

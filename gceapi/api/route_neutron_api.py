@@ -52,6 +52,9 @@ class API(base_api.API):
     def _get_persistent_attributes(self):
         return self.PERSISTENT_ATTRIBUTES
 
+    def _are_api_operations_pending(self):
+        return False
+
     def get_item(self, context, name, scope=None):
         routes, dummy = self._sync_routes(context)
         return routes[name]
@@ -84,6 +87,7 @@ class API(base_api.API):
                         router["id"],
                         {"router": {"routes": routes, }, })
         self._delete_db_item(context, route)
+        return route
 
     def add_item(self, context, name, body, scope=None):
         routes, dummy = self._sync_routes(context)

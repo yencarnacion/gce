@@ -15,7 +15,6 @@
 from gceapi.api import common as gce_common
 from gceapi.api import machine_type_api
 from gceapi.api import wsgi as gce_wsgi
-from gceapi.api import zone_api
 
 
 class Controller(gce_common.Controller):
@@ -23,7 +22,6 @@ class Controller(gce_common.Controller):
 
     def __init__(self, *args, **kwargs):
         super(Controller, self).__init__(machine_type_api.API(),
-                                         scope_api=zone_api.API(),
                                          *args, **kwargs)
 
     def format_item(self, request, flavor, scope):

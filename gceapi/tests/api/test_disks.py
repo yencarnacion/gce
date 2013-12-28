@@ -175,20 +175,12 @@ class DisksControllerTest(common.GCEControllerTest):
                                     body=request_body)
         self.assertEqual(200, response.status_int)
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "targetId": "5151144363316117590",
+            "operationType": "insert",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/disks/new-disk",
-            "operationType": "insert",
-            "id": "0",
-            "progress": 100,
-            "targetId": "5151144363316117590",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertDictEqual(expected, response.json_body)
         response = self.request_gce(
                 "/fake_project/zones/nova/disks/new-disk")
@@ -206,20 +198,12 @@ class DisksControllerTest(common.GCEControllerTest):
                 body=request_body)
         self.assertEqual(200, response.status_int)
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "operationType": "insert",
+            "targetId": "3094468787955188924",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/disks/new-image-disk",
-            "operationType": "insert",
-            "id": "0",
-            "progress": 100,
-            "targetId": "3094468787955188924",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertDictEqual(expected, response.json_body)
         response = self.request_gce(
                 "/fake_project/zones/nova/disks/new-image-disk")
@@ -240,20 +224,12 @@ class DisksControllerTest(common.GCEControllerTest):
                 body=request_body)
         self.assertEqual(200, response.status_int)
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "operationType": "insert",
+            "targetId": "5322910296130766655",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/disks/new-sn-disk",
-            "operationType": "insert",
-            "id": "0",
-            "progress": 100,
-            "targetId": "5322910296130766655",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertDictEqual(expected, response.json_body)
         response = self.request_gce(
                 "/fake_project/zones/nova/disks/new-sn-disk")
@@ -265,20 +241,12 @@ class DisksControllerTest(common.GCEControllerTest):
                 "/fake_project/zones/nova/disks/disk-to-delete",
                 method="DELETE")
         expected = {
-            "status": "DONE",
-            "kind": "compute#operation",
-            "name": "stub",
-            "zone": "http://localhost/compute/v1beta15/projects/"
-                    "fake_project/zones/nova",
+            "operationType": "delete",
+            "targetId": "7382604722864765133",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/disks/disk-to-delete",
-            "operationType": "delete",
-            "id": "0",
-            "progress": 100,
-            "targetId": "7382604722864765133",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/zones/nova/operations/stub"
         }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 

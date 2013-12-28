@@ -28,14 +28,46 @@ FLAGS = cfg.CONF
 
 
 class Singleton(type):
-    """Singleton metaclass."""
-    _instances = {}
+    """Singleton metaclass.
 
-    def __call__(cls, *args, **kwargs):  # @NoSelf
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls) \
-                .__call__(*args, **kwargs)
-        return cls._instances[cls]
+    KIND must be overriden in classes based on this type.
+    """
+    _instances = {}
+    KIND = ""
+
+    def __call__(self, *args, **kwargs):
+        if not self.KIND:
+            raise NotImplementedError
+        if self.KIND not in self._instances:
+            singleton = super(Singleton, self).__call__(*args, **kwargs)
+            self._instances[self.KIND] = singleton
+        return self._instances[self.KIND]
+
+    @classmethod
+    def get_instance(cls, kind):
+        """Get singleton by name."""
+
+        return cls._instances.get(kind)
+
+
+class NetSingleton(Singleton):
+    """Proxy loader for net depended API.
+
+    NEUTRON_API_MODULE and NOVA_API_MODULE must be overriden in classes
+    based on this type.
+    """
+
+    NEUTRON_API_MODULE = None
+    NOVA_API_MODULE = None
+
+    def __call__(self):
+        net_api = FLAGS.get("network_api")
+        # NOTE(Alex): Initializing proper network singleton
+        if net_api is None or ("quantum" in net_api
+                               or "neutron" in net_api):
+            return self.NEUTRON_API_MODULE.API()
+        else:
+            return self.NOVA_API_MODULE.API()
 
 
 class API(object):
@@ -74,6 +106,11 @@ class API(object):
 
         Should be overriden.
         """
+
+        raise NotImplementedError
+
+    def _are_api_operations_pending(self):
+        """API operations are pending or immediate. Should be overriden."""
 
         raise NotImplementedError
 
@@ -164,59 +201,6 @@ class API(object):
             if item["id"] not in existed_db_items:
                 self._delete_db_item(context, item)
         return only_os_items
-
-
-class BaseScopeAPI(API):
-    """Base class for API which contains other resources."""
-
-    def get_name(self):
-        """Must return name of scope controller."""
-        raise exception.NotFound
-
-    def get_scope_qualifier(self):
-        """Must return name for result dict property."""
-        raise exception.NotFound
-
-
-class BaseNetAPI(API):
-    """Base class for API that uses one of various network api."""
-
-    _api = None
-
-    def __init__(self, neutron_api, nova_api, *args, **kwargs):
-        super(API, self).__init__(*args, **kwargs)
-
-        net_api = FLAGS.get("network_api")
-        # NOTE(Alex): Initializing proper network singleton
-        if net_api is None or ("quantum" in net_api
-                               or "neutron" in net_api):
-            self._api = neutron_api.API()
-        else:
-            self._api = nova_api.API()
-
-    def _get_type(self):
-        return self._api._get_type()
-
-    def get_item(self, context, name, scope=None):
-        return self._api.get_item(context, name, scope)
-
-    def get_items(self, context, scope=None):
-        return self._api.get_items(context, scope)
-
-    def delete_item(self, context, name, scope=None):
-        return self._api.delete_item(context, name, scope)
-
-    def add_item(self, context, name, body, scope=None):
-        return self._api.add_item(context, name, body, scope)
-
-    def get_scopes(self, context, item):
-        return self._api.get_scopes(context, item)
-
-    def _process_callbacks(self, context, reason, item, **kwargs):
-        self._api._process_callback(context, reason, item, kwargs)
-
-    def _register_callback(self, reason, func):
-        self._api._register_callback(reason, func)
 
 
 class _CallbackReasons(object):

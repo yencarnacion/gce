@@ -26,6 +26,9 @@ class API(base_api.API):
     def _get_type(self):
         return self.KIND
 
+    def _are_api_operations_pending(self):
+        return False
+
     def get_item(self, context, name, scope=None):
         project_name = context.project_name
 

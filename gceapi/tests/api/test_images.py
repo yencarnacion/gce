@@ -127,18 +127,12 @@ class ImagesControllerTest(common.GCEControllerTest):
                                     method="POST",
                                     body=request_body)
         expected = {
-            "kind": "compute#operation",
-            "id": "0",
-            "progress": 100,
-            "targetId": "7252430471608041491",
-            "name": "stub",
             "operationType": "insert",
+            "targetId": "7252430471608041491",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/global/images/new-image",
-            "status": "DONE",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub",
         }
+        expected.update(common.COMMON_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -150,18 +144,12 @@ class ImagesControllerTest(common.GCEControllerTest):
         response = self.request_gce(
                 '/fake_project/global/images/image-to-delete', method='DELETE')
         expected = {
-            "kind": "compute#operation",
-            "id": "0",
-            "progress": 100,
-            "targetId": "6451912522928418272",
-            "name": "stub",
             "operationType": "delete",
+            "targetId": "6451912522928418272",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/global/images/image-to-delete",
-            "selfLink": "http://localhost/compute/v1beta15/projects/"
-                        "fake_project/global/operations/stub",
-            "status": "DONE",
         }
+        expected.update(common.COMMON_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 

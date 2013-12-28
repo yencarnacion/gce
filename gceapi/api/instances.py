@@ -17,10 +17,10 @@ import webob
 from gceapi.api import common as gce_common
 from gceapi.api import instance_api
 from gceapi.api import wsgi as gce_wsgi
-from gceapi.api import zone_api
 from gceapi import exception
 
 from gceapi.openstack.common import log as logging
+from gceapi.openstack.common import timeutils
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,6 @@ class Controller(gce_common.Controller):
 
     def __init__(self, *args, **kwargs):
         super(Controller, self).__init__(instance_api.API(),
-                                         scope_api=zone_api.API(),
                                          *args, **kwargs)
 
     def format_item(self, request, instance, scope):
@@ -108,6 +107,7 @@ class Controller(gce_common.Controller):
     def reset_instance(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
+        start_time = timeutils.isotime(None, True)
 
         try:
             self._api.reset_instance(context, scope, id)
@@ -115,24 +115,29 @@ class Controller(gce_common.Controller):
             msg = _("Instance %s could not be found" % id)
             raise webob.exc.HTTPNotFound(explanation=msg)
 
-        return self._format_operation(req, id, "reset", scope)
+        return self._create_operation(req, "reset", scope,
+                                      start_time, id)
 
     def add_access_config(self, req, body, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
+        start_time = timeutils.isotime(None, True)
         self._api.add_access_config(context, body, id, scope,
             req.params.get('networkInterface'))
 
-        return self._format_operation(req, id, "addAccessConfig", scope)
+        return self._create_operation(req, "addAccessConfig", scope,
+                                      start_time, id)
 
     def delete_access_config(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
+        start_time = timeutils.isotime(None, True)
         self._api.delete_access_config(context, id, scope,
            req.params.get('networkInterface'),
            req.params.get('accessConfig'))
 
-        return self._format_operation(req, id, "deleteAccessConfig", scope)
+        return self._create_operation(req, "deleteAccessConfig", scope,
+                                      start_time, id)
 
 
 def create_resource():

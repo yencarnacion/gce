@@ -14,7 +14,6 @@
 
 from gceapi.api import address_api
 from gceapi.api import common as gce_common
-from gceapi.api import region_api
 from gceapi.api import wsgi as gce_wsgi
 
 
@@ -23,9 +22,7 @@ class Controller(gce_common.Controller):
 
     def __init__(self, *args, **kwargs):
         super(Controller, self).__init__(address_api.API(),
-                                         scope_api=region_api.API(),
                                          *args, **kwargs)
-        self._collection_name = "%ses" % self._type_name
 
     def format_item(self, request, floating_ip, scope):
         result_dict = {

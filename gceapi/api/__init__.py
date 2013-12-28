@@ -12,12 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
-import routes
+from oslo.config import cfg
 import webob
 import webob.dec
 import webob.exc
-from oslo.config import cfg
 
 from gceapi.api import addresses
 from gceapi.api import discovery
@@ -28,15 +26,17 @@ from gceapi.api import instances
 from gceapi.api import machine_types
 from gceapi.api import networks
 from gceapi.api import oauth
+from gceapi.api import operations
 from gceapi.api import projects
 from gceapi.api import regions
+from gceapi.api import routes
 from gceapi.api import snapshots
 from gceapi.api import zones
-from gceapi import wsgi_ext as openstack_api
 from gceapi import config
 from gceapi import context
 from gceapi.openstack.common import log as logging
 from gceapi import wsgi
+from gceapi import wsgi_ext as openstack_api
 
 gce_opts = [
         cfg.StrOpt('keystone_gce_url',
@@ -98,6 +98,7 @@ class APIRouter(wsgi.Router):
         self.resources['snapshots'] = snapshots.create_resource()
         self.resources['addresses'] = addresses.create_resource()
         self.resources['routes'] = routes.create_resource()
+        self.resources['operations'] = operations.create_resource()
 
         mapper.resource("disks", "zones/{scope_id}/disks",
                 controller=self.resources['disks'])
@@ -168,6 +169,17 @@ class APIRouter(wsgi.Router):
 
         mapper.resource("snapshots", "global/snapshots",
                 controller=self.resources['snapshots'])
+
+        mapper.resource("operations", "global/operations",
+                controller=self.resources['operations'])
+        mapper.resource("operations", "regions/{scope_id}/operations",
+                controller=self.resources['operations'])
+        mapper.resource("operations", "zones/{scope_id}/operations",
+                controller=self.resources['operations'])
+        mapper.connect("/{project_id}/aggregated/operations",
+                controller=self.resources['operations'],
+                action="aggregated_list",
+                conditions={"method": ["GET"]})
 
 
 class APIRouterOAuth(wsgi.Router):

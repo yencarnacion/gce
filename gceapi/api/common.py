@@ -17,6 +17,8 @@
 import os.path
 from webob import exc
 
+from gceapi.api import base_api
+from gceapi.api import operation_api
 from gceapi import exception
 from gceapi.openstack.common.rpc import common as rpc_common
 from gceapi.openstack.common import timeutils
@@ -36,19 +38,19 @@ class Controller(object):
     _api = None
 
     # Initialization
-    def __init__(self, api, scope_api=None):
+    def __init__(self, api):
         """Base initialization.
 
         Inherited classes should init _api and call super().
         """
 
         self._api = api
-        self._scope_api = scope_api
         self._type_name = self._api._get_type()
-        self._collection_name = "%ss" % self._type_name
+        self._collection_name = get_collection_name(self._type_name)
         self._type_kind = "compute#%s" % self._type_name
         self._list_kind = "compute#%sList" % self._type_name
         self._aggregated_kind = "compute#%sAggregatedList" % self._type_name
+        self._operation_api = operation_api.API()
 
     # Base methods, should be overriden
 
@@ -101,11 +103,11 @@ class Controller(object):
                 continue
 
             scopes = self._api.get_scopes(context, item)
-            for scope_name in scopes:
-                az = os.path.join(self._scope_api.get_name(), scope_name)
+            for scope_type, scope_name in scopes:
+                scope = Scope(scope_type, scope_name)
+                az = scope.get_path()
                 items_by_scope = items_by_scopes.setdefault(
                     az, {self._collection_name: []})[self._collection_name]
-                scope = Scope(self._scope_api.get_name(), scope_name)
                 items_by_scope.append(self.format_item(req, item, scope))
         return self._format_list(req, items_by_scopes,
             Scope.create_aggregated())
@@ -113,25 +115,30 @@ class Controller(object):
     def delete(self, req, id, scope_id=None):
         """GCE delete requests."""
 
+        start_time = timeutils.isotime(None, True)
         try:
             scope = self._get_scope(req, scope_id)
-            self._api.delete_item(self._get_context(req), id, scope)
+            item = self._api.delete_item(self._get_context(req), id, scope)
         except (exception.NotFound, KeyError, IndexError):
             msg = _("Resource '%s' could not be found") % id
             raise exc.HTTPNotFound(explanation=msg)
 
-        return self._format_operation(req, id, "delete", scope)
+        if item is None:
+            return None
+        else:
+            return self._create_operation(req, "delete", scope, start_time,
+                                          item["name"], item["id"])
 
     def create(self, req, body, scope_id=None):
         """GCE add requests."""
 
-        name = body['name']
+        start_time = timeutils.isotime(None, True)
         try:
             scope = self._get_scope(req, scope_id)
             item = self._api.add_item(
-                self._get_context(req), name, body, scope)
-            return self._format_operation(
-                req, item["name"], "insert", scope)
+                self._get_context(req), body['name'], body, scope)
+            return self._create_operation(req, "insert", scope, start_time,
+                                          item["name"], item["id"])
         except rpc_common.RemoteError as err:
             raise exc.HTTPInternalServerError(explanation=err.message)
 
@@ -141,10 +148,13 @@ class Controller(object):
 
     def _get_scope(self, req, scope_id):
         scope = Scope.construct(req, scope_id)
-        if scope and self._scope_api:
+        if scope is None:
+            return
+        scope_api = scope.get_scope_api()
+        if scope_api is not None:
             try:
                 context = self._get_context(req)
-                self._scope_api.get_item(context, scope.get_name(), None)
+                scope_api.get_item(context, scope.get_name(), None)
             except ValueError as ex:
                 raise exc.HTTPNotFound(detail=ex)
 
@@ -194,32 +204,54 @@ class Controller(object):
                 result = os.path.join(result, identifier)
         return result
 
-    def _format_operation(self, request, item_id, op_type, scope):
-        target_link = self._qualify(request, self._collection_name,
-                                    item_id, scope)
-        op_scope = scope if scope else Scope.create_global()
-        self_link = self._qualify(request, "operations", "stub", op_scope)
-        result_dict = {
-           "kind": "compute#operation",
-           "id": "0",
-           "name": "stub",
-           "status": "DONE",
-           "selfLink": self_link,
-           "targetLink": target_link,
-           "targetId": self._get_id(target_link),
-           "operationType": op_type,
-           "progress": 100,
+    def _create_operation(self, request, op_type, scope, start_time,
+                          item_name, item_id=None):
+        operation = {
+            "type": op_type,
+            "start_time": start_time,
+            "target_type": self._type_name,
+            "target_name": item_name,
         }
-        if self._scope_api is not None:
-            scope_name = self._scope_api.get_scope_qualifier()
-            result_dict[scope_name] = self._qualify(request,
-                scope.get_type(), scope.get_name(), None)
+        if item_id is not None:
+            operation["target_id"] = item_id
+        #scope = scope if scope else Scope.create_global()
+        operation = self._operation_api._add_item(self._get_context(request),
+                                                  operation, scope)
+        operation = self._format_operation(request, operation, scope)
+        return operation
+
+    def _format_operation(self, request, operation, scope):
+        result_dict = {
+            "name": operation["name"],
+            "operationType": operation["type"],
+            "insertTime": operation["insert_time"],
+            "startTime": operation["start_time"],
+            "status": operation["status"],
+            "progress": operation["progress"],
+            "user": operation["user"],
+            "kind": "compute#%s" % self._operation_api._get_type(),
+        }
+        result_dict["targetLink"] = self._qualify(
+                request, get_collection_name(operation["target_type"]),
+                operation["target_name"], scope)
+        result_dict["targetId"] = self._get_id(result_dict["targetLink"])
+        if scope is not None and scope.get_name() is not None:
+            result_dict[scope.get_type()] = self._qualify(request,
+                scope.get_collection(), scope.get_name(), None)
+        result_dict["selfLink"] = self._qualify(
+                request,
+                get_collection_name(self._operation_api._get_type()),
+                result_dict["name"],
+                scope if scope is not None else Scope.create_global())
+        result_dict["id"] = self._get_id(result_dict["selfLink"])
+        if "end_time" in operation:
+            result_dict["endTime"] = operation["end_time"]
         return result_dict
 
     def _format_item(self, request, result_dict, scope):
-        if self._scope_api is not None:
-            result_dict[self._scope_api.get_scope_qualifier()] = self._qualify(
-                request, scope.get_type(), scope.get_name(), None)
+        if scope is not None and scope.get_name() is not None:
+            result_dict[scope.get_type()] = self._qualify(
+                request, scope.get_collection(), scope.get_name(), None)
         result_dict["kind"] = self._type_kind
         result_dict["selfLink"] = self._qualify(request,
             self._collection_name, result_dict.get("name"), scope)
@@ -252,6 +284,7 @@ class Scope(object):
 
     _type = None
     _name = None
+    _collection = None
 
     @classmethod
     def create_global(cls):
@@ -263,11 +296,11 @@ class Scope(object):
 
     @classmethod
     def create_zone(cls, zone_name):
-        return Scope("zones", zone_name)
+        return Scope("zone", zone_name)
 
     @classmethod
     def create_region(cls, region_name):
-        return Scope("regions", region_name)
+        return Scope("region", region_name)
 
     @classmethod
     def construct(self, req, scope_id):
@@ -277,16 +310,22 @@ class Scope(object):
             raise exc.HTTPBadRequest(comment="Bad path %s" % req.path_info)
         if path_count < 3:
             return None
-        scope_type = path_info[1]
-        if scope_type in ("zones", "regions") and scope_id is None:
+        path_item = path_info[1]
+        if path_item in ("zones", "regions") and scope_id is None:
             return None
-        if scope_type in ("zones", "regions", "global", "aggregated"):
-            return Scope(scope_type, scope_id)
+        if path_item == "zones":
+            return self.create_zone(scope_id)
+        elif path_item == "regions":
+            return self.create_region(scope_id)
+        elif path_item in ("global", "aggregated"):
+            return Scope(path_item, None)
         raise exc.HTTPBadRequest(comment="Bad path %s" % req.path_info)
 
     def __init__(self, scope_type, scope_name):
         self._type = scope_type
         self._name = scope_name
+        if scope_name is not None:
+            self._collection = get_collection_name(self._type)
 
     def is_aggregated(self):
         return self._type == "aggregated"
@@ -297,8 +336,23 @@ class Scope(object):
     def get_name(self):
         return self._name
 
+    def get_collection(self):
+        return self._collection
+
     def get_path(self):
-        result = self._type
-        if self._name:
-            result = os.path.join(result, self._name)
-        return result
+        if self._collection is not None:
+            return "/".join([self._collection, self._name])
+        else:
+            return self._type
+
+    def get_scope_api(self):
+        base_api.Singleton.get_instance(self.get_type())
+
+
+def get_collection_name(type_name):
+    if type_name == "project":
+        return None
+    elif type_name.endswith("s"):
+        return "%ses" % type_name
+    else:
+        return "%ss" % type_name
