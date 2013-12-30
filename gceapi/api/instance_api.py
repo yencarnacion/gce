@@ -34,8 +34,10 @@ class API(base_api.API):
     """GCE Instance API"""
 
     KIND = "instance"
-    DEFAULT_ACCESS_CONFIG_NAME = "External NAT"
+    PERSISTENT_ATTRIBUTES = ["id", "description"]
     DEFAULT_ACCESS_CONFIG_TYPE = "ONE_TO_ONE_NAT"
+    # TODO(apavlov): remove this line
+    DEFAULT_ACCESS_CONFIG_NAME = "External NAT"
 
     # NOTE(apavlov): Instance status. One of the following values:
     # \"PROVISIONING\", \"STAGING\", \"RUNNING\",
@@ -69,6 +71,9 @@ class API(base_api.API):
     def _get_type(self):
         return self.KIND
 
+    def _get_persistent_attributes(self):
+        return self.PERSISTENT_ATTRIBUTES
+
     def _are_api_operations_pending(self):
         return True
 
@@ -91,6 +96,8 @@ class API(base_api.API):
             or scope.get_name() == iscope):
                 instance = utils.to_dict(instance)
                 instance = self._prepare_instance(client, context, instance)
+                db_instance = self._get_db_item_by_id(context, instance["id"])
+                self._prepare_item(instance, db_instance)
                 filtered_instances.append(instance)
 
         return filtered_instances
@@ -178,12 +185,12 @@ class API(base_api.API):
         instance = instances[0]
         instance.delete()
         instance = utils.to_dict(instance)
-        return self._prepare_instance(client, context, instance)
+        instance = self._prepare_instance(client, context, instance)
+        self._delete_db_item(context, instance)
+        return instance
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']
-        # TODO(apavlov): store description somewhere
-        #description = body.get('description')
         client = clients.nova(context)
 
         flavor_name = utils._extract_name_from_url(body['machineType'])
@@ -242,8 +249,11 @@ class API(base_api.API):
             availability_zone=scope.get_name(), block_device_mapping=bdm,
             nics=nics)
 
-        instance = instance = client.servers.get(instance.id)
-        return self._prepare_instance(client, context, utils.to_dict(instance))
+        instance = utils.to_dict(client.servers.get(instance.id))
+        instance = self._prepare_instance(client, context, instance)
+        instance["description"] = body.get("description", "")
+        instance = self._add_db_item(context, instance)
+        return instance
 
     def add_access_config(self, context,
                           body, item_id, scope, network_interface):

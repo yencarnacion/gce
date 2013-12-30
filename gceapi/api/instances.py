@@ -48,8 +48,7 @@ class Controller(gce_common.Controller):
             },
         }
 
-        # TODO(apavlov): implement db storing
-        description = instance.get("description")
+        description = instance.get("description", "")
         if description:
             result_dict["description"] = description
 
