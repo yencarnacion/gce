@@ -68,8 +68,6 @@ class API(base_api.API):
         gce_networks = self._get_db_items_dict(context)
         result_networks = []
         for network in networks:
-            if network["tenant_id"] != context.project_id:
-                continue
             network = self._prepare_network(client, network,
                                             gce_networks.get(network["id"]))
             result_networks.append(network)
