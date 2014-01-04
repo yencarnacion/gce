@@ -25,8 +25,7 @@ EXPECTED_INSTANCES = [{
     "status": "RUNNING",
     "statusMessage": "active",
     "name": "i1",
-    # TODO(apavlov): implement db storing
-    #"description": "i1",
+    "description": "i1 description",
     "machineType": "http://localhost/compute/v1beta15/projects/fake_project"
         "/zones/nova/machineTypes/m1-small",
     "networkInterfaces": [{
@@ -37,7 +36,7 @@ EXPECTED_INSTANCES = [{
         "accessConfigs": [{
             "kind": "compute#accessConfig",
             "type": "ONE_TO_ONE_NAT",
-            "name": "External NAT",
+            "name": "ip for i1",
             "natIP": "192.168.138.196"
         }]
     }],
@@ -66,8 +65,7 @@ EXPECTED_INSTANCES = [{
     "status": "STOPPED",
     "statusMessage": "suspended",
     "name": "i2",
-    # TODO(apavlov): implement db storing
-    #"description": "i2",
+    "description": "i2 description",
     "machineType": "http://localhost/compute/v1beta15/projects/fake_project"
         "/zones/nova/machineTypes/m1-large",
     "networkInterfaces": [{
@@ -125,10 +123,13 @@ class InstancesTest(common.GCEControllerTest):
                 "id": "projects/fake_project/zones/nova/instances",
                 "selfLink": "http://localhost/compute/v1beta15/projects"
                     "/fake_project/zones/nova/instances",
-                "items": EXPECTED_INSTANCES
                 }
 
-        self.assertEqual(response.json_body, expected)
+        response_body = copy.deepcopy(response.json_body)
+        instances = response_body.pop("items")
+        self.assertDictEqual(response_body, expected)
+        self.assertDictEqual(instances[0], EXPECTED_INSTANCES[0])
+        self.assertDictEqual(instances[1], EXPECTED_INSTANCES[1])
 
     def test_get_instance_aggregated_list_filtered(self):
         response = self.request_gce("/fake_project/aggregated/instances"
@@ -166,7 +167,6 @@ class InstancesTest(common.GCEControllerTest):
         response_body = copy.deepcopy(response.json_body)
         instances = response_body["items"]["zones/nova"].pop("instances")
         self.assertDictEqual(response_body, expected)
-        self.assertEqual(len(instances), 2)
         self.assertDictInListBySelfLink(EXPECTED_INSTANCES[0], instances)
         self.assertDictInListBySelfLink(EXPECTED_INSTANCES[1], instances)
 
@@ -205,15 +205,29 @@ class InstancesTest(common.GCEControllerTest):
 
     def test_create_instance(self):
         request_body = {
-            "name": "i2",
+            "name": "i3",
             "description": "inst01descr",
-            "machineType": "http://localhost/compute/v1beta15/projects/admin"
+            "machineType": "http://localhost/compute/v1beta15/projects/"
                 "fake_project/zones/nova/m1-small",
-            "image": "http://localhost/compute/v1beta15/projects/admin"
-                "fake_project/global/fake-image-1",
-            'networkInterfaces': [{
-                'network': ("http://localhost/compute/v1beta15/projects"
-                    "/admin/fake_project/global/private")
+            "disks": [{
+                "kind": "compute#attachedDisk",
+                "boot": True,
+                "type": "PERSISTENT",
+                "mode": "READ_WRITE",
+                "deviceName": "",
+                "zone": "http://localhost/compute/v1beta15/projects/"
+                    "fake_project/zones/nova",
+                "source": "http://localhost/compute/v1beta15/projects/"
+                    "fake_project/zones/nova/disks/fake-disk-1"
+            }],
+            "networkInterfaces": [{
+                "kind": "compute#instanceNetworkInterface",
+                "network": ("http://localhost/compute/v1beta15/projects"
+                    "/admin/fake_project/global/private"),
+                "accessConfigs": [{
+                    "name": "ip for i3",
+                    "type": "ONE_TO_ONE_NAT"
+                }]
             }],
         }
         response = self.request_gce("/fake_project/zones/nova/instances",
@@ -222,16 +236,16 @@ class InstancesTest(common.GCEControllerTest):
         self.assertEqual(200, response.status_int)
         expected = {
             "operationType": "insert",
-            "targetId": "3991024138321713621",
+            "targetId": "3991024138321713622",
             "targetLink": "http://localhost/compute/v1beta15/projects/"
-                          "fake_project/zones/nova/instances/i2",
+                          "fake_project/zones/nova/instances/i3",
         }
         expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertDictEqual(expected, response.json_body)
 
     def test_add_access_config(self):
         request_body = {
-            "name": "External NAT",
+            "name": "ip for i2",
             "type": "ONE_TO_ONE_NAT",
             "natIP": "192.168.138.195"
         }
@@ -252,7 +266,7 @@ class InstancesTest(common.GCEControllerTest):
     def test_delete_access_config(self):
         response = self.request_gce("/fake_project/zones/nova/"
             "instances/i1/deleteAccessConfig"
-            "?accessConfig=External NAT"
+            "?accessConfig=ip for i1"
             "&networkInterface=private",
             method="POST")
         expected = {

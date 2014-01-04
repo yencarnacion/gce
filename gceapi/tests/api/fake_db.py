@@ -45,6 +45,25 @@ ITEMS = [
         "creationTimestamp": "2013-12-25T09:05:07.396957Z",
         "description": "route for 40.81.234.0/24",
     },
+    {
+        "kind": "instance",
+        "id": "d6957005-3ce7-4727-91d2-ae37fe5a199a",
+        "description": "i1 description",
+    },
+    {
+        "kind": "instance",
+        "id": "6472359b-d46b-4629-83a9-d2ec8d99468c",
+        "description": "i2 description",
+    },
+    {
+        "kind": "access_config",
+        "id": "i1-192.168.138.196",
+        "instance_name": "i1",
+        "nic": "private",
+        "name": "ip for i1",
+        "type": "ONE_TO_ONE_NAT",
+        "addr": "192.168.138.196"
+    }
 ]
 
 

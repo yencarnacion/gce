@@ -18,6 +18,7 @@ import uuid
 
 from novaclient.client import exceptions as nova_exc
 
+from gceapi.api import base_api
 from gceapi.tests.api import fake_request
 from gceapi.tests.api import utils
 
@@ -394,6 +395,52 @@ FAKE_INSTANCES = [{
 }]
 
 
+FAKE_NEW_INSTANCE = {
+    "OS-DCF:diskConfig": "MANUAL",
+    "OS-EXT-AZ:availability_zone": "nova",
+    "OS-EXT-SRV-ATTR:host": "apavlov-VirtualBox",
+    "OS-EXT-SRV-ATTR:hypervisor_hostname": "apavlov-VirtualBox",
+    "OS-EXT-SRV-ATTR:instance_name": "instance-00000003",
+    "OS-EXT-STS:task_state": None,
+    "OS-EXT-STS:vm_state": "active",
+    "OS-EXT-STS:power_state": 1,
+    "OS-SRV-USG:terminated_at": None,
+    "OS-SRV-USG:launched_at": "2013-08-14T13:47:11.000000",
+    "addresses": {
+        "private": [{
+            "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:ea:ae:55",
+            "version": 4,
+            "addr": "10.100.0.4",
+            "OS-EXT-IPS:type": "fixed"
+        }]
+    },
+    "flavor": {
+        "id": "4",
+    },
+    "id": "6472359b-3333-3333-3333-d2ec8d99468c",
+    "security_groups": [{
+        "name": "default"
+    }],
+    "name": "i2",
+    "status": "active",
+    "created": "2013-08-14T13:46:36Z",
+    "updated": "2013-08-14T13:47:11Z",
+    "user_id": "0ed9ed7b2004443f802142ecf364738b",
+    "accessIPv4": "",
+    "accessIPv6": "",
+    "progress": 0,
+    "config_drive": "",
+    "hostId": "cbf5e76abf66aa4363dbf17cfe0305093d903fe10389210856d85585",
+    "key_name": None,
+    "networks": {
+        "default": ["10.100.0.3"]
+    },
+    "tenant_id": fake_request.PROJECT_ID,
+    "os-extended-volumes:volumes_attached": [],
+    "metadata": {}
+}
+
+
 FAKE_FLOATING_IPS = [utils.FakeObject({
     "instance_id": None,
     "ip": "192.168.138.195",
@@ -584,8 +631,9 @@ class FakeServers(object):
                block_device_mapping=None, block_device_mapping_v2=None,
                nics=None, scheduler_hints=None,
                config_drive=None, disk_config=None, **kwargs):
-        instance = copy.deepcopy(self._fake_instances[1])
+        instance = copy.deepcopy(FakeServer(self, FAKE_NEW_INSTANCE))
         instance.name = name
+        self._fake_instances.append(instance)
         return instance
 
     def add_floating_ip(self, server, address, fixed_address=None):
@@ -666,7 +714,12 @@ class FakeLimits(object):
 
 
 class FakeNovaClient(object):
+
+    KIND = "fake_novaclient"
+    __metaclass__ = base_api.Singleton
+
     def __init__(self, version, *args, **kwargs):
+        self._servers = None
         self._security_group = None
 
     @property
@@ -687,7 +740,9 @@ class FakeNovaClient(object):
 
     @property
     def servers(self):
-        return FakeServers()
+        if self._servers is None:
+            self._servers = FakeServers()
+        return self._servers
 
     @property
     def security_groups(self):
