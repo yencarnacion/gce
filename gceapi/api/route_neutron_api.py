@@ -372,7 +372,7 @@ class API(base_api.API):
             "description": "Default route to the virtual network.",
             "network": network,
             "port": None,
-            "destination": network["IPv4Range"],
+            "destination": network.get("IPv4Range", ""),
             "nexthop": None,
             "is_default": True,
         }

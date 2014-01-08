@@ -61,7 +61,7 @@ EXPECTED_PROJECT = {
         "limit": 50.0
     },
     {
-        "usage": 3.0,
+        "usage": 2.0,
         "metric": "NETWORKS",
         "limit": 10.0
     }

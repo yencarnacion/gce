@@ -164,14 +164,9 @@ class FakeNeutronClient(object):
         pass
 
     def list_networks(self, **search_opts):
-        name_filter = search_opts.get("name")
-        if name_filter is not None:
-            for network in FAKE_NETWORKS["networks"]:
-                if network["name"] == name_filter:
-                    return {"networks": [network]}
-            return {"networks": []}
-        else:
-            return FAKE_NETWORKS
+        networks = [copy.deepcopy(r) for r in FAKE_NETWORKS["networks"]
+                    if all(r.get(a) == search_opts[a] for a in search_opts)]
+        return {"networks": networks}
 
     def show_subnet(self, subnet_id):
         for subnet in FAKE_SUBNETS:
