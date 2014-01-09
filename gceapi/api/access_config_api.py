@@ -169,8 +169,8 @@ class API(base_api.API):
         item = self.get_item(context, instance_name, name)
         self._delete_db_item(context, item)
 
-    def get_add_item_progress(self, context, name, snapshot_id, scope):
+    def get_add_item_progress(self, context, name, dummy_id, scope):
         return {"progress": 100}
 
-    def get_delete_item_progress(self, context, name, snapshot_id, scope):
+    def get_delete_item_progress(self, context, name, dummy_id, scope):
         return {"progress": 100}

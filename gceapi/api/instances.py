@@ -15,6 +15,7 @@
 import webob
 
 from gceapi.api import access_config_api
+from gceapi.api import attached_disk_api
 from gceapi.api import common as gce_common
 from gceapi.api import instance_api
 from gceapi.api import scopes
@@ -34,6 +35,7 @@ class Controller(gce_common.Controller):
         super(Controller, self).__init__(instance_api.API(),
                                          *args, **kwargs)
         self._access_config_api = access_config_api.API()
+        self._attached_disk_api = attached_disk_api.API()
 
     def format_item(self, request, instance, scope):
         result_dict = {
@@ -148,20 +150,25 @@ class Controller(gce_common.Controller):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
         start_time = timeutils.isotime(None, True)
-        self._api.attach_disk(context, body, id, scope)
+
+        disk = self._attached_disk_api.add_item(context, id,
+            name=body.get("deviceName"), source=body["source"])
 
         return self._create_operation(req, "attachDisk", scope,
-                                      start_time, id)
+                                      start_time, disk["id"],
+                                      self._attached_disk_api.add_item)
 
     def detach_disk(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
         start_time = timeutils.isotime(None, True)
-        self._api.detach_disk(context, id, scope,
+
+        disk = self._attached_disk_api.delete_item(context, id,
             req.params.get('deviceName'))
 
         return self._create_operation(req, "detachDisk", scope,
-                                      start_time, id)
+                                      start_time, disk["id"],
+                                      self._attached_disk_api.delete_item)
 
 
 def create_resource():

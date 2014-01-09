@@ -341,12 +341,3 @@ class API(base_api.API):
         if (len(instances) == 0 or
                 instances[0].status not in ["stopped", "paused", "suspended"]):
             return {"progress": 100}
-
-    def attach_disk(self, context, body, item_id, scope):
-        volume_name = utils._extract_name_from_url(body["source"])
-        volume = disk_api.API().get_item(context, volume_name, scope)
-        attached_disk_api.API().add_item(context, item_id,
-            name=body.get("deviceName"), volume_id=volume["id"])
-
-    def detach_disk(self, context, item_id, scope, device_name):
-        attached_disk_api.API().delete_item(context, item_id, device_name)
