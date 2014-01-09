@@ -26,7 +26,6 @@ inline callbacks.
 import os
 import shutil
 import sys
-import uuid
 
 import eventlet
 import fixtures
@@ -35,22 +34,18 @@ from oslo.config import cfg
 import stubout
 import testtools
 
-from gceapi import context
-from gceapi import db
-from gceapi.db import migration
-from gceapi.openstack.common.db.sqlalchemy import session
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import timeutils
 from gceapi import paths
-from gceapi import service
-#from gceapi.tests import conf_fixture
-#from gceapi.tests import policy_fixture
 
 
 test_opts = [
     cfg.StrOpt('sqlite_clean_db',
                default='clean.sqlite',
                help='File name of clean sqlite db'),
+    cfg.StrOpt('network_api',
+               default="neutron",
+               help='Name of network API. neutron(quantum) or nova'),
     ]
 
 CONF = cfg.CONF
@@ -108,40 +103,6 @@ class Database(fixtures.Fixture):
                             paths.state_path_rel(self.sqlite_db))
 
 
-class ReplaceModule(fixtures.Fixture):
-    """Replace a module with a fake module."""
-
-    def __init__(self, name, new_value):
-        self.name = name
-        self.new_value = new_value
-
-    def _restore(self, old_value):
-        sys.modules[self.name] = old_value
-
-    def setUp(self):
-        super(ReplaceModule, self).setUp()
-        old_value = sys.modules.get(self.name)
-        sys.modules[self.name] = self.new_value
-        self.addCleanup(self._restore, old_value)
-
-
-class ServiceFixture(fixtures.Fixture):
-    """Run a service as a test fixture."""
-
-    def __init__(self, name, host=None, **kwargs):
-        name = name
-        host = host and host or uuid.uuid4().hex
-        kwargs.setdefault('host', host)
-        kwargs.setdefault('binary', 'gceapi-%s' % name)
-        self.kwargs = kwargs
-
-    def setUp(self):
-        super(ServiceFixture, self).setUp()
-        self.service = service.Service.create(**self.kwargs)
-        self.service.start()
-        self.addCleanup(self.service.kill)
-
-
 class MoxStubout(fixtures.Fixture):
     """Deal with code around mox and stubout as a fixture."""
 
@@ -155,10 +116,6 @@ class MoxStubout(fixtures.Fixture):
         self.addCleanup(self.stubs.UnsetAll)
         self.addCleanup(self.stubs.SmartUnsetAll)
         self.addCleanup(self.mox.VerifyAll)
-
-
-class TestingException(Exception):
-    pass
 
 
 class TestCase(testtools.TestCase):
@@ -188,22 +145,12 @@ class TestCase(testtools.TestCase):
             self.useFixture(fixtures.MonkeyPatch('sys.stderr', stderr))
 
         self.log_fixture = self.useFixture(fixtures.FakeLogger('gceapi'))
-        #self.useFixture(conf_fixture.ConfFixture(CONF))
-
-#         global _DB_CACHE
-#         if not _DB_CACHE:
-#             _DB_CACHE = Database(session, migration,
-#                                  sql_connection=CONF.database.connection,
-#                                  sqlite_db=CONF.sqlite_db,
-#                                  sqlite_clean_db=CONF.sqlite_clean_db)
-#         self.useFixture(_DB_CACHE)
 
         mox_fixture = self.useFixture(MoxStubout())
         self.mox = mox_fixture.mox
         self.stubs = mox_fixture.stubs
         self.addCleanup(self._clear_attrs)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
-#         self.policy = self.useFixture(policy_fixture.PolicyFixture())
         CONF.set_override('fatal_exception_format_errors', True)
 
     def _clear_attrs(self):
@@ -218,31 +165,3 @@ class TestCase(testtools.TestCase):
         group = kw.pop('group', None)
         for k, v in kw.iteritems():
             CONF.set_override(k, v, group)
-
-    def start_service(self, name, host=None, **kwargs):
-        svc = self.useFixture(ServiceFixture(name, host, **kwargs))
-        return svc.service
-
-
-class APICoverage(object):
-
-    cover_api = None
-
-    def test_api_methods(self):
-        self.assertTrue(self.cover_api is not None)
-        api_methods = [x for x in dir(self.cover_api)
-                       if not x.startswith('_')]
-        test_methods = [x[5:] for x in dir(self)
-                        if x.startswith('test_')]
-        self.assertThat(
-            test_methods,
-            testtools.matchers.ContainsAll(api_methods))
-
-
-class TimeOverride(fixtures.Fixture):
-    """Fixture to start and remove time override."""
-
-    def setUp(self):
-        super(TimeOverride, self).setUp()
-        timeutils.set_time_override()
-        self.addCleanup(timeutils.clear_time_override)

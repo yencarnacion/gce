@@ -47,7 +47,7 @@ EXPECTED_INSTANCES = [{
         "mode": "READ_WRITE",
         "source": "http://localhost/compute/v1beta15/projects/fake_project"
             "/zones/nova/disks/i1",
-        "deviceName": "vdc",
+        "deviceName": "christmas-tree",
         "boot": True,
     }],
     "metadata": {
@@ -214,7 +214,7 @@ class InstancesTest(common.GCEControllerTest):
                 "boot": True,
                 "type": "PERSISTENT",
                 "mode": "READ_WRITE",
-                "deviceName": "",
+                "deviceName": "vda",
                 "zone": "http://localhost/compute/v1beta15/projects/"
                     "fake_project/zones/nova",
                 "source": "http://localhost/compute/v1beta15/projects/"

@@ -90,7 +90,6 @@ class GCEControllerTest(test.TestCase):
     _APIRouter = None
 
     def setUp(self):
-        cfg.CONF.set_override('network_api', 'neutron')
         super(GCEControllerTest, self).setUp()
         self.maxDiff = None
 

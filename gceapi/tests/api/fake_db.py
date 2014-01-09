@@ -63,6 +63,13 @@ ITEMS = [
         "name": "ip for i1",
         "type": "ONE_TO_ONE_NAT",
         "addr": "192.168.138.196"
+    },
+    {
+        "kind": "attached_disk",
+        "id": "i1-ab8829ad-eec1-44a2-8068-d7f00c53ee90",
+        "instance_name": "i1",
+        "name": "christmas-tree",
+        "volume_id": "ab8829ad-eec1-44a2-8068-d7f00c53ee90"
     }
 ]
 

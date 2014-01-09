@@ -19,7 +19,6 @@
 
 """RequestContext: context for requests that persist through all of gceapi."""
 
-import copy
 import uuid
 
 from gceapi import exception
@@ -125,19 +124,6 @@ class RequestContext(object):
     def from_dict(cls, values):
         return cls(**values)
 
-    def elevated(self, read_deleted=None, overwrite=False):
-        """Return a version of this context with admin flag set."""
-        context = copy.copy(self)
-        context.is_admin = True
-
-        if 'admin' not in context.roles:
-            context.roles.append('admin')
-
-        if read_deleted is not None:
-            context.read_deleted = read_deleted
-
-        return context
-
     # NOTE(sirp): the openstack/common version of RequestContext uses
     # tenant/user whereas the gceapi version uses project_id/user_id. We need
     # this shim in order to use context-aware code from openstack/common, like
@@ -152,14 +138,6 @@ class RequestContext(object):
         return self.user_id
 
 
-def get_admin_context(read_deleted="no"):
-    return RequestContext(user_id=None,
-                          project_id=None,
-                          is_admin=True,
-                          read_deleted=read_deleted,
-                          overwrite=False)
-
-
 def is_user_context(context):
     """Indicates if the request context is a normal user."""
     if not context:
@@ -171,33 +149,9 @@ def is_user_context(context):
     return True
 
 
-def require_admin_context(ctxt):
-    """Raise exception.AdminRequired() if context is an admin context."""
-    if not ctxt.is_admin:
-        raise exception.AdminRequired()
-
-
 def require_context(ctxt):
     """Raise exception.NotAuthorized() if context is not a user or an
     admin context.
     """
     if not ctxt.is_admin and not is_user_context(ctxt):
         raise exception.NotAuthorized()
-
-
-def authorize_project_context(context, project_id):
-    """Ensures a request has permission to access the given project."""
-    if is_user_context(context):
-        if not context.project_id:
-            raise exception.NotAuthorized()
-        elif context.project_id != project_id:
-            raise exception.NotAuthorized()
-
-
-def authorize_user_context(context, user_id):
-    """Ensures a request has permission to access the given user."""
-    if is_user_context(context):
-        if not context.user_id:
-            raise exception.NotAuthorized()
-        elif context.user_id != user_id:
-            raise exception.NotAuthorized()

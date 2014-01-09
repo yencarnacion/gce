@@ -19,9 +19,6 @@
 
 """Generic Node base class for all workers that run on hosts."""
 
-import inspect
-import os
-import random
 import signal
 import sys
 
@@ -29,13 +26,10 @@ import eventlet
 import greenlet
 from oslo.config import cfg
 
-from gceapi import context
-from gceapi import exception
 from gceapi.openstack.common import eventlet_backdoor
 from gceapi.openstack.common import importutils
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import rpc
-from gceapi import version
 from gceapi import wsgi
 
 LOG = logging.getLogger(__name__)
@@ -164,201 +158,6 @@ class ServiceLauncher(Launcher):
 
         if status is not None:
             sys.exit(status)
-
-
-class Service(object):
-    """Service object for binaries running on hosts.
-
-    A service takes a manager and enables rpc by listening to queues based
-    on topic. It also periodically runs tasks on the manager and reports
-    it state to the database services table."""
-
-    def __init__(self, host, binary, topic, manager, report_interval=None,
-                 periodic_enable=None, periodic_fuzzy_delay=None,
-                 periodic_interval_max=None, db_allowed=True,
-                 *args, **kwargs):
-        self.host = host
-        self.binary = binary
-        self.topic = topic
-        self.manager_class_name = manager
-        # NOTE(russellb) We want to make sure to create the servicegroup API
-        # instance early, before creating other things such as the manager,
-        # that will also create a servicegroup API instance.  Internally, the
-        # servicegroup only allocates a single instance of the driver API and
-        # we want to make sure that our value of db_allowed is there when it
-        # gets created.  For that to happen, this has to be the first instance
-        # of the servicegroup API.
-        self.servicegroup_api = servicegroup.API(db_allowed=db_allowed)
-        manager_class = importutils.import_class(self.manager_class_name)
-        self.manager = manager_class(host=self.host, *args, **kwargs)
-        self.report_interval = report_interval
-        self.periodic_enable = periodic_enable
-        self.periodic_fuzzy_delay = periodic_fuzzy_delay
-        self.periodic_interval_max = periodic_interval_max
-        self.saved_args, self.saved_kwargs = args, kwargs
-        self.timers = []
-        self.backdoor_port = None
-        self.conductor_api = conductor.API(use_local=db_allowed)
-        self.conductor_api.wait_until_ready(context.get_admin_context())
-
-    def start(self):
-        verstr = version.version_string_with_package()
-        LOG.audit(_('Starting %(topic)s node (version %(version)s)'),
-                  {'topic': self.topic, 'version': verstr})
-        self.basic_config_check()
-        self.manager.init_host()
-        self.model_disconnected = False
-        ctxt = context.get_admin_context()
-        try:
-            self.service_ref = self.conductor_api.service_get_by_args(ctxt,
-                    self.host, self.binary)
-            self.service_id = self.service_ref['id']
-        except exception.NotFound:
-            self.service_ref = self._create_service_ref(ctxt)
-
-        if self.backdoor_port is not None:
-            self.manager.backdoor_port = self.backdoor_port
-
-        self.conn = rpc.create_connection(new=True)
-        LOG.debug(_("Creating Consumer connection for Service %s") %
-                  self.topic)
-
-        self.manager.pre_start_hook(rpc_connection=self.conn)
-
-        rpc_dispatcher = self.manager.create_rpc_dispatcher()
-
-        # Share this same connection for these Consumers
-        self.conn.create_consumer(self.topic, rpc_dispatcher, fanout=False)
-
-        node_topic = '%s.%s' % (self.topic, self.host)
-        self.conn.create_consumer(node_topic, rpc_dispatcher, fanout=False)
-
-        self.conn.create_consumer(self.topic, rpc_dispatcher, fanout=True)
-
-        # Consume from all consumers in a thread
-        self.conn.consume_in_thread()
-
-        self.manager.post_start_hook()
-
-        LOG.debug(_("Join ServiceGroup membership for this service %s")
-                  % self.topic)
-        # Add service to the ServiceGroup membership group.
-        pulse = self.servicegroup_api.join(self.host, self.topic, self)
-        if pulse:
-            self.timers.append(pulse)
-
-        if self.periodic_enable:
-            if self.periodic_fuzzy_delay:
-                initial_delay = random.randint(0, self.periodic_fuzzy_delay)
-            else:
-                initial_delay = None
-
-            periodic = utils.DynamicLoopingCall(self.periodic_tasks)
-            periodic.start(initial_delay=initial_delay,
-                           periodic_interval_max=self.periodic_interval_max)
-            self.timers.append(periodic)
-
-    def _create_service_ref(self, context):
-        svc_values = {
-            'host': self.host,
-            'binary': self.binary,
-            'topic': self.topic,
-            'report_count': 0
-        }
-        service = self.conductor_api.service_create(context, svc_values)
-        self.service_id = service['id']
-        return service
-
-    def __getattr__(self, key):
-        manager = self.__dict__.get('manager', None)
-        return getattr(manager, key)
-
-    @classmethod
-    def create(cls, host=None, binary=None, topic=None, manager=None,
-               report_interval=None, periodic_enable=None,
-               periodic_fuzzy_delay=None, periodic_interval_max=None,
-               db_allowed=True):
-        """Instantiates class and passes back application object.
-
-        :param host: defaults to CONF.host
-        :param binary: defaults to basename of executable
-        :param topic: defaults to bin_name - 'gceapi-' part
-        :param manager: defaults to CONF.<topic>_manager
-        :param report_interval: defaults to CONF.report_interval
-        :param periodic_enable: defaults to CONF.periodic_enable
-        :param periodic_fuzzy_delay: defaults to CONF.periodic_fuzzy_delay
-        :param periodic_interval_max: if set, the max time to wait between runs
-
-        """
-        if not host:
-            host = CONF.host
-        if not binary:
-            binary = os.path.basename(inspect.stack()[-1][1])
-        if not topic:
-            topic = binary.rpartition('gceapi-')[2]
-        if not manager:
-            manager_cls = ('%s_manager' %
-                           binary.rpartition('gceapi-')[2])
-            manager = CONF.get(manager_cls, None)
-        if report_interval is None:
-            report_interval = CONF.report_interval
-        if periodic_enable is None:
-            periodic_enable = CONF.periodic_enable
-        if periodic_fuzzy_delay is None:
-            periodic_fuzzy_delay = CONF.periodic_fuzzy_delay
-        service_obj = cls(host, binary, topic, manager,
-                          report_interval=report_interval,
-                          periodic_enable=periodic_enable,
-                          periodic_fuzzy_delay=periodic_fuzzy_delay,
-                          periodic_interval_max=periodic_interval_max,
-                          db_allowed=db_allowed)
-
-        return service_obj
-
-    def kill(self):
-        """Destroy the service object in the datastore."""
-        self.stop()
-        try:
-            self.conductor_api.service_destroy(context.get_admin_context(),
-                                               self.service_id)
-        except exception.NotFound:
-            LOG.warn(_('Service killed that has no database entry'))
-
-    def stop(self):
-        # Try to shut the connection down, but if we get any sort of
-        # errors, go ahead and ignore them.. as we're shutting down anyway
-        try:
-            self.conn.close()
-        except Exception:
-            pass
-        for x in self.timers:
-            try:
-                x.stop()
-            except Exception:
-                pass
-        self.timers = []
-
-    def wait(self):
-        for x in self.timers:
-            try:
-                x.wait()
-            except Exception:
-                pass
-
-    def periodic_tasks(self, raise_on_error=False):
-        """Tasks to be run at a periodic interval."""
-        ctxt = context.get_admin_context()
-        return self.manager.periodic_tasks(ctxt, raise_on_error=raise_on_error)
-
-    def basic_config_check(self):
-        """Perform basic config checks before starting processing."""
-        # Make sure the tempdir exists and is writable
-        try:
-            with utils.tempdir() as tmpdir:
-                pass
-        except Exception as e:
-            LOG.error(_('Temporary directory is invalid: %s'), e)
-            sys.exit(1)
 
 
 class WSGIService(object):

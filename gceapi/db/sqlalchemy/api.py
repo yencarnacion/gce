@@ -40,12 +40,7 @@ def get_backend():
 def require_context(f):
     """Decorator to require *any* user or admin context.
 
-    This does no authorization for user or project access matching, see
-    :py:func:`nova.context.authorize_project_context` and
-    :py:func:`nova.context.authorize_user_context`.
-
     The first argument to the wrapped function must be the context.
-
     """
 
     @functools.wraps(f)
