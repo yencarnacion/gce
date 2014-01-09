@@ -146,3 +146,15 @@ def get_collection_name(type_name):
         return "%ses" % type_name
     else:
         return "%ss" % type_name
+
+
+def get_type_kind(type_name):
+    return "compute#%s" % type_name
+
+
+def get_list_kind(type_name):
+    return "compute#%sList" % type_name
+
+
+def get_aggregated_kind(type_name):
+    return "compute#%sAggregatedList" % type_name

@@ -48,9 +48,9 @@ class Controller(object):
         self._api = api
         self._type_name = self._api._get_type()
         self._collection_name = utils.get_collection_name(self._type_name)
-        self._type_kind = "compute#%s" % self._type_name
-        self._list_kind = "compute#%sList" % self._type_name
-        self._aggregated_kind = "compute#%sAggregatedList" % self._type_name
+        self._type_kind = utils.get_type_kind(self._type_name)
+        self._list_kind = utils.get_list_kind(self._type_name)
+        self._aggregated_kind = utils.get_aggregated_kind(self._type_name)
         self._operation_api = operation_api.API()
 
     # Base methods, should be overriden
@@ -233,32 +233,32 @@ class Controller(object):
             "status": operation["status"],
             "progress": operation["progress"],
             "user": operation["user"],
-            "kind": "compute#%s" % self._operation_api._get_type(),
         }
         result_dict["targetLink"] = self._qualify(
                 request, utils.get_collection_name(operation["target_type"]),
                 operation["target_name"], scope)
         result_dict["targetId"] = self._get_id(result_dict["targetLink"])
-        if scope is not None and scope.get_name() is not None:
-            result_dict[scope.get_type()] = self._qualify(request,
-                scope.get_collection(), scope.get_name(), None)
-        result_dict["selfLink"] = self._qualify(
-                request,
-                utils.get_collection_name(self._operation_api._get_type()),
-                result_dict["name"],
-                scope if scope is not None else scopes.GlobalScope())
-        result_dict["id"] = self._get_id(result_dict["selfLink"])
         if "end_time" in operation:
             result_dict["endTime"] = operation["end_time"]
-        return result_dict
+        if scope is None:
+            scope = scopes.GlobalScope()
+        type_name = self._operation_api._get_type()
+        return self._add_item_header(request, result_dict, scope,
+                                     utils.get_type_kind(type_name),
+                                     utils.get_collection_name(type_name))
 
     def _format_item(self, request, result_dict, scope):
+        return self._add_item_header(request, result_dict, scope,
+                                     self._type_kind, self._collection_name)
+
+    def _add_item_header(self, request, result_dict, scope,
+                         _type_kind, _collection_name):
         if scope is not None and scope.get_name() is not None:
             result_dict[scope.get_type()] = self._qualify(
-                request, scope.get_collection(), scope.get_name(), None)
-        result_dict["kind"] = self._type_kind
-        result_dict["selfLink"] = self._qualify(request,
-            self._collection_name, result_dict.get("name"), scope)
+                    request, None, None, scope)
+        result_dict["kind"] = _type_kind
+        result_dict["selfLink"] = self._qualify(
+                request, _collection_name, result_dict.get("name"), scope)
         result_dict["id"] = self._get_id(result_dict["selfLink"])
         return result_dict
 
@@ -276,6 +276,6 @@ class Controller(object):
         list_id = os.path.join(list_id, self._collection_name)
         result_dict["id"] = list_id
 
-        result_dict["selfLink"] = self._qualify(request,
-            self._collection_name, None, scope)
+        result_dict["selfLink"] = self._qualify(
+                request, self._collection_name, None, scope)
         return result_dict
