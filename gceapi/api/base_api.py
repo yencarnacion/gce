@@ -109,11 +109,6 @@ class API(object):
 
         raise NotImplementedError
 
-    def _are_api_operations_pending(self):
-        """API operations are pending or immediate. Should be overriden."""
-
-        raise NotImplementedError
-
     def get_item(self, context, name, scope=None):
         """Returns fully filled item for particular inherited API."""
 
@@ -175,6 +170,12 @@ class API(object):
 
     def _delete_db_item(self, context, item):
         return db.delete_item(context, self._get_type(), item["id"])
+
+    def _update_db_item(self, context, item):
+        db_item = {key: item.get(key)
+                   for key in self._get_persistent_attributes()
+                   if key in item}
+        db.update_item(context, self._get_type(), db_item)
 
     def _get_db_items(self, context):
         return db.get_items(context, self._get_type())

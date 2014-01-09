@@ -15,6 +15,7 @@
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import image_api
+from gceapi.api import operation_api
 from gceapi.api import utils
 from gceapi import exception
 
@@ -40,11 +41,19 @@ class API(base_api.API):
             # "error_restoring": ""
     }
 
+    def __init__(self, *args, **kwargs):
+        super(API, self).__init__(*args, **kwargs)
+        operation_api.API().register_deferred_operation_method(
+                "disk-add",
+                self.add_item,
+                self.get_add_item_progress)
+        operation_api.API().register_deferred_operation_method(
+                "disk-delete",
+                self.delete_item,
+                self.get_delete_item_progress)
+
     def _get_type(self):
         return self.KIND
-
-    def _are_api_operations_pending(self):
-        return True
 
     def get_item(self, context, name, scope=None):
         client = clients.cinder(context)
@@ -128,3 +137,17 @@ class API(base_api.API):
             availability_zone=scope.get_name())
 
         return self._prepare_item(client, utils.to_dict(volume))
+
+    def get_add_item_progress(self, context, name, volume_id, scope):
+        client = clients.cinder(context)
+        volumes = client.volumes.list(search_opts={"id": volume_id})
+        if (len(volumes) == 0 or
+                volumes[0].status not in ["creating", "downloading"]):
+            return {"progress": 100}
+
+    def get_delete_item_progress(self, context, name, volume_id, scope):
+        client = clients.cinder(context)
+        volumes = client.volumes.list(search_opts={"id": volume_id})
+        if (len(volumes) == 0 or
+                volumes[0].status == "error_deleting"):
+            return {"progress": 100}

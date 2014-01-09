@@ -42,6 +42,10 @@ def delete_item(context, kind, item_id):
     IMPL.delete_item(context, kind, item_id)
 
 
+def update_item(context, kind, item):
+    IMPL.update_item(context, kind, item)
+
+
 def get_items(context, kind):
     return IMPL.get_items(context, kind)
 

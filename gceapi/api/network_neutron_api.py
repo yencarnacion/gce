@@ -42,9 +42,6 @@ class API(base_api.API):
     def _get_persistent_attributes(self):
         return self.PERSISTENT_ATTRIBUTES
 
-    def _are_api_operations_pending(self):
-        return False
-
     def get_item(self, context, name, scope=None):
         client = clients.neutron(context)
         networks = client.list_networks(

@@ -38,9 +38,6 @@ class API(base_api.API):
     def _get_persistent_attributes(self):
         return self.PERSISTENT_ATTRIBUTES
 
-    def _are_api_operations_pending(self):
-        return False
-
     def get_scopes(self, context, item):
         region = item["scope"]
         if region is not None:

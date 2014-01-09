@@ -118,7 +118,8 @@ class Controller(object):
         start_time = timeutils.isotime(None, True)
         try:
             scope = self._get_scope(req, scope_id)
-            item = self._api.delete_item(self._get_context(req), id, scope)
+            context = self._get_context(req)
+            item = self._api.delete_item(context, id, scope)
         except (exception.NotFound, KeyError, IndexError):
             msg = _("Resource '%s' could not be found") % id
             raise exc.HTTPNotFound(explanation=msg)
@@ -127,7 +128,8 @@ class Controller(object):
             return None
         else:
             return self._create_operation(req, "delete", scope, start_time,
-                                          item["name"], item["id"])
+                                          item["name"], item["id"],
+                                          self._api.delete_item)
 
     def create(self, req, body, scope_id=None):
         """GCE add requests."""
@@ -135,10 +137,11 @@ class Controller(object):
         start_time = timeutils.isotime(None, True)
         try:
             scope = self._get_scope(req, scope_id)
-            item = self._api.add_item(
-                self._get_context(req), body['name'], body, scope)
+            context = self._get_context(req)
+            item = self._api.add_item(context, body['name'], body, scope)
             return self._create_operation(req, "insert", scope, start_time,
-                                          item["name"], item["id"])
+                                          item["name"], item["id"],
+                                          self._api.add_item)
         except rpc_common.RemoteError as err:
             raise exc.HTTPInternalServerError(explanation=err.message)
 
@@ -205,18 +208,20 @@ class Controller(object):
         return result
 
     def _create_operation(self, request, op_type, scope, start_time,
-                          item_name, item_id=None):
+                          target_name, item_id=None, method=None,
+                          item_name=None):
         operation = {
             "type": op_type,
             "start_time": start_time,
             "target_type": self._type_name,
-            "target_name": item_name,
+            "target_name": target_name,
         }
         if item_id is not None:
-            operation["target_id"] = item_id
-        #scope = scope if scope else Scope.create_global()
+            operation["item_id"] = item_id
+        if item_name is not None:
+            operation["item_name"] = item_name
         operation = self._operation_api._add_item(self._get_context(request),
-                                                  operation, scope)
+                                                  operation, scope, method)
         operation = self._format_operation(request, operation, scope)
         return operation
 

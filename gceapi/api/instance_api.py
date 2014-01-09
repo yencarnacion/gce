@@ -24,6 +24,7 @@ from gceapi.api import disk_api
 from gceapi.api import firewall_api
 from gceapi.api import machine_type_api
 from gceapi.api import network_api
+from gceapi.api import operation_api
 from gceapi.api import project_api
 from gceapi.api import utils
 
@@ -64,15 +65,24 @@ class API(base_api.API):
         firewall_api.API()._register_callback(
             base_api._callback_reasons.pre_delete,
             self._remove_secgroup_from_instances)
+        operation_api.API().register_deferred_operation_method(
+                "instance-add",
+                self.add_item,
+                self.get_add_item_progress)
+        operation_api.API().register_deferred_operation_method(
+                "instance-delete",
+                self.delete_item,
+                self.get_delete_item_progress)
+        operation_api.API().register_deferred_operation_method(
+                "instance-reset",
+                self.reset_instance,
+                self.get_reset_instance_progress)
 
     def _get_type(self):
         return self.KIND
 
     def _get_persistent_attributes(self):
         return self.PERSISTENT_ATTRIBUTES
-
-    def _are_api_operations_pending(self):
-        return True
 
     def get_item(self, context, name, scope=None):
         return self.search_items(context, {"name": name}, scope)[0]
@@ -189,7 +199,11 @@ class API(base_api.API):
         instances = client.servers.list(search_opts={"name": name})
         if not instances or len(instances) != 1:
             raise exception.NotFound
-        instances[0].reboot("HARD")
+        instance = instances[0]
+        instance.reboot("HARD")
+        instance = utils.to_dict(instance)
+        instance = self._prepare_instance(client, context, instance)
+        return instance
 
     def delete_item(self, context, name, scope=None):
         client = clients.nova(context)
@@ -284,12 +298,22 @@ class API(base_api.API):
 
         return instance
 
-    def add_access_config(self, context,
-                          body, item_id, scope, network_interface):
-        access_config_api.API().add_item(context, item_id,
-            name=body.get("name"), type=body.get("type"),
-            addr=body.get("natIP"), nic=network_interface)
+    def get_add_item_progress(self, context, name, instance_id, scope):
+        client = clients.nova(context)
+        instances = client.servers.list(search_opts={"id": instance_id})
+        if (len(instances) == 0 or
+                instances[0].status not in ["building"]):
+            return {"progress": 100}
 
-    def delete_access_config(self, context, item_id, scope,
-                             network_interface, access_config):
-        access_config_api.API().delete_item(context, item_id, access_config)
+    def get_delete_item_progress(self, context, name, instance_id, scope):
+        client = clients.nova(context)
+        instances = client.servers.list(search_opts={"id": instance_id})
+        if len(instances) == 0:
+            return {"progress": 100}
+
+    def get_reset_instance_progress(self, context, name, instance_id, scope):
+        client = clients.nova(context)
+        instances = client.servers.list(search_opts={"id": instance_id})
+        if (len(instances) == 0 or
+                instances[0].status not in ["stopped", "paused", "suspended"]):
+            return {"progress": 100}

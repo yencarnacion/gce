@@ -60,9 +60,11 @@ class Controller(gce_common.Controller):
         start_time = timeutils.isotime(None, True)
         scope = self._get_scope(req, scope_id)
         context = self._get_context(req)
-        snapshot_api.API().add_item(context, body, scope)
+        snapshot = snapshot_api.API().add_item(context, body, scope)
         return self._create_operation(req, "createSnapshot", scope,
-                                      start_time, id)
+                                      start_time, id, snapshot["id"],
+                                      snapshot_api.API().add_item,
+                                      body["name"])
 
 
 def create_resource():
