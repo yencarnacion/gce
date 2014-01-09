@@ -14,6 +14,7 @@
 
 from gceapi.api import base_api
 from gceapi.api import clients
+from gceapi.api import scopes
 from gceapi import exception
 
 
@@ -62,5 +63,6 @@ class API(base_api.API):
             })
         return zones
 
-    def get_item_names(self, context, scope=None):
-        return [zone["name"] for zone in self.get_items(context, scope)]
+    def get_items_as_scopes(self, context):
+        return [scopes.ZoneScope(zone["name"])
+                for zone in self.get_items(context)]

@@ -26,6 +26,7 @@ from gceapi.api import machine_type_api
 from gceapi.api import network_api
 from gceapi.api import operation_api
 from gceapi.api import project_api
+from gceapi.api import scopes
 from gceapi.api import utils
 
 LOG = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ class API(base_api.API):
         return self.search_items(context, None, scope)
 
     def get_scopes(self, context, item):
-        return [("zone", item["OS-EXT-AZ:availability_zone"])]
+        return [scopes.ZoneScope(item["OS-EXT-AZ:availability_zone"])]
 
     def search_items(self, context, search_opts, scope):
         client = clients.nova(context)

@@ -137,3 +137,12 @@ def to_dict(obj, recursive=False, classkey=None):
 def _extract_name_from_url(url):
     """Get object name from fully qualified link"""
     return url.split('/')[-1]
+
+
+def get_collection_name(type_name):
+    if type_name == "project":
+        return None
+    elif type_name.endswith("s"):
+        return "%ses" % type_name
+    else:
+        return "%ss" % type_name

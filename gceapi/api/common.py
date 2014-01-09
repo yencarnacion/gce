@@ -17,8 +17,9 @@
 import os.path
 from webob import exc
 
-from gceapi.api import base_api
 from gceapi.api import operation_api
+from gceapi.api import scopes
+from gceapi.api import utils
 from gceapi import exception
 from gceapi.openstack.common.rpc import common as rpc_common
 from gceapi.openstack.common import timeutils
@@ -46,7 +47,7 @@ class Controller(object):
 
         self._api = api
         self._type_name = self._api._get_type()
-        self._collection_name = get_collection_name(self._type_name)
+        self._collection_name = utils.get_collection_name(self._type_name)
         self._type_kind = "compute#%s" % self._type_name
         self._list_kind = "compute#%sList" % self._type_name
         self._aggregated_kind = "compute#%sAggregatedList" % self._type_name
@@ -102,15 +103,13 @@ class Controller(object):
             if filter_name and item["name"] != filter_name:
                 continue
 
-            scopes = self._api.get_scopes(context, item)
-            for scope_type, scope_name in scopes:
-                scope = Scope(scope_type, scope_name)
+            for scope in self._api.get_scopes(context, item):
                 az = scope.get_path()
                 items_by_scope = items_by_scopes.setdefault(
                     az, {self._collection_name: []})[self._collection_name]
                 items_by_scope.append(self.format_item(req, item, scope))
         return self._format_list(req, items_by_scopes,
-            Scope.create_aggregated())
+            scopes.AggregatedScope())
 
     def delete(self, req, id, scope_id=None):
         """GCE delete requests."""
@@ -150,7 +149,7 @@ class Controller(object):
         return req.environ['gceapi.context']
 
     def _get_scope(self, req, scope_id):
-        scope = Scope.construct(req, scope_id)
+        scope = scopes.construct_from_path(req.path_info, scope_id)
         if scope is None:
             return
         scope_api = scope.get_scope_api()
@@ -237,7 +236,7 @@ class Controller(object):
             "kind": "compute#%s" % self._operation_api._get_type(),
         }
         result_dict["targetLink"] = self._qualify(
-                request, get_collection_name(operation["target_type"]),
+                request, utils.get_collection_name(operation["target_type"]),
                 operation["target_name"], scope)
         result_dict["targetId"] = self._get_id(result_dict["targetLink"])
         if scope is not None and scope.get_name() is not None:
@@ -245,9 +244,9 @@ class Controller(object):
                 scope.get_collection(), scope.get_name(), None)
         result_dict["selfLink"] = self._qualify(
                 request,
-                get_collection_name(self._operation_api._get_type()),
+                utils.get_collection_name(self._operation_api._get_type()),
                 result_dict["name"],
-                scope if scope is not None else Scope.create_global())
+                scope if scope is not None else scopes.GlobalScope())
         result_dict["id"] = self._get_id(result_dict["selfLink"])
         if "end_time" in operation:
             result_dict["endTime"] = operation["end_time"]
@@ -280,84 +279,3 @@ class Controller(object):
         result_dict["selfLink"] = self._qualify(request,
             self._collection_name, None, scope)
         return result_dict
-
-
-class Scope(object):
-    """Scope that contains resource.
-
-    The following scopes exists: global, aggregated, zones, regions."""
-
-    _type = None
-    _name = None
-    _collection = None
-
-    @classmethod
-    def create_global(cls):
-        return Scope("global", None)
-
-    @classmethod
-    def create_aggregated(cls):
-        return Scope("aggregated", None)
-
-    @classmethod
-    def create_zone(cls, zone_name):
-        return Scope("zone", zone_name)
-
-    @classmethod
-    def create_region(cls, region_name):
-        return Scope("region", region_name)
-
-    @classmethod
-    def construct(self, req, scope_id):
-        path_info = [item for item in req.path_info.split("/") if item]
-        path_count = len(path_info)
-        if path_count == 0:
-            raise exc.HTTPBadRequest(comment="Bad path %s" % req.path_info)
-        if path_count < 3:
-            return None
-        path_item = path_info[1]
-        if path_item in ("zones", "regions") and scope_id is None:
-            return None
-        if path_item == "zones":
-            return self.create_zone(scope_id)
-        elif path_item == "regions":
-            return self.create_region(scope_id)
-        elif path_item in ("global", "aggregated"):
-            return Scope(path_item, None)
-        raise exc.HTTPBadRequest(comment="Bad path %s" % req.path_info)
-
-    def __init__(self, scope_type, scope_name):
-        self._type = scope_type
-        self._name = scope_name
-        if scope_name is not None:
-            self._collection = get_collection_name(self._type)
-
-    def is_aggregated(self):
-        return self._type == "aggregated"
-
-    def get_type(self):
-        return self._type
-
-    def get_name(self):
-        return self._name
-
-    def get_collection(self):
-        return self._collection
-
-    def get_path(self):
-        if self._collection is not None:
-            return "/".join([self._collection, self._name])
-        else:
-            return self._type
-
-    def get_scope_api(self):
-        base_api.Singleton.get_instance(self.get_type())
-
-
-def get_collection_name(type_name):
-    if type_name == "project":
-        return None
-    elif type_name.endswith("s"):
-        return "%ses" % type_name
-    else:
-        return "%ss" % type_name

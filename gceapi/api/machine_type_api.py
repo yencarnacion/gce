@@ -15,6 +15,7 @@
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import utils
+from gceapi.api import scopes
 from gceapi.api import zone_api
 from gceapi import exception
 
@@ -23,6 +24,10 @@ class API(base_api.API):
     """GCE Machine types API"""
 
     KIND = "machineType"
+
+    def __init__(self, *args, **kwargs):
+        super(API, self).__init__(*args, **kwargs)
+        self._zone_api = zone_api.API()
 
     def _get_type(self):
         return self.KIND
@@ -46,8 +51,7 @@ class API(base_api.API):
 
     def get_scopes(self, context, item):
         # TODO(apavlov): too slow for all...
-        return [("zone", zone)
-                for zone in zone_api.API().get_item_names(context)]
+        return self._zone_api.get_items_as_scopes(context)
 
     def get_item_by_id(self, context, machine_type_id):
         client = clients.nova(context)

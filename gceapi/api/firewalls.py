@@ -14,6 +14,7 @@
 
 from gceapi.api import common as gce_common
 from gceapi.api import firewall_api
+from gceapi.api import scopes
 from gceapi.api import wsgi as gce_wsgi
 
 
@@ -42,7 +43,7 @@ class Controller(gce_common.Controller):
         if firewall["network_name"] is not None:
             result_dict["network"] = self._qualify(request,
                 "networks", firewall["network_name"],
-                gce_common.Scope.create_global())
+                scopes.GlobalScope())
         return self._format_item(request, result_dict, scope)
 
 

@@ -18,6 +18,7 @@ from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import network_api
 from gceapi.api import region_api
+from gceapi.api import scopes
 from gceapi import exception
 
 CONF = cfg.CONF
@@ -31,6 +32,7 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
+        self._region_api = region_api.API()
 
     def _get_type(self):
         return self.KIND
@@ -41,9 +43,8 @@ class API(base_api.API):
     def get_scopes(self, context, item):
         region = item["scope"]
         if region is not None:
-            return [("region", region)]
-        return [("region", item["name"])
-                for item in region_api.API().get_items(context)]
+            return [scopes.RegionScope(region)]
+        return self._region_api.get_items_as_scopes(context)
 
     def get_item(self, context, name, scope=None):
         return self._get_floating_ips(context, scope, name)[0]

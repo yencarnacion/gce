@@ -16,6 +16,7 @@ import copy
 import uuid
 
 from gceapi.api import base_api
+from gceapi.api import scopes
 from gceapi import exception
 from gceapi.openstack.common import timeutils
 
@@ -50,7 +51,7 @@ class API(base_api.API):
         self._get_progress_methods[method_key] = get_progress_method
 
     def get_scopes(self, context, item):
-        return [(item["scope_type"], item["scope_name"])]
+        return [scopes.Scope(item["scope_type"], item["scope_name"])]
 
     def get_item(self, context, name, scope=None):
         operation = self._get_db_item_by_name(context, name)

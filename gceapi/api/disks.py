@@ -14,6 +14,7 @@
 
 from gceapi.api import common as gce_common
 from gceapi.api import disk_api
+from gceapi.api import scopes
 from gceapi.api import snapshot_api
 from gceapi.api import wsgi as gce_wsgi
 from gceapi.openstack.common import timeutils
@@ -38,12 +39,12 @@ class Controller(gce_common.Controller):
         if snapshot:
             result_dict["sourceSnapshot"] = self._qualify(request,
                 "snapshots", snapshot["display_name"],
-                gce_common.Scope.create_global())
+                scopes.GlobalScope())
             result_dict["sourceSnapshotId"] = snapshot["id"]
         image_name = volume.get("image_name")
         if image_name:
             result_dict["sourceImage"] = self._qualify(request,
-                "images", image_name, gce_common.Scope.create_global())
+                "images", image_name, scopes.GlobalScope())
             result_dict["sourceImageId"] = self._get_id(
                 result_dict["sourceImage"])
 

@@ -16,6 +16,7 @@ from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import image_api
 from gceapi.api import operation_api
+from gceapi.api import scopes
 from gceapi.api import utils
 from gceapi import exception
 
@@ -74,7 +75,7 @@ class API(base_api.API):
         return volumes
 
     def get_scopes(self, context, item):
-        return [("zone", item["availability_zone"])]
+        return [scopes.ZoneScope(item["availability_zone"])]
 
     def _prepare_item(self, client, item):
         snapshot = None
