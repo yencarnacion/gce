@@ -12,12 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from gceapi.openstack.common.gettextutils import _
-from gceapi import exception
-from gceapi.openstack.common import log as logging
-
 from gceapi.api import base_api
 from gceapi.api import clients
+from gceapi.api import operation_api
+from gceapi import exception
+from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
@@ -33,15 +33,20 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
+        operation_api.API().register_deferred_operation_method(
+                "access_config-add",
+                self.add_item,
+                self.get_add_item_progress)
+        operation_api.API().register_deferred_operation_method(
+                "access_config-delete",
+                self.delete_item,
+                self.get_delete_item_progress)
 
     def _get_type(self):
         return self.KIND
 
     def _get_persistent_attributes(self):
         return self.PERSISTENT_ATTRIBUTES
-
-    def _are_api_operations_pending(self):
-        return True
 
     def get_item(self, context, instance_name, name):
         items = self._get_db_items(context)
@@ -158,7 +163,14 @@ class API(base_api.API):
         floating_ip = item["addr"]
         instance.remove_floating_ip(floating_ip)
         self._delete_db_item(context, item)
+        return item
 
     def unregister_item(self, context, instance_name, name):
         item = self.get_item(context, instance_name, name)
         self._delete_db_item(context, item)
+
+    def get_add_item_progress(self, context, name, snapshot_id, scope):
+        return {"progress": 100}
+
+    def get_delete_item_progress(self, context, name, snapshot_id, scope):
+        return {"progress": 100}

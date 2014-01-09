@@ -14,6 +14,7 @@
 
 from gceapi.api import address_api
 from gceapi.api import common as gce_common
+from gceapi.api import scopes
 from gceapi.api import wsgi as gce_wsgi
 
 
@@ -40,7 +41,7 @@ class Controller(gce_common.Controller):
         if "instance_name" in floating_ip:
             result_dict["users"] = [self._qualify(
                 request, "instances", floating_ip["instance_name"],
-                gce_common.Scope.create_zone(floating_ip["instance_zone"]))]
+                scopes.ZoneScope(floating_ip["instance_zone"]))]
 
         return self._format_item(request, result_dict, scope)
 

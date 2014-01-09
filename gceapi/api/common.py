@@ -17,8 +17,9 @@
 import os.path
 from webob import exc
 
-from gceapi.api import base_api
 from gceapi.api import operation_api
+from gceapi.api import scopes
+from gceapi.api import utils
 from gceapi import exception
 from gceapi.openstack.common.rpc import common as rpc_common
 from gceapi.openstack.common import timeutils
@@ -46,10 +47,10 @@ class Controller(object):
 
         self._api = api
         self._type_name = self._api._get_type()
-        self._collection_name = get_collection_name(self._type_name)
-        self._type_kind = "compute#%s" % self._type_name
-        self._list_kind = "compute#%sList" % self._type_name
-        self._aggregated_kind = "compute#%sAggregatedList" % self._type_name
+        self._collection_name = utils.get_collection_name(self._type_name)
+        self._type_kind = utils.get_type_kind(self._type_name)
+        self._list_kind = utils.get_list_kind(self._type_name)
+        self._aggregated_kind = utils.get_aggregated_kind(self._type_name)
         self._operation_api = operation_api.API()
 
     # Base methods, should be overriden
@@ -102,15 +103,13 @@ class Controller(object):
             if filter_name and item["name"] != filter_name:
                 continue
 
-            scopes = self._api.get_scopes(context, item)
-            for scope_type, scope_name in scopes:
-                scope = Scope(scope_type, scope_name)
+            for scope in self._api.get_scopes(context, item):
                 az = scope.get_path()
                 items_by_scope = items_by_scopes.setdefault(
                     az, {self._collection_name: []})[self._collection_name]
                 items_by_scope.append(self.format_item(req, item, scope))
         return self._format_list(req, items_by_scopes,
-            Scope.create_aggregated())
+            scopes.AggregatedScope())
 
     def delete(self, req, id, scope_id=None):
         """GCE delete requests."""
@@ -118,7 +117,8 @@ class Controller(object):
         start_time = timeutils.isotime(None, True)
         try:
             scope = self._get_scope(req, scope_id)
-            item = self._api.delete_item(self._get_context(req), id, scope)
+            context = self._get_context(req)
+            item = self._api.delete_item(context, id, scope)
         except (exception.NotFound, KeyError, IndexError):
             msg = _("Resource '%s' could not be found") % id
             raise exc.HTTPNotFound(explanation=msg)
@@ -127,7 +127,8 @@ class Controller(object):
             return None
         else:
             return self._create_operation(req, "delete", scope, start_time,
-                                          item["name"], item["id"])
+                                          item["name"], item["id"],
+                                          self._api.delete_item)
 
     def create(self, req, body, scope_id=None):
         """GCE add requests."""
@@ -135,10 +136,11 @@ class Controller(object):
         start_time = timeutils.isotime(None, True)
         try:
             scope = self._get_scope(req, scope_id)
-            item = self._api.add_item(
-                self._get_context(req), body['name'], body, scope)
+            context = self._get_context(req)
+            item = self._api.add_item(context, body['name'], body, scope)
             return self._create_operation(req, "insert", scope, start_time,
-                                          item["name"], item["id"])
+                                          item["name"], item["id"],
+                                          self._api.add_item)
         except rpc_common.RemoteError as err:
             raise exc.HTTPInternalServerError(explanation=err.message)
 
@@ -147,7 +149,7 @@ class Controller(object):
         return req.environ['gceapi.context']
 
     def _get_scope(self, req, scope_id):
-        scope = Scope.construct(req, scope_id)
+        scope = scopes.construct_from_path(req.path_info, scope_id)
         if scope is None:
             return
         scope_api = scope.get_scope_api()
@@ -205,18 +207,20 @@ class Controller(object):
         return result
 
     def _create_operation(self, request, op_type, scope, start_time,
-                          item_name, item_id=None):
+                          target_name, item_id=None, method=None,
+                          item_name=None):
         operation = {
             "type": op_type,
             "start_time": start_time,
             "target_type": self._type_name,
-            "target_name": item_name,
+            "target_name": target_name,
         }
         if item_id is not None:
-            operation["target_id"] = item_id
-        #scope = scope if scope else Scope.create_global()
+            operation["item_id"] = item_id
+        if item_name is not None:
+            operation["item_name"] = item_name
         operation = self._operation_api._add_item(self._get_context(request),
-                                                  operation, scope)
+                                                  operation, scope, method)
         operation = self._format_operation(request, operation, scope)
         return operation
 
@@ -229,32 +233,32 @@ class Controller(object):
             "status": operation["status"],
             "progress": operation["progress"],
             "user": operation["user"],
-            "kind": "compute#%s" % self._operation_api._get_type(),
         }
         result_dict["targetLink"] = self._qualify(
-                request, get_collection_name(operation["target_type"]),
+                request, utils.get_collection_name(operation["target_type"]),
                 operation["target_name"], scope)
         result_dict["targetId"] = self._get_id(result_dict["targetLink"])
-        if scope is not None and scope.get_name() is not None:
-            result_dict[scope.get_type()] = self._qualify(request,
-                scope.get_collection(), scope.get_name(), None)
-        result_dict["selfLink"] = self._qualify(
-                request,
-                get_collection_name(self._operation_api._get_type()),
-                result_dict["name"],
-                scope if scope is not None else Scope.create_global())
-        result_dict["id"] = self._get_id(result_dict["selfLink"])
         if "end_time" in operation:
             result_dict["endTime"] = operation["end_time"]
-        return result_dict
+        if scope is None:
+            scope = scopes.GlobalScope()
+        type_name = self._operation_api._get_type()
+        return self._add_item_header(request, result_dict, scope,
+                                     utils.get_type_kind(type_name),
+                                     utils.get_collection_name(type_name))
 
     def _format_item(self, request, result_dict, scope):
+        return self._add_item_header(request, result_dict, scope,
+                                     self._type_kind, self._collection_name)
+
+    def _add_item_header(self, request, result_dict, scope,
+                         _type_kind, _collection_name):
         if scope is not None and scope.get_name() is not None:
             result_dict[scope.get_type()] = self._qualify(
-                request, scope.get_collection(), scope.get_name(), None)
-        result_dict["kind"] = self._type_kind
-        result_dict["selfLink"] = self._qualify(request,
-            self._collection_name, result_dict.get("name"), scope)
+                    request, None, None, scope)
+        result_dict["kind"] = _type_kind
+        result_dict["selfLink"] = self._qualify(
+                request, _collection_name, result_dict.get("name"), scope)
         result_dict["id"] = self._get_id(result_dict["selfLink"])
         return result_dict
 
@@ -272,87 +276,6 @@ class Controller(object):
         list_id = os.path.join(list_id, self._collection_name)
         result_dict["id"] = list_id
 
-        result_dict["selfLink"] = self._qualify(request,
-            self._collection_name, None, scope)
+        result_dict["selfLink"] = self._qualify(
+                request, self._collection_name, None, scope)
         return result_dict
-
-
-class Scope(object):
-    """Scope that contains resource.
-
-    The following scopes exists: global, aggregated, zones, regions."""
-
-    _type = None
-    _name = None
-    _collection = None
-
-    @classmethod
-    def create_global(cls):
-        return Scope("global", None)
-
-    @classmethod
-    def create_aggregated(cls):
-        return Scope("aggregated", None)
-
-    @classmethod
-    def create_zone(cls, zone_name):
-        return Scope("zone", zone_name)
-
-    @classmethod
-    def create_region(cls, region_name):
-        return Scope("region", region_name)
-
-    @classmethod
-    def construct(self, req, scope_id):
-        path_info = [item for item in req.path_info.split("/") if item]
-        path_count = len(path_info)
-        if path_count == 0:
-            raise exc.HTTPBadRequest(comment="Bad path %s" % req.path_info)
-        if path_count < 3:
-            return None
-        path_item = path_info[1]
-        if path_item in ("zones", "regions") and scope_id is None:
-            return None
-        if path_item == "zones":
-            return self.create_zone(scope_id)
-        elif path_item == "regions":
-            return self.create_region(scope_id)
-        elif path_item in ("global", "aggregated"):
-            return Scope(path_item, None)
-        raise exc.HTTPBadRequest(comment="Bad path %s" % req.path_info)
-
-    def __init__(self, scope_type, scope_name):
-        self._type = scope_type
-        self._name = scope_name
-        if scope_name is not None:
-            self._collection = get_collection_name(self._type)
-
-    def is_aggregated(self):
-        return self._type == "aggregated"
-
-    def get_type(self):
-        return self._type
-
-    def get_name(self):
-        return self._name
-
-    def get_collection(self):
-        return self._collection
-
-    def get_path(self):
-        if self._collection is not None:
-            return "/".join([self._collection, self._name])
-        else:
-            return self._type
-
-    def get_scope_api(self):
-        base_api.Singleton.get_instance(self.get_type())
-
-
-def get_collection_name(type_name):
-    if type_name == "project":
-        return None
-    elif type_name.endswith("s"):
-        return "%ses" % type_name
-    else:
-        return "%ss" % type_name

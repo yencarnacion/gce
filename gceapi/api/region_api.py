@@ -13,6 +13,7 @@
 #    under the License.
 
 from gceapi.api import base_api
+from gceapi.api import scopes
 from gceapi import exception
 
 
@@ -36,4 +37,7 @@ class API(base_api.API):
         raise exception.NotFound
 
     def get_items(self, context, scope=None):
-        return [{"name": item for item in self._REGIONS}]
+        return [{"name": region for region in self._REGIONS}]
+
+    def get_items_as_scopes(self, context):
+        return [scopes.RegionScope(region) for region in self._REGIONS]

@@ -13,6 +13,7 @@
 #    under the License.
 
 from gceapi.api import common as gce_common
+from gceapi.api import scopes
 from gceapi.api import snapshot_api
 from gceapi.api import wsgi as gce_wsgi
 from gceapi import exception
@@ -38,7 +39,7 @@ class Controller(gce_common.Controller):
         if disk is not None:
             result_dict["sourceDisk"] = self._qualify(
                 request, "disks", disk["display_name"],
-                gce_common.Scope.create_zone(disk["availability_zone"]))
+                scopes.ZoneScope(disk["availability_zone"]))
 
         return self._format_item(request, result_dict, scope)
 

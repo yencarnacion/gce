@@ -26,11 +26,11 @@ class Controller(gce_common.Controller):
         self._zone_api = zone_api.API()
 
     def format_item(self, req, region, scope):
-        zones = self._zone_api.get_item_names(self._get_context(req), scope)
+        zones = self._zone_api.get_items(self._get_context(req), scope)
         result_dict = {
             "name": region["name"],
             "status": "UP",
-            "zones": [self._qualify(req, "zones", zone, None)
+            "zones": [self._qualify(req, "zones", zone["name"], None)
                       for zone in zones]
         }
 

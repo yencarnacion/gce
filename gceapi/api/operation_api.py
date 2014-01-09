@@ -16,6 +16,7 @@ import copy
 import uuid
 
 from gceapi.api import base_api
+from gceapi.api import scopes
 from gceapi import exception
 from gceapi.openstack.common import timeutils
 
@@ -27,7 +28,13 @@ class API(base_api.API):
     PERSISTENT_ATTRIBUTES = ["id", "insert_time", "start_time", "end_time",
                              "name", "type", "user", "status", "progress",
                              "scope_type", "scope_name",
-                             "target_type", "target_name", "target_id"]
+                             "target_type", "target_name",
+                             "method_key", "item_id", "item_name"]
+
+    def __init__(self, *args, **kwargs):
+        super(API, self).__init__(*args, **kwargs)
+        self._method_keys = {}
+        self._get_progress_methods = {}
 
     def _get_type(self):
         return self.KIND
@@ -35,22 +42,39 @@ class API(base_api.API):
     def _get_persistent_attributes(self):
         return self.PERSISTENT_ATTRIBUTES
 
+    def register_deferred_operation_method(self, method_key, method,
+                                           get_progress_method):
+        if method_key in self._get_progress_methods:
+            raise exception.Invalid()
+        # TODO(ft): check 'get_progress_method' formal arguments
+        self._method_keys[method] = method_key
+        self._get_progress_methods[method_key] = get_progress_method
+
     def get_scopes(self, context, item):
-        return [(item["scope_type"], item["scope_name"])]
+        return [scopes.Scope(item["scope_type"], item["scope_name"])]
 
     def get_item(self, context, name, scope=None):
-        return self._get_db_item_by_name(context, name)
+        operation = self._get_db_item_by_name(context, name)
+        operation = self._update_operation(context, scope, operation)
+        return operation
 
     def get_items(self, context, scope=None):
         operations = self._get_db_items(context)
-        if scope is None:
-            return operations
-        else:
-            return [operation for operation in operations
-                    if (operation["scope_type"] == scope.get_type() and
-                        operation["scope_name"] == scope.get_name())]
+        if scope is not None:
+            operations = [operation for operation in operations
+                          if (operation["scope_type"] == scope.get_type() and
+                              operation["scope_name"] == scope.get_name())]
+        for operation in operations:
+            operation = self._update_operation(context, scope, operation)
+        return operations
 
-    def _add_item(self, context, body, scope):
+    def delete_item(self, context, name, scope=None):
+        item = self.get_item(context, name, scope)
+        if item is None:
+            raise exception.NotFound
+        self._delete_db_item(context, item)
+
+    def _add_item(self, context, body, scope, method):
         operation = copy.copy(body)
         operation_id = str(uuid.uuid4())
         operation.update(id=operation_id,
@@ -61,16 +85,30 @@ class API(base_api.API):
         if scope is not None:
             operation.update(scope_type=scope.get_type(),
                              scope_name=scope.get_name())
-        target_api = base_api.Singleton.get_instance(body["target_type"])
-        if target_api._are_api_operations_pending():
-            operation.update(status="RUNNING", progress=0)
-        else:
+        method_key = self._method_keys.get(method)
+        if method_key is None:
             operation.update(status="DONE", progress=100,
                              end_time=timeutils.isotime(None, True))
+        else:
+            operation.update(status="RUNNING", progress=0,
+                             method_key=method_key)
         return self._add_db_item(context, operation)
 
-    def delete_item(self, context, name, scope=None):
-        item = self.get_item(context, name, scope)
-        if item is None:
-            raise exception.NotFound
-        self._delete_db_item(context, item)
+    def _update_operation(self, context, scope, operation):
+        if operation["status"] == "DONE":
+            return operation
+        method_key = operation["method_key"]
+        get_progress = self._get_progress_methods[method_key]
+        operation_progress = get_progress(
+                context,
+                operation.get("item_name", operation["target_name"]),
+                operation["item_id"],
+                scope)
+        if operation_progress is None:
+            return operation
+        operation.update(operation_progress)
+        if operation["progress"] == 100:
+            operation.update(status="DONE",
+                             end_time=timeutils.isotime(None, True))
+        self._update_db_item(context, operation)
+        return operation

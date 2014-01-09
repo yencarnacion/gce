@@ -87,6 +87,16 @@ def delete_item(context, kind, item_id):
 
 
 @require_context
+def update_item(context, kind, item):
+    item_ref = model_query(context, models.Item).\
+            filter_by(kind=kind,
+                      id=item["id"]).\
+            one()
+    item_ref.update(_pack_item_data(item))
+    item_ref.save()
+
+
+@require_context
 def get_items(context, kind):
     return [_unpack_item_data(item)
             for item in model_query(context, models.Item).\
