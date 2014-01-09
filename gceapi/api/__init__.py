@@ -139,6 +139,16 @@ class APIRouter(wsgi.Router):
                 controller=self.resources['instances'],
                 action="reset_instance",
                 conditions={"method": ["POST"]})
+        mapper.connect("/{project_id}/zones/{scope_id}/instances/{id}/"
+                       "attachDisk",
+                controller=self.resources['instances'],
+                action="attach_disk",
+                conditions={"method": ["POST"]})
+        mapper.connect("/{project_id}/zones/{scope_id}/instances/{id}/"
+                       "detachDisk",
+                controller=self.resources['instances'],
+                action="detach_disk",
+                conditions={"method": ["POST"]})
 
         mapper.resource("images", "global/images",
                 controller=self.resources['images'])

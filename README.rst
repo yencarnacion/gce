@@ -182,10 +182,10 @@ In the lists below:
 
 +addAccessConfig  POST  /project/zones/zone/instances/instance/addAccessConfig
 +aggregatedList  GET  /project/aggregated/instances
--attachDisk  POST  /project/zones/zone/instances/instance/attachDisk
++attachDisk  POST  /project/zones/zone/instances/instance/attachDisk
 +delete  DELETE  /project/zones/zone/instances/instance
 +deleteAccessConfig  POST /project/zones/zone/instances/instance/deleteAccessConfig
--detachDisk  POST  /project/zones/zone/instances/instance/detachDisk
++detachDisk  POST  /project/zones/zone/instances/instance/detachDisk
 +get  GET  /project/zones/zone/instances/instance
 -getSerialPortOutput  GET  /project/zones/zone/instances/instance/serialPort
 +insert  POST  /project/zones/zone/instances

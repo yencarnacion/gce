@@ -95,7 +95,7 @@ class Controller(gce_common.Controller):
                 "mode": "READ_ONLY" if readonly == "True" else "READ_WRITE",
                 "source": self._qualify(request,
                     "disks", volume["display_name"], scope),
-                "deviceName": volume["attachments"][0]["device"],
+                "deviceName": volume["device_name"],
                 "boot": True if volume["bootable"] == "true" else False
             }
             result_dict["disks"].append(google_disk)
@@ -136,6 +136,25 @@ class Controller(gce_common.Controller):
            req.params.get('accessConfig'))
 
         return self._create_operation(req, "deleteAccessConfig", scope,
+                                      start_time, id)
+
+    def attach_disk(self, req, body, scope_id, id):
+        context = self._get_context(req)
+        scope = self._get_scope(req, scope_id)
+        start_time = timeutils.isotime(None, True)
+        self._api.attach_disk(context, body, id, scope)
+
+        return self._create_operation(req, "attachDisk", scope,
+                                      start_time, id)
+
+    def detach_disk(self, req, scope_id, id):
+        context = self._get_context(req)
+        scope = self._get_scope(req, scope_id)
+        start_time = timeutils.isotime(None, True)
+        self._api.detach_disk(context, id, scope,
+            req.params.get('deviceName'))
+
+        return self._create_operation(req, "detachDisk", scope,
                                       start_time, id)
 
 

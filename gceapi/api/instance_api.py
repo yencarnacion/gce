@@ -18,6 +18,7 @@ from gceapi import exception
 from gceapi.openstack.common import log as logging
 
 from gceapi.api import access_config_api
+from gceapi.api import attached_disk_api
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import disk_api
@@ -114,8 +115,21 @@ class API(base_api.API):
 
         cinder_client = clients.cinder(context)
         volumes = instance["os-extended-volumes:volumes_attached"]
-        instance["volumes"] = [
-            utils.to_dict(cinder_client.volumes.get(v["id"])) for v in volumes]
+        instance["volumes"] = [utils.to_dict(
+            cinder_client.volumes.get(v["id"])) for v in volumes]
+        ads = attached_disk_api.API().get_items(context, instance["name"])
+        ads = {ad["volume_id"]: ad for ad in ads}
+        for volume in instance["volumes"]:
+            ad = ads.pop(volume["id"], None)
+            if not ad:
+                name = volume["display_name"]
+                ad = attached_disk_api.API().register_item(context,
+                    instance["name"], volume_id=volume["id"], name=name)
+            volume["device_name"] = ad["name"]
+        # NOTE(apavlov): cleanup unused from db for this instance
+        for ad in ads:
+            ad = attached_disk_api.API().unregister_item(context,
+                instance["name"], ads[ad]["name"])
 
         acs = access_config_api.API().get_items(context, instance["name"])
         acs = {ac["addr"]: ac for ac in acs}
@@ -129,7 +143,7 @@ class API(base_api.API):
                             addr=address["addr"], nic=network)
                     address["name"] = ac["name"]
                     address["type"] = ac["type"]
-
+        # NOTE(apavlov): cleanup unused from db for this instance
         for ac in acs:
             ac = access_config_api.API().unregister_item(context,
                 instance["name"], acs[ac]["name"])
@@ -202,6 +216,11 @@ class API(base_api.API):
         instance = self._prepare_instance(client, context, instance)
         self._delete_db_item(context, instance)
 
+        ads = attached_disk_api.API().get_items(context, instance["name"])
+        for ad in ads:
+            ad = attached_disk_api.API().unregister_item(context,
+                instance["name"], ad["name"])
+
         acs = access_config_api.API().get_items(context, instance["name"])
         for ac in acs:
             ac = access_config_api.API().unregister_item(context,
@@ -234,11 +253,11 @@ class API(base_api.API):
         bdm = dict()
         diskDevice = 0
         for disk in disks:
-            # TODO(apavlov): store disk["deviceName"] in DB
             device_name = "vd" + string.ascii_lowercase[diskDevice]
             volume_name = utils._extract_name_from_url(disk["source"])
             volume = disk_api.API().get_item(context, volume_name, scope)
-            bdm[device_name] = volume['id']
+            disk["id"] = volume["id"]
+            bdm[device_name] = volume["id"]
             diskDevice += 1
 
         nics = []
@@ -262,6 +281,10 @@ class API(base_api.API):
             security_groups=groups_names, key_name=key_name,
             availability_zone=scope.get_name(), block_device_mapping=bdm,
             nics=nics)
+
+        for disk in disks:
+            attached_disk_api.API().register_item(context, name,
+                volume_id=disk["id"], name=disk["deviceName"])
 
         instance = utils.to_dict(client.servers.get(instance.id))
         instance = self._prepare_instance(client, context, instance)
@@ -293,3 +316,12 @@ class API(base_api.API):
     def delete_access_config(self, context, item_id, scope,
                              network_interface, access_config):
         access_config_api.API().delete_item(context, item_id, access_config)
+
+    def attach_disk(self, context, body, item_id, scope):
+        volume_name = utils._extract_name_from_url(body["source"])
+        volume = disk_api.API().get_item(context, volume_name, scope)
+        attached_disk_api.API().add_item(context, item_id,
+            name=body.get("deviceName"), volume_id=volume["id"])
+
+    def detach_disk(self, context, item_id, scope, device_name):
+        attached_disk_api.API().delete_item(context, item_id, device_name)
