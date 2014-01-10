@@ -323,7 +323,7 @@ class Controller(object):
         if next_page_token:
             result_dict["nextPageToken"] = next_page_token
         result_dict["kind"] = (self._aggregated_kind
-            if scope and scope.is_aggregated()
+            if scope and isinstance(scope, scopes.AggregatedScope)
             else self._list_kind)
 
         context = self._get_context(request)

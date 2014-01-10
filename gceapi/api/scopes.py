@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
+
 from webob import exc
 
 from gceapi.api import base_api
@@ -24,16 +26,12 @@ class Scope(object):
     The following scopes exists: global, aggregated, zones, regions."""
 
     _type = None
-    _name = None
     _collection = None
+    _name = None
 
-    def __init__(self, scope_type, scope_name):
-        self._type = scope_type
+    @abc.abstractmethod
+    def __init__(self, scope_name):
         self._name = scope_name
-        self._collection = utils.get_collection_name(self._type)
-
-    def is_aggregated(self):
-        return self._type == "aggregated"
 
     def get_type(self):
         return self._type
@@ -45,7 +43,7 @@ class Scope(object):
         return self._collection
 
     def get_path(self):
-        if self._name is not None:
+        if self._collection is not None and self._name is not None:
             return "/".join([self._collection, self._name])
         else:
             return self._type
@@ -56,26 +54,48 @@ class Scope(object):
 
 class GlobalScope(Scope):
 
+    _type = "global"
+
     def __init__(self):
-        super(GlobalScope, self).__init__("global", None)
+        super(GlobalScope, self).__init__(None)
 
 
 class AggregatedScope(Scope):
 
+    _type = "aggregated"
+
     def __init__(self):
-        super(AggregatedScope, self).__init__("aggregated", None)
+        super(AggregatedScope, self).__init__(None)
 
 
 class ZoneScope(Scope):
 
+    _type = "zone"
+    _collection = utils.get_collection_name(_type)
+
     def __init__(self, scope_name):
-        super(ZoneScope, self).__init__("zone", scope_name)
+        super(ZoneScope, self).__init__(scope_name)
 
 
 class RegionScope(Scope):
 
+    _type = "region"
+    _collection = utils.get_collection_name(_type)
+
     def __init__(self, scope_name):
-        super(RegionScope, self).__init__("region", scope_name)
+        super(RegionScope, self).__init__(scope_name)
+
+
+def construct(scope_type, scope_id):
+    if scope_type == "zone":
+        return ZoneScope(scope_id)
+    elif scope_type == "region":
+        return RegionScope(scope_id)
+    elif scope_type == "global":
+        return GlobalScope()
+    elif scope_type == "aggregated":
+        return AggregatedScope()
+    return None
 
 
 def construct_from_path(path, scope_id):
@@ -92,6 +112,8 @@ def construct_from_path(path, scope_id):
         return ZoneScope(scope_id)
     elif collection_or_type == "regions":
         return RegionScope(scope_id)
-    elif collection_or_type in ("global", "aggregated"):
-        return Scope(collection_or_type, None)
+    elif collection_or_type == "global":
+        return GlobalScope()
+    elif collection_or_type == "aggregated":
+        return AggregatedScope()
     raise exc.HTTPBadRequest(comment="Bad path %s" % path)
