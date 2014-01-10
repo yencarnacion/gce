@@ -81,6 +81,32 @@ class MachineTypesTest(common.GCEControllerTest):
 
         self.assertEqual(response.json_body, expected)
 
+    def test_get_flavor_list_paged(self):
+        response = self.request_gce("/fake_project/zones/nova/machineTypes"
+                                    "?maxResults=1")
+        expected = {
+                "kind": "compute#machineTypeList",
+                "id": "projects/fake_project/zones/nova/machineTypes",
+                "selfLink": "http://localhost/compute/v1beta15/projects"
+                    "/fake_project/zones/nova/machineTypes",
+                "items": [EXPECTED_FLAVORS[1]],
+                "nextPageToken": "1"
+                }
+
+        self.assertDictEqual(response.json_body, expected)
+
+        response = self.request_gce("/fake_project/zones/nova/machineTypes"
+                                    "?maxResults=1&pageToken=1")
+        expected = {
+                "kind": "compute#machineTypeList",
+                "id": "projects/fake_project/zones/nova/machineTypes",
+                "selfLink": "http://localhost/compute/v1beta15/projects"
+                    "/fake_project/zones/nova/machineTypes",
+                "items": [EXPECTED_FLAVORS[0]]
+                }
+
+        self.assertDictEqual(response.json_body, expected)
+
     def test_get_flavor_list(self):
         response = self.request_gce('/fake_project/zones/nova/machineTypes')
         expected = {

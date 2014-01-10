@@ -72,10 +72,15 @@ class Controller(object):
         scope = self._get_scope(req, scope_id)
 
         items = self._api.get_items(context, scope)
-        items = [self.format_item(req, i, scope) for i in items]
+        items = [{
+            "scope": scope,
+            "item": self.format_item(req, i, scope)
+        } for i in items]
         items = self._filter_result(req, items)
+        items, next_page_token = self._page_result(req, items)
+        items = [i["item"] for i in items]
 
-        return self._format_list(req, items, scope)
+        return self._format_list(req, items, next_page_token, scope)
 
     def show(self, req, id=None, scope_id=None):
         """GCE get requests, global or zone/region specified."""
@@ -92,22 +97,25 @@ class Controller(object):
     def aggregated_list(self, req):
         """GCE aggregated list requests for all zones/regions."""
 
-        items = self._api.get_items(self._get_context(req), None)
-        items_by_scopes = {}
         context = self._get_context(req)
-        for item in items:
+        items = list()
+        for item in self._api.get_items(context, None):
             for scope in self._api.get_scopes(context, item):
-                scope_path = scope.get_path()
-                items_by_scope = items_by_scopes.setdefault(scope_path,
-                    {self._collection_name: []})[self._collection_name]
-                items_by_scope.append(self.format_item(req, item, scope))
+                items.append({
+                    "scope": scope,
+                    "item": self.format_item(req, item, scope)
+                })
+        items = self._filter_result(req, items)
+        items, next_page_token = self._page_result(req, items)
 
-        for scope in items_by_scopes:
-            items = items_by_scopes[scope]
-            items_by_scopes[scope][self._collection_name] =\
-                self._filter_result(req, items[self._collection_name])
+        items_by_scopes = {}
+        for item in items:
+            scope_path = item["scope"].get_path()
+            items_by_scope = items_by_scopes.setdefault(scope_path,
+                {self._collection_name: []})[self._collection_name]
+            items_by_scope.append(item["item"])
 
-        return self._format_list(req, items_by_scopes,
+        return self._format_list(req, items_by_scopes, next_page_token,
             scopes.AggregatedScope())
 
     def delete(self, req, id, scope_id=None):
@@ -146,35 +154,61 @@ class Controller(object):
 
         Only one filter is supported(eg. by one field)
         Only two comparison strings are supported: 'eq' and 'ne'
-        There are no ligical expressions with fields
+        There are no logical expressions with fields
         """
         if not items:
             return items
-        if 'filter' not in req.params:
+        if "filter" not in req.params:
             return items
 
-        filter_def = req.params['filter'].split()
+        filter_def = req.params["filter"].split()
         if len(filter_def) != 3:
+            # TODO(apavlov): raise exception
             return items
-        if filter_def[1] != 'eq' and filter_def[1] != 'ne':
+        if filter_def[1] != "eq" and filter_def[1] != "ne":
+            # TODO(apavlov): raise exception
             return items
-        if filter_def[0] not in items[0]:
+        if filter_def[0] not in items[0]["item"]:
+            # TODO(apavlov): raise exception
             return items
 
         filter_field = filter_def[0]
-        filter_cmp = filter_def[1] == 'eq'
+        filter_cmp = filter_def[1] == "eq"
         filter_pattern = filter_def[2]
         if filter_pattern[0] == "'" and filter_pattern[-1] == "'":
             filter_pattern = filter_pattern[1:-1]
 
         result_list = list()
         for item in items:
-            field = item[filter_field]
+            field = item["item"][filter_field]
             result = re.match(filter_pattern, field)
             if filter_cmp != (result is None):
                 result_list.append(item)
 
         return result_list
+
+    # Paging
+    def _page_result(self, req, items):
+        if not items:
+            return items, None
+        if "maxResults" not in req.params:
+            return items, None
+
+        limit = int(req.params["maxResults"])
+        if limit >= len(items):
+            return items, None
+
+        page_index = int(req.params.get("pageToken", 0))
+        if page_index < 0 or page_index * limit > len(items):
+            # TODO(apavlov): raise exception
+            return [], None
+
+        items.sort(None, lambda x: x["item"].get("name"))
+        start = limit * page_index
+        if start + limit >= len(items):
+            return items[start:], None
+
+        return items[start:start + limit], str(page_index + 1)
 
     # Utility
     def _get_context(self, req):
@@ -283,9 +317,11 @@ class Controller(object):
         result_dict["id"] = self._get_id(result_dict["selfLink"])
         return result_dict
 
-    def _format_list(self, request, result_list, scope):
+    def _format_list(self, request, result_list, next_page_token, scope):
         result_dict = {}
         result_dict["items"] = result_list
+        if next_page_token:
+            result_dict["nextPageToken"] = next_page_token
         result_dict["kind"] = (self._aggregated_kind
             if scope and scope.is_aggregated()
             else self._list_kind)
