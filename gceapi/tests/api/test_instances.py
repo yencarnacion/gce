@@ -278,3 +278,37 @@ class InstancesTest(common.GCEControllerTest):
         expected.update(common.COMMON_ZONE_PENDING_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
+
+    def test_attach_disk(self):
+        request_body = {
+            "deviceName": "ghost",
+            "source": "http://localhost/compute/v1beta15/projects/fake_project"
+                "/zones/nova/disks/i1"
+        }
+        response = self.request_gce("/fake_project/zones/nova"
+            "/instances/i2/attachDisk",
+            method="POST",
+            body=request_body)
+        expected = {
+            "operationType": "attachDisk",
+            "targetId": "3991024138321713621",
+            "targetLink": "http://localhost/compute/v1beta15/projects/"
+                          "fake_project/zones/nova/instances/i2",
+        }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
+        self.assertEqual(200, response.status_int)
+        self.assertDictEqual(expected, response.json_body)
+
+    def test_detach_disk(self):
+        response = self.request_gce("/fake_project/zones/nova/"
+            "instances/i1/detachDisk?deviceName=christmas-tree",
+            method="POST")
+        expected = {
+            "operationType": "detachDisk",
+            "targetId": "3991024138321713624",
+            "targetLink": "http://localhost/compute/v1beta15/projects/"
+                          "fake_project/zones/nova/instances/i1",
+        }
+        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
+        self.assertEqual(200, response.status_int)
+        self.assertDictEqual(expected, response.json_body)

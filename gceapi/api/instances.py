@@ -155,7 +155,7 @@ class Controller(gce_common.Controller):
             name=body.get("deviceName"), source=body["source"])
 
         return self._create_operation(req, "attachDisk", scope,
-                                      start_time, disk["id"],
+                                      start_time, id, disk["id"],
                                       self._attached_disk_api.add_item)
 
     def detach_disk(self, req, scope_id, id):
@@ -167,7 +167,7 @@ class Controller(gce_common.Controller):
             req.params.get('deviceName'))
 
         return self._create_operation(req, "detachDisk", scope,
-                                      start_time, disk["id"],
+                                      start_time, id, disk["id"],
                                       self._attached_disk_api.delete_item)
 
 

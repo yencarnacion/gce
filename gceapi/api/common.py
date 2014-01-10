@@ -21,7 +21,6 @@ from gceapi.api import operation_api
 from gceapi.api import scopes
 from gceapi.api import utils
 from gceapi import exception
-from gceapi.openstack.common.rpc import common as rpc_common
 from gceapi.openstack.common import timeutils
 
 
@@ -134,15 +133,12 @@ class Controller(object):
         """GCE add requests."""
 
         start_time = timeutils.isotime(None, True)
-        try:
-            scope = self._get_scope(req, scope_id)
-            context = self._get_context(req)
-            item = self._api.add_item(context, body['name'], body, scope)
-            return self._create_operation(req, "insert", scope, start_time,
-                                          item["name"], item["id"],
-                                          self._api.add_item)
-        except rpc_common.RemoteError as err:
-            raise exc.HTTPInternalServerError(explanation=err.message)
+        scope = self._get_scope(req, scope_id)
+        context = self._get_context(req)
+        item = self._api.add_item(context, body['name'], body, scope)
+        return self._create_operation(req, "insert", scope, start_time,
+                                      item["name"], item["id"],
+                                      self._api.add_item)
 
     # Utility
     def _get_context(self, req):

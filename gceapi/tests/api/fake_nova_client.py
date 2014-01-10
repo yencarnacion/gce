@@ -713,6 +713,17 @@ class FakeLimits(object):
         return FAKE_LIMITS
 
 
+class FakeVolumes(object):
+    def get_server_volumes(self, instnce_id):
+        return []
+
+    def create_server_volume(self, instance_id, volume_id, device):
+        pass
+
+    def delete_server_volume(self, instance_id, volume_id):
+        pass
+
+
 class FakeNovaClient(object):
 
     KIND = "fake_novaclient"
@@ -761,6 +772,10 @@ class FakeNovaClient(object):
     @property
     def limits(self):
         return FakeLimits()
+
+    @property
+    def volumes(self):
+        return FakeVolumes()
 
 
 def fake_discover_extensions(self, version):
