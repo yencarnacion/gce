@@ -15,6 +15,7 @@
 """Base GCE API controller"""
 
 import os.path
+import re
 from webob import exc
 
 from gceapi.api import operation_api
@@ -71,13 +72,10 @@ class Controller(object):
         scope = self._get_scope(req, scope_id)
 
         items = self._api.get_items(context, scope)
-        filter_name = self._get_filtering_name(req)
-        result_list = list()
-        for item in items:
-            if not filter_name or item["name"] == filter_name:
-                result_list.append(self.format_item(req, item, scope))
+        items = [self.format_item(req, i, scope) for i in items]
+        items = self._filter_result(req, items)
 
-        return self._format_list(req, result_list, scope)
+        return self._format_list(req, items, scope)
 
     def show(self, req, id=None, scope_id=None):
         """GCE get requests, global or zone/region specified."""
@@ -94,19 +92,21 @@ class Controller(object):
     def aggregated_list(self, req):
         """GCE aggregated list requests for all zones/regions."""
 
-        filter_name = self._get_filtering_name(req)
         items = self._api.get_items(self._get_context(req), None)
         items_by_scopes = {}
         context = self._get_context(req)
         for item in items:
-            if filter_name and item["name"] != filter_name:
-                continue
-
             for scope in self._api.get_scopes(context, item):
-                az = scope.get_path()
-                items_by_scope = items_by_scopes.setdefault(
-                    az, {self._collection_name: []})[self._collection_name]
+                scope_path = scope.get_path()
+                items_by_scope = items_by_scopes.setdefault(scope_path,
+                    {self._collection_name: []})[self._collection_name]
                 items_by_scope.append(self.format_item(req, item, scope))
+
+        for scope in items_by_scopes:
+            items = items_by_scopes[scope]
+            items_by_scopes[scope][self._collection_name] =\
+                self._filter_result(req, items[self._collection_name])
+
         return self._format_list(req, items_by_scopes,
             scopes.AggregatedScope())
 
@@ -140,6 +140,42 @@ class Controller(object):
                                       item["name"], item["id"],
                                       self._api.add_item)
 
+    # Filtering
+    def _filter_result(self, req, items):
+        """Filtering result list
+
+        Only one filter is supported(eg. by one field)
+        Only two comparison strings are supported: 'eq' and 'ne'
+        There are no ligical expressions with fields
+        """
+        if not items:
+            return items
+        if 'filter' not in req.params:
+            return items
+
+        filter_def = req.params['filter'].split()
+        if len(filter_def) != 3:
+            return items
+        if filter_def[1] != 'eq' and filter_def[1] != 'ne':
+            return items
+        if filter_def[0] not in items[0]:
+            return items
+
+        filter_field = filter_def[0]
+        filter_cmp = filter_def[1] == 'eq'
+        filter_pattern = filter_def[2]
+        if filter_pattern[0] == "'" and filter_pattern[-1] == "'":
+            filter_pattern = filter_pattern[1:-1]
+
+        result_list = list()
+        for item in items:
+            field = item[filter_field]
+            result = re.match(filter_pattern, field)
+            if filter_cmp != (result is None):
+                result_list.append(item)
+
+        return result_list
+
     # Utility
     def _get_context(self, req):
         return req.environ['gceapi.context']
@@ -157,17 +193,6 @@ class Controller(object):
                 raise exc.HTTPNotFound(detail=ex)
 
         return scope
-
-    def _get_filtering_name(self, request):
-        if 'filter' not in request.params:
-            return None
-
-        filter_def = request.params['filter'].split()
-        if (len(filter_def) != 3 or filter_def[0] != 'name'
-                or filter_def[1] != 'eq'):
-            return None
-
-        return filter_def[2]
 
     # Result formatting
     def _format_date(self, date_string):
