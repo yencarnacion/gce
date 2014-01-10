@@ -60,19 +60,17 @@ class API(base_api.API):
         items = self._get_db_items(context)
         return [i for i in items if i["instance_name"] == instance_name]
 
-    def add_item(self, context, instance_name, **kwargs):
-        network_interface = kwargs.get("nic")
-        if not network_interface:
+    def add_item(self, context, instance_name, nic, addr, addr_type, name):
+        if not nic:
             msg = _("Network interface is invalid or empty")
             raise exception.InvalidRequest(msg)
 
-        item_type = kwargs.get("type", self.DEFAULT_ACCESS_CONFIG_TYPE)
-        if item_type != self.DEFAULT_ACCESS_CONFIG_TYPE:
+        if addr_type is None:
+            addr_type = self.DEFAULT_ACCESS_CONFIG_TYPE
+        elif addr_type != self.DEFAULT_ACCESS_CONFIG_TYPE:
             msg = _("Only '%s' type of access config currently supported."
                     % self.DEFAULT_ACCESS_CONFIG_TYPE)
             raise exception.InvalidRequest(msg)
-
-        addr = kwargs.get("addr")
 
         client = clients.nova(context)
         instances = client.servers.list(search_opts={"name": instance_name})
@@ -82,7 +80,7 @@ class API(base_api.API):
 
         fixed_ip = None
         for network in instance.addresses:
-            if network_interface != network:
+            if nic != network:
                 continue
             for address in instance.addresses[network]:
                 atype = address["OS-EXT-IPS:type"]
@@ -119,24 +117,25 @@ class API(base_api.API):
                 raise exception.InvalidRequest(msg)
 
         instance.add_floating_ip(addr, fixed_ip)
-        kwargs["addr"] = addr
 
-        return self.register_item(context, instance_name, **kwargs)
+        return self.register_item(context, instance_name,
+                                  nic, addr, addr_type, name)
 
-    def register_item(self, context, instance_name, **kwargs):
-        network_interface = kwargs.get("nic")
-        if not network_interface:
+    def register_item(self, context, instance_name,
+                      nic, addr, addr_type, name):
+        if not nic:
             msg = _("Network interface is invalid or empty")
             raise exception.InvalidRequest(msg)
 
-        item_type = kwargs.get("type", self.DEFAULT_ACCESS_CONFIG_TYPE)
-        if item_type != self.DEFAULT_ACCESS_CONFIG_TYPE:
+        if addr_type is None:
+            addr_type = self.DEFAULT_ACCESS_CONFIG_TYPE
+        elif addr_type != self.DEFAULT_ACCESS_CONFIG_TYPE:
             msg = _("Only '%s' type of access config currently supported."
                     % self.DEFAULT_ACCESS_CONFIG_TYPE)
             raise exception.InvalidRequest(msg)
 
-        item_name = kwargs.get("name", self.DEFAULT_ACCESS_CONFIG_NAME)
-        addr = kwargs.get("addr")
+        if name is None:
+            name = self.DEFAULT_ACCESS_CONFIG_NAME
         if not addr:
             msg = _("There is no address to assign.")
             raise exception.InvalidRequest(msg)
@@ -144,9 +143,9 @@ class API(base_api.API):
         new_item = {
             "id": instance_name + "-" + addr,
             "instance_name": instance_name,
-            "nic": network_interface,
-            "name": item_name,
-            "type": item_type,
+            "nic": nic,
+            "name": name,
+            "type": addr_type,
             "addr": addr
         }
         new_item = self._add_db_item(context, new_item)

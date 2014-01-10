@@ -17,12 +17,12 @@ import string
 from gceapi import exception
 from gceapi.openstack.common import log as logging
 
-from gceapi.api import access_config_api
-from gceapi.api import attached_disk_api
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import disk_api
 from gceapi.api import firewall_api
+from gceapi.api import instance_address_api
+from gceapi.api import instance_disk_api
 from gceapi.api import machine_type_api
 from gceapi.api import network_api
 from gceapi.api import operation_api
@@ -128,35 +128,35 @@ class API(base_api.API):
         volumes = instance["os-extended-volumes:volumes_attached"]
         instance["volumes"] = [utils.to_dict(
             cinder_client.volumes.get(v["id"])) for v in volumes]
-        ads = attached_disk_api.API().get_items(context, instance["name"])
+        ads = instance_disk_api.API().get_items(context, instance["name"])
         ads = {ad["volume_id"]: ad for ad in ads}
         for volume in instance["volumes"]:
             ad = ads.pop(volume["id"], None)
             if not ad:
                 name = volume["display_name"]
-                ad = attached_disk_api.API().register_item(context,
-                    instance["name"], volume_id=volume["id"], name=name)
+                ad = instance_disk_api.API().register_item(context,
+                    instance["name"], volume["id"], name)
             volume["device_name"] = ad["name"]
         # NOTE(apavlov): cleanup unused from db for this instance
         for ad in ads:
-            ad = attached_disk_api.API().unregister_item(context,
+            ad = instance_disk_api.API().unregister_item(context,
                 instance["name"], ads[ad]["name"])
 
-        acs = access_config_api.API().get_items(context, instance["name"])
+        acs = instance_address_api.API().get_items(context, instance["name"])
         acs = {ac["addr"]: ac for ac in acs}
         for network in instance["addresses"]:
             for address in instance["addresses"][network]:
                 if address["OS-EXT-IPS:type"] == "floating":
                     ac = acs.pop(address["addr"], None)
                     if not ac:
-                        ac = access_config_api.API().register_item(context,
-                            instance["name"],
-                            addr=address["addr"], nic=network)
+                        ac = instance_address_api.API().register_item(context,
+                            instance["name"], network, address["addr"],
+                            None, None)
                     address["name"] = ac["name"]
                     address["type"] = ac["type"]
         # NOTE(apavlov): cleanup unused from db for this instance
         for ac in acs:
-            ac = access_config_api.API().unregister_item(context,
+            ac = instance_address_api.API().unregister_item(context,
                 instance["name"], acs[ac]["name"])
 
         return instance
@@ -231,14 +231,14 @@ class API(base_api.API):
         instance = self._prepare_instance(client, context, instance)
         self._delete_db_item(context, instance)
 
-        ads = attached_disk_api.API().get_items(context, instance["name"])
+        ads = instance_disk_api.API().get_items(context, instance["name"])
         for ad in ads:
-            ad = attached_disk_api.API().unregister_item(context,
+            ad = instance_disk_api.API().unregister_item(context,
                 instance["name"], ad["name"])
 
-        acs = access_config_api.API().get_items(context, instance["name"])
+        acs = instance_address_api.API().get_items(context, instance["name"])
         for ac in acs:
-            ac = access_config_api.API().unregister_item(context,
+            ac = instance_address_api.API().unregister_item(context,
                 instance["name"], ac["name"])
 
         return instance
@@ -298,8 +298,8 @@ class API(base_api.API):
             nics=nics)
 
         for disk in disks:
-            attached_disk_api.API().register_item(context, name,
-                volume_id=disk["id"], name=disk["deviceName"])
+            instance_disk_api.API().register_item(context, name,
+                disk["id"], disk["deviceName"])
 
         instance = utils.to_dict(client.servers.get(instance.id))
         instance = self._prepare_instance(client, context, instance)
@@ -316,9 +316,8 @@ class API(base_api.API):
             # NOTE(apavlov): only one access config(floating ip) is supported
             ac = ac[0]
             net_name = utils._extract_name_from_url(net_iface["network"])
-            access_config_api.API().add_item(context, instance["name"],
-                name=ac.get("name"), type=ac.get("type"),
-                addr=ac.get("natIP"), nic=net_name)
+            instance_address_api.API().add_item(context, instance["name"],
+                net_name, ac.get("natIP"), ac.get("type"), ac.get("name"))
 
         return instance
 

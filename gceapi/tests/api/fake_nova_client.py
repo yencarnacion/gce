@@ -714,14 +714,22 @@ class FakeLimits(object):
 
 
 class FakeVolumes(object):
-    def get_server_volumes(self, instnce_id):
+    def get_server_volumes(self, instance_id):
         return []
 
     def create_server_volume(self, instance_id, volume_id, device):
-        pass
+        instance = FakeServers().get(instance_id)
+        volumes = getattr(instance, "os-extended-volumes:volumes_attached")
+        volumes = [v["id"] for v in volumes]
+        if volume_id in volumes:
+            raise nova_exc.NotFound(nova_exc.NotFound.http_status)
 
     def delete_server_volume(self, instance_id, volume_id):
-        pass
+        instance = FakeServers().get(instance_id)
+        volumes = getattr(instance, "os-extended-volumes:volumes_attached")
+        volumes = [v["id"] for v in volumes]
+        if volume_id not in volumes:
+            raise nova_exc.NotFound(nova_exc.NotFound.http_status)
 
 
 class FakeNovaClient(object):

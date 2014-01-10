@@ -62,18 +62,16 @@ class API(base_api.API):
         items = self._get_db_items(context)
         return [i for i in items if i["instance_name"] == instance_name]
 
-    def add_item(self, context, instance_name, **kwargs):
-        name = kwargs.get("name")
+    def add_item(self, context, instance_name, source, name):
         if not name:
             msg = _("There is no name to assign.")
             raise exception.InvalidRequest(msg)
 
-        volume_name = utils._extract_name_from_url(kwargs.get("source"))
+        volume_name = utils._extract_name_from_url(source)
         if not volume_name:
             msg = _("There is no volume to assign.")
             raise exception.NotFound(msg)
         volume = disk_api.API().get_item(context, volume_name, None)
-        kwargs["volume_id"] = volume["id"]
 
         nova_client = clients.nova(context)
         instances = nova_client.servers.list(
@@ -100,14 +98,12 @@ class API(base_api.API):
         volumes_client.create_server_volume(
             instance.id, volume["id"], "/dev/" + device_name)
 
-        return self.register_item(context, instance_name, **kwargs)
+        return self.register_item(context, instance_name, volume["id"], name)
 
-    def register_item(self, context, instance_name, **kwargs):
-        name = kwargs.get("name")
+    def register_item(self, context, instance_name, volume_id, name):
         if not name:
             msg = _("There is no name to assign.")
             raise exception.InvalidRequest(msg)
-        volume_id = kwargs.get("volume_id")
         if not volume_id:
             msg = _("There is no volume_id to assign.")
             raise exception.InvalidRequest(msg)

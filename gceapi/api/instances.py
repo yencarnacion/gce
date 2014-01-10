@@ -14,10 +14,10 @@
 
 import webob
 
-from gceapi.api import access_config_api
-from gceapi.api import attached_disk_api
 from gceapi.api import common as gce_common
+from gceapi.api import instance_address_api
 from gceapi.api import instance_api
+from gceapi.api import instance_disk_api
 from gceapi.api import scopes
 from gceapi.api import wsgi as gce_wsgi
 from gceapi import exception
@@ -34,8 +34,8 @@ class Controller(gce_common.Controller):
     def __init__(self, *args, **kwargs):
         super(Controller, self).__init__(instance_api.API(),
                                          *args, **kwargs)
-        self._access_config_api = access_config_api.API()
-        self._attached_disk_api = attached_disk_api.API()
+        self._instance_address_api = instance_address_api.API()
+        self._instance_disk_api = instance_disk_api.API()
 
     def format_item(self, request, instance, scope):
         result_dict = {
@@ -127,48 +127,48 @@ class Controller(gce_common.Controller):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
         start_time = timeutils.isotime(None, True)
-        access_config = self._access_config_api.add_item(context, id,
-            name=body.get("name"), type=body.get("type"),
-            addr=body.get("natIP"), nic=req.params.get('networkInterface'))
+        access_config = self._instance_address_api.add_item(context, id,
+            req.params.get('networkInterface'), body.get("natIP"),
+            body.get("type"), body.get("name"))
 
         return self._create_operation(req, "addAccessConfig", scope,
                                       start_time, id, access_config["id"],
-                                      self._access_config_api.add_item)
+                                      self._instance_address_api.add_item)
 
     def delete_access_config(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
         start_time = timeutils.isotime(None, True)
-        access_config = self._access_config_api.delete_item(context, id,
+        access_config = self._instance_address_api.delete_item(context, id,
            req.params.get('accessConfig'))
 
         return self._create_operation(req, "deleteAccessConfig", scope,
                                       start_time, id, access_config["id"],
-                                      self._access_config_api.delete_item)
+                                      self._instance_address_api.delete_item)
 
     def attach_disk(self, req, body, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
         start_time = timeutils.isotime(None, True)
 
-        disk = self._attached_disk_api.add_item(context, id,
-            name=body.get("deviceName"), source=body["source"])
+        disk = self._instance_disk_api.add_item(context, id,
+            body["source"], body.get("deviceName"))
 
         return self._create_operation(req, "attachDisk", scope,
                                       start_time, id, disk["id"],
-                                      self._attached_disk_api.add_item)
+                                      self._instance_disk_api.add_item)
 
     def detach_disk(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
         start_time = timeutils.isotime(None, True)
 
-        disk = self._attached_disk_api.delete_item(context, id,
+        disk = self._instance_disk_api.delete_item(context, id,
             req.params.get('deviceName'))
 
         return self._create_operation(req, "detachDisk", scope,
                                       start_time, id, disk["id"],
-                                      self._attached_disk_api.delete_item)
+                                      self._instance_disk_api.delete_item)
 
 
 def create_resource():
