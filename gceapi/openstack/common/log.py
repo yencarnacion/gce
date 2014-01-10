@@ -41,7 +41,7 @@ from oslo.config import cfg
 import six
 from six import moves
 
-from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import importutils
 from gceapi.openstack.common import jsonutils
 from gceapi.openstack.common import local
@@ -149,7 +149,6 @@ log_opts = [
                     'amqp=WARN',
                     'amqplib=WARN',
                     'boto=WARN',
-                    'keystone=INFO',
                     'qpid=WARN',
                     'sqlalchemy=WARN',
                     'suds=INFO',

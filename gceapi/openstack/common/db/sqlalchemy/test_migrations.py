@@ -23,7 +23,7 @@ from six import moves
 import sqlalchemy
 import sqlalchemy.exc
 
-from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common.py3kcompat import urlutils
 from gceapi.openstack.common import test

@@ -29,7 +29,6 @@ from oslo.config import cfg
 from gceapi.openstack.common import eventlet_backdoor
 from gceapi.openstack.common import importutils
 from gceapi.openstack.common import log as logging
-from gceapi.openstack.common import rpc
 from gceapi import wsgi
 
 LOG = logging.getLogger(__name__)
@@ -154,7 +153,6 @@ class ServiceLauncher(Launcher):
             status = exc.code
         finally:
             self.stop()
-        rpc.cleanup()
 
         if status is not None:
             sys.exit(status)

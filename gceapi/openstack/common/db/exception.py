@@ -16,7 +16,7 @@
 
 """DB related custom exceptions."""
 
-from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common.gettextutils import _
 
 
 class DBError(Exception):

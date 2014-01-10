@@ -36,7 +36,7 @@ from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.types import NullType
 
-from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common.gettextutils import _
 
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import timeutils

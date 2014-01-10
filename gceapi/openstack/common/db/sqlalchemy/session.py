@@ -66,8 +66,13 @@ Recommended ways to use sessions within this framework:
   handler will take care of calling flush() and commit() for you.
   If using this approach, you should not explicitly call flush() or commit().
   Any error within the context of the session will cause the session to emit
-  a ROLLBACK. If the connection is dropped before this is possible, the
-  database will implicitly rollback the transaction.
+  a ROLLBACK. Database Errors like IntegrityError will be raised in
+  session's __exit__ handler, and any try/except within the context managed
+  by session will not be triggered. And catching other non-database errors in
+  the session will not trigger the ROLLBACK, so exception handlers should
+  always be outside the session, unless the developer wants to do a partial
+  commit on purpose. If the connection is dropped before this is possible,
+  the database will implicitly roll back the transaction.
 
      Note: statements in the session scope will not be automatically retried.
 
@@ -113,6 +118,23 @@ Recommended ways to use sessions within this framework:
 
     UPDATE bar SET bar = ${newbar}
         WHERE id=(SELECT bar_id FROM foo WHERE id = ${foo_id} LIMIT 1);
+
+  Note: create_duplicate_foo is a trivially simple example of catching an
+  exception while using "with session.begin". Here create two duplicate
+  instances with same primary key, must catch the exception out of context
+  managed by a single session:
+
+    def create_duplicate_foo(context):
+        foo1 = models.Foo()
+        foo2 = models.Foo()
+        foo1.id = foo2.id = 1
+        session = get_session()
+        try:
+            with session.begin():
+                session.add(foo1)
+                session.add(foo2)
+        except exception.DBDuplicateEntry as e:
+            handle_error(e)
 
 * Passing an active session between methods. Sessions should only be passed
   to private methods. The private method must use a subtransaction; otherwise
@@ -256,14 +278,13 @@ import time
 from oslo.config import cfg
 import six
 from sqlalchemy import exc as sqla_exc
-import sqlalchemy.interfaces
 from sqlalchemy.interfaces import PoolListener
 import sqlalchemy.orm
 from sqlalchemy.pool import NullPool, StaticPool
 from sqlalchemy.sql.expression import literal_column
 
 from gceapi.openstack.common.db import exception
-from gceapi.openstack.common.gettextutils import _  # noqa
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import timeutils
 
@@ -283,6 +304,7 @@ database_opts = [
                        '../', '$sqlite_db')),
                help='The SQLAlchemy connection string used to connect to the '
                     'database',
+               secret=True,
                deprecated_opts=[cfg.DeprecatedOpt('sql_connection',
                                                   group='DEFAULT'),
                                 cfg.DeprecatedOpt('sql_connection',
@@ -291,6 +313,7 @@ database_opts = [
                                                   group='sql'), ]),
     cfg.StrOpt('slave_connection',
                default='',
+               secret=True,
                help='The SQLAlchemy connection string used to connect to the '
                     'slave database'),
     cfg.IntOpt('idle_timeout',
@@ -418,8 +441,8 @@ class SqliteForeignKeysListener(PoolListener):
         dbapi_con.execute('pragma foreign_keys=ON')
 
 
-def get_session(autocommit=True, expire_on_commit=False,
-                sqlite_fk=False, slave_session=False):
+def get_session(autocommit=True, expire_on_commit=False, sqlite_fk=False,
+                slave_session=False, mysql_traditional_mode=False):
     """Return a SQLAlchemy session."""
     global _MAKER
     global _SLAVE_MAKER
@@ -429,7 +452,8 @@ def get_session(autocommit=True, expire_on_commit=False,
         maker = _SLAVE_MAKER
 
     if maker is None:
-        engine = get_engine(sqlite_fk=sqlite_fk, slave_engine=slave_session)
+        engine = get_engine(sqlite_fk=sqlite_fk, slave_engine=slave_session,
+                            mysql_traditional_mode=mysql_traditional_mode)
         maker = get_maker(engine, autocommit, expire_on_commit)
 
     if slave_session:
@@ -448,6 +472,11 @@ def get_session(autocommit=True, expire_on_commit=False,
 # 1 column - (IntegrityError) column c1 is not unique
 # N columns - (IntegrityError) column c1, c2, ..., N are not unique
 #
+# sqlite since 3.7.16:
+# 1 column - (IntegrityError) UNIQUE constraint failed: k1
+#
+# N columns - (IntegrityError) UNIQUE constraint failed: k1, k2
+#
 # postgres:
 # 1 column - (IntegrityError) duplicate key value violates unique
 #               constraint "users_c1_key"
@@ -460,9 +489,10 @@ def get_session(autocommit=True, expire_on_commit=False,
 # N columns - (IntegrityError) (1062, "Duplicate entry 'values joined
 #               with -' for key 'name_of_our_constraint'")
 _DUP_KEY_RE_DB = {
-    "sqlite": re.compile(r"^.*columns?([^)]+)(is|are)\s+not\s+unique$"),
-    "postgresql": re.compile(r"^.*duplicate\s+key.*\"([^\"]+)\"\s*\n.*$"),
-    "mysql": re.compile(r"^.*\(1062,.*'([^\']+)'\"\)$")
+    "sqlite": (re.compile(r"^.*columns?([^)]+)(is|are)\s+not\s+unique$"),
+               re.compile(r"^.*UNIQUE\s+constraint\s+failed:\s+(.+)$")),
+    "postgresql": (re.compile(r"^.*duplicate\s+key.*\"([^\"]+)\"\s*\n.*$"),),
+    "mysql": (re.compile(r"^.*\(1062,.*'([^\']+)'\"\)$"),)
 }
 
 
@@ -492,10 +522,14 @@ def _raise_if_duplicate_entry_error(integrity_error, engine_name):
     # SQLAlchemy can differ when using unicode() and accessing .message.
     # An audit across all three supported engines will be necessary to
     # ensure there are no regressions.
-    m = _DUP_KEY_RE_DB[engine_name].match(integrity_error.message)
-    if not m:
+    for pattern in _DUP_KEY_RE_DB[engine_name]:
+        match = pattern.match(integrity_error.message)
+        if match:
+            break
+    else:
         return
-    columns = m.group(1)
+
+    columns = match.group(1)
 
     if engine_name == "sqlite":
         columns = columns.strip().split(", ")
@@ -564,7 +598,8 @@ def _wrap_db_error(f):
     return _wrap
 
 
-def get_engine(sqlite_fk=False, slave_engine=False):
+def get_engine(sqlite_fk=False, slave_engine=False,
+               mysql_traditional_mode=False):
     """Return a SQLAlchemy engine."""
     global _ENGINE
     global _SLAVE_ENGINE
@@ -576,8 +611,8 @@ def get_engine(sqlite_fk=False, slave_engine=False):
         db_uri = CONF.database.slave_connection
 
     if engine is None:
-        engine = create_engine(db_uri,
-                               sqlite_fk=sqlite_fk)
+        engine = create_engine(db_uri, sqlite_fk=sqlite_fk,
+                               mysql_traditional_mode=mysql_traditional_mode)
     if slave_engine:
         _SLAVE_ENGINE = engine
     else:
@@ -634,6 +669,17 @@ def _ping_listener(engine, dbapi_conn, connection_rec, connection_proxy):
             raise
 
 
+def _set_mode_traditional(dbapi_con, connection_rec, connection_proxy):
+    """Set engine mode to 'traditional'.
+
+    Required to prevent silent truncates at insert or update operations
+    under MySQL. By default MySQL truncates inserted string if it longer
+    than a declared field just with warning. That is fraught with data
+    corruption.
+    """
+    dbapi_con.cursor().execute("SET SESSION sql_mode = TRADITIONAL;")
+
+
 def _is_db_connection_error(args):
     """Return True if error in connecting to db."""
     # NOTE(adam_g): This is currently MySQL specific and needs to be extended
@@ -646,7 +692,8 @@ def _is_db_connection_error(args):
     return False
 
 
-def create_engine(sql_connection, sqlite_fk=False):
+def create_engine(sql_connection, sqlite_fk=False,
+                  mysql_traditional_mode=False):
     """Return a new SQLAlchemy engine."""
     # NOTE(geekinutah): At this point we could be connecting to the normal
     #                   db handle or the slave db handle. Things like
@@ -690,6 +737,13 @@ def create_engine(sql_connection, sqlite_fk=False):
     if engine.name in ['mysql', 'ibm_db_sa']:
         callback = functools.partial(_ping_listener, engine)
         sqlalchemy.event.listen(engine, 'checkout', callback)
+        if mysql_traditional_mode:
+            sqlalchemy.event.listen(engine, 'checkout', _set_mode_traditional)
+        else:
+            LOG.warning(_("This application has not enabled MySQL traditional"
+                          " mode, which means silent data corruption may"
+                          " occur. Please encourage the application"
+                          " developers to enable this mode."))
     elif 'sqlite' in connection_dict.drivername:
         if not CONF.sqlite_synchronous:
             sqlalchemy.event.listen(engine, 'connect',
