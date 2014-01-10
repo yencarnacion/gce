@@ -16,13 +16,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import inspect
 import math
 import re
 import routes
 import time
 
-import six
 import webob
 
 from gceapi import exception
@@ -35,13 +33,6 @@ from gceapi import wsgi
 
 LOG = logging.getLogger(__name__)
 
-# The vendor content types should serialize identically to the non-vendor
-# content types. So to avoid littering the code with both options, we
-# map the vendor to the other when looking up the type
-_CONTENT_TYPE_MAP = {
-    'application/vnd.openstack.compute+json': 'application/json',
-}
-
 SUPPORTED_CONTENT_TYPES = (
     'application/json',
     'application/vnd.openstack.compute+json',
@@ -51,15 +42,6 @@ _MEDIA_TYPE_MAP = {
     'application/vnd.openstack.compute+json': 'json',
     'application/json': 'json',
 }
-
-# These are typically automatically created by routes as either defaults
-# collection or member methods.
-_ROUTES_METHODS = [
-    'create',
-    'delete',
-    'show',
-    'update',
-]
 
 _SANITIZE_KEYS = ['adminPass', 'admin_pass']
 
@@ -455,24 +437,6 @@ class ResponseObject(object):
         return self._headers.copy()
 
 
-def action_peek_json(body):
-    """Determine action to invoke."""
-
-    try:
-        decoded = jsonutils.loads(body)
-    except ValueError:
-        msg = _("cannot understand JSON")
-        raise exception.MalformedRequestBody(reason=msg)
-
-    # Make sure there's exactly one key...
-    if len(decoded) != 1:
-        msg = _("too many body keys")
-        raise exception.MalformedRequestBody(reason=msg)
-
-    # Return the action and the decoded body...
-    return decoded.keys()[0]
-
-
 class ResourceExceptionHandler(object):
     """Context manager to handle Resource exceptions.
 
@@ -540,16 +504,9 @@ class Resource(wsgi.Application):
 
     """
 
-    def __init__(self, controller, action_peek=None, inherits=None,
-                 **deserializers):
+    def __init__(self, controller, **deserializers):
         """
         :param controller: object that implement methods created by routes lib
-        :param action_peek: dictionary of routines for peeking into an action
-                            request body to determine the desired action
-        :param inherits: another resource object that this resource should
-                         inherit extensions from. Any action extensions that
-                         are applied to the parent resource will also apply
-                         to this resource.
         """
 
         self.controller = controller
@@ -559,45 +516,6 @@ class Resource(wsgi.Application):
 
         self.default_deserializers = default_deserializers
         self.default_serializers = dict(json=JSONDictSerializer)
-
-        self.action_peek = dict(json=action_peek_json)
-        self.action_peek.update(action_peek or {})
-
-        # Copy over the actions dictionary
-        self.wsgi_actions = {}
-        if controller:
-            self.register_actions(controller)
-
-        # Save a mapping of extensions
-        self.wsgi_extensions = {}
-        self.wsgi_action_extensions = {}
-        self.inherits = inherits
-
-    def register_actions(self, controller):
-        """Registers controller actions with this resource."""
-
-        actions = getattr(controller, 'wsgi_actions', {})
-        for key, method_name in actions.items():
-            self.wsgi_actions[key] = getattr(controller, method_name)
-
-    def register_extensions(self, controller):
-        """Registers controller extensions with this resource."""
-
-        extensions = getattr(controller, 'wsgi_extensions', [])
-        for method_name, action_name in extensions:
-            # Look up the extending method
-            extension = getattr(controller, method_name)
-
-            if action_name:
-                # Extending an action...
-                if action_name not in self.wsgi_action_extensions:
-                    self.wsgi_action_extensions[action_name] = []
-                self.wsgi_action_extensions[action_name].append(extension)
-            else:
-                # Extending a regular method
-                if method_name not in self.wsgi_extensions:
-                    self.wsgi_extensions[method_name] = []
-                self.wsgi_extensions[method_name].append(extension)
 
     def get_action_args(self, request_environment):
         """Parse dictionary created by routes library."""
@@ -658,66 +576,6 @@ class Resource(wsgi.Application):
         else:
             return deserializer().deserialize(body)
 
-    def pre_process_extensions(self, extensions, request, action_args):
-        # List of callables for post-processing extensions
-        post = []
-
-        for ext in extensions:
-            if inspect.isgeneratorfunction(ext):
-                response = None
-
-                # If it's a generator function, the part before the
-                # yield is the preprocessing stage
-                try:
-                    with ResourceExceptionHandler():
-                        gen = ext(req=request, **action_args)
-                        response = gen.next()
-                except Fault as ex:
-                    response = ex
-
-                # We had a response...
-                if response:
-                    return response, []
-
-                # No response, queue up generator for post-processing
-                post.append(gen)
-            else:
-                # Regular functions only perform post-processing
-                post.append(ext)
-
-        # Run post-processing in the reverse order
-        return None, reversed(post)
-
-    def post_process_extensions(self, extensions, resp_obj, request,
-                                action_args):
-        for ext in extensions:
-            response = None
-            if inspect.isgenerator(ext):
-                # If it's a generator, run the second half of
-                # processing
-                try:
-                    with ResourceExceptionHandler():
-                        response = ext.send(resp_obj)
-                except StopIteration:
-                    # Normal exit of generator
-                    continue
-                except Fault as ex:
-                    response = ex
-            else:
-                # Regular functions get post-processing...
-                try:
-                    with ResourceExceptionHandler():
-                        response = ext(req=request, resp_obj=resp_obj,
-                                       **action_args)
-                except Fault as ex:
-                    response = ex
-
-            # We had a response...
-            if response:
-                return response
-
-        return None
-
     @webob.dec.wsgify(RequestClass=Request)
     def __call__(self, request):
         """WSGI method that controls (de)serialization and method dispatch."""
@@ -743,8 +601,7 @@ class Resource(wsgi.Application):
 
         # Get the implementing method
         try:
-            meth, extensions = self.get_method(request, action,
-                                               content_type, body)
+            meth = self.get_method(request, action, content_type, body)
         except (AttributeError, TypeError):
             return Fault(webob.exc.HTTPNotFound())
         except KeyError as ex:
@@ -777,26 +634,12 @@ class Resource(wsgi.Application):
         # Update the action args
         action_args.update(contents)
 
-        project_id = action_args.pop("project_id", None)
-        context = request.environ.get('nova.context')
-        if (context and project_id and (project_id != context.project_id)):
-            msg = _("Malformed request URL: URL's project_id '%(project_id)s'"
-                    " doesn't match Context's project_id"
-                    " '%(context_project_id)s'") % \
-                    {'project_id': project_id,
-                     'context_project_id': context.project_id}
-            return Fault(webob.exc.HTTPBadRequest(explanation=msg))
-
-        # Run pre-processing extensions
-        response, post = self.pre_process_extensions(extensions,
-                                                     request, action_args)
-
-        if not response:
-            try:
-                with ResourceExceptionHandler():
-                    action_result = self.dispatch(meth, request, action_args)
-            except Fault as ex:
-                response = ex
+        response = None
+        try:
+            with ResourceExceptionHandler():
+                action_result = self.dispatch(meth, request, action_args)
+        except Fault as ex:
+            response = ex
 
         if not response:
             # No exceptions; convert action_result into a
@@ -817,174 +660,23 @@ class Resource(wsgi.Application):
                 if hasattr(meth, 'wsgi_code'):
                     resp_obj._default_code = meth.wsgi_code
                 resp_obj.preserialize(accept, self.default_serializers)
-
-                # Process post-processing extensions
-                response = self.post_process_extensions(post, resp_obj,
-                                                        request, action_args)
-
-            if resp_obj and not response:
                 response = resp_obj.serialize(request, accept,
                                               self.default_serializers)
-
-        if context and hasattr(response, 'headers'):
-            response.headers.add('x-compute-request-id', context.request_id)
-
         return response
 
     def get_method(self, request, action, content_type, body):
-        meth, extensions = self._get_method(request,
-                                            action,
-                                            content_type,
-                                            body)
-        if self.inherits:
-            _meth, parent_ext = self.inherits.get_method(request,
-                                                         action,
-                                                         content_type,
-                                                         body)
-            extensions.extend(parent_ext)
-        return meth, extensions
-
-    def _get_method(self, request, action, content_type, body):
         """Look up the action-specific method and its extensions."""
 
         # Look up the method
-        try:
-            if not self.controller:
-                meth = getattr(self, action)
-            else:
-                meth = getattr(self.controller, action)
-        except AttributeError:
-            if (not self.wsgi_actions or
-                    action not in _ROUTES_METHODS + ['action']):
-                # Propagate the error
-                raise
+        if self.controller:
+            return getattr(self.controller, action)
         else:
-            return meth, self.wsgi_extensions.get(action, [])
-
-        if action == 'action':
-            # OK, it's an action; figure out which action...
-            mtype = _MEDIA_TYPE_MAP.get(content_type)
-            action_name = self.action_peek[mtype](body)
-        else:
-            action_name = action
-
-        # Look up the action method
-        return (self.wsgi_actions[action_name],
-                self.wsgi_action_extensions.get(action_name, []))
+            return getattr(self, action)
 
     def dispatch(self, method, request, action_args):
         """Dispatch a call to the action-specific method."""
 
         return method(req=request, **action_args)
-
-
-def action(name):
-    """Mark a function as an action.
-
-    The given name will be taken as the action key in the body.
-
-    This is also overloaded to allow extensions to provide
-    non-extending definitions of create and delete operations.
-    """
-
-    def decorator(func):
-        func.wsgi_action = name
-        return func
-    return decorator
-
-
-def extends(*args, **kwargs):
-    """Indicate a function extends an operation.
-
-    Can be used as either::
-
-        @extends
-        def index(...):
-            pass
-
-    or as::
-
-        @extends(action='resize')
-        def _action_resize(...):
-            pass
-    """
-
-    def decorator(func):
-        # Store enough information to find what we're extending
-        func.wsgi_extends = (func.__name__, kwargs.get('action'))
-        return func
-
-    # If we have positional arguments, call the decorator
-    if args:
-        return decorator(*args)
-
-    # OK, return the decorator instead
-    return decorator
-
-
-class ControllerMetaclass(type):
-    """Controller metaclass.
-
-    This metaclass automates the task of assembling a dictionary
-    mapping action keys to method names.
-    """
-
-    def __new__(mcs, name, bases, cls_dict):
-        """Adds the wsgi_actions dictionary to the class."""
-
-        # Find all actions
-        actions = {}
-        extensions = []
-        # start with wsgi actions from base classes
-        for base in bases:
-            actions.update(getattr(base, 'wsgi_actions', {}))
-        for key, value in cls_dict.items():
-            if not callable(value):
-                continue
-            if getattr(value, 'wsgi_action', None):
-                actions[value.wsgi_action] = key
-            elif getattr(value, 'wsgi_extends', None):
-                extensions.append(value.wsgi_extends)
-
-        # Add the actions and extensions to the class dict
-        cls_dict['wsgi_actions'] = actions
-        cls_dict['wsgi_extensions'] = extensions
-
-        return super(ControllerMetaclass, mcs).__new__(mcs, name, bases,
-                                                       cls_dict)
-
-
-@six.add_metaclass(ControllerMetaclass)
-class Controller(object):
-    """Default controller."""
-
-    _view_builder_class = None
-
-    def __init__(self, view_builder=None):
-        """Initialize controller with a view builder instance."""
-        if view_builder:
-            self._view_builder = view_builder
-        elif self._view_builder_class:
-            self._view_builder = self._view_builder_class()
-        else:
-            self._view_builder = None
-
-    @staticmethod
-    def is_valid_body(body, entity_name):
-        if not (body and entity_name in body):
-            return False
-
-        def is_dict(d):
-            try:
-                d.get(None)
-                return True
-            except AttributeError:
-                return False
-
-        if not is_dict(body[entity_name]):
-            return False
-
-        return True
 
 
 class Fault(webob.exc.HTTPException):
@@ -1042,7 +734,6 @@ class Fault(webob.exc.HTTPException):
 
         self.wrapped_exc.body = serializer.serialize(fault_data)
         self.wrapped_exc.content_type = content_type
-        _set_request_id_header(req, self.wrapped_exc.headers)
 
         return self.wrapped_exc
 
@@ -1105,9 +796,3 @@ class RateLimitFault(webob.exc.HTTPException):
         self.wrapped_exc.content_type = content_type
 
         return self.wrapped_exc
-
-
-def _set_request_id_header(req, headers):
-    context = req.environ.get('nova.context')
-    if context:
-        headers['x-compute-request-id'] = context.request_id

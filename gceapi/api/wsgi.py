@@ -160,13 +160,11 @@ class GCEResource(openstack_wsgi.Resource):
                        content_type, body, accept):
         """Implement the processing stack."""
         method = None
-        post = []
         return_code = 200
         try:
             # Get the implementing method
             try:
-                method, extensions = self.get_method(request, action,
-                                                   content_type, body)
+                method = self.get_method(request, action, content_type, body)
             except (AttributeError, TypeError):
                 msg = _("There is no such action: %s") % action
                 raise GCEFault(webob.exc.HTTPNotFound(
@@ -198,16 +196,12 @@ class GCEResource(openstack_wsgi.Resource):
             # Update the action args
             action_args.update(contents)
 
+            # Check project
             project_id = action_args.pop("project_id", None)
             context = request.environ.get('gceapi.context')
-
             action_result = self._check_requested_project(project_id, context)
 
-            # Run pre-processing extensions
-            response, post = self.pre_process_extensions(extensions,
-                                                         request, action_args)
-
-            if not response and action_result is None:
+            if action_result is None:
                 with GCEResourceExceptionHandler():
                     action_result = self.dispatch(method, request, action_args)
 
@@ -224,6 +218,7 @@ class GCEResource(openstack_wsgi.Resource):
             # format error into action_result
             action_result, return_code = self._format_error(ex.wrapped_exc)
 
+        response = None
         resp_obj = None
         if type(action_result) is dict or action_result is None:
             resp_obj = GCEResponse(action_result, code=return_code)
@@ -232,9 +227,7 @@ class GCEResource(openstack_wsgi.Resource):
         else:
             response = action_result
 
-        # Run post-processing extensions
         if resp_obj:
-            openstack_wsgi._set_request_id_header(request, resp_obj)
             # Do a preserialize to set up the response object
             if method is not None:
                 serializers = getattr(method, 'wsgi_serializers', {})
@@ -244,10 +237,6 @@ class GCEResource(openstack_wsgi.Resource):
             if method is not None and hasattr(method, 'wsgi_code'):
                 resp_obj._default_code = method.wsgi_code
             resp_obj.preserialize(accept, self.default_serializers)
-            # Process post-processing extensions
-            response = self.post_process_extensions(post, resp_obj,
-                                                    request, action_args)
-        if resp_obj and not response:
             response = resp_obj.serialize(request, accept,
                                           self.default_serializers)
 
