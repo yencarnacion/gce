@@ -13,6 +13,7 @@
 #    under the License.
 
 import string
+import threading
 
 from gceapi import exception
 from gceapi.openstack.common import log as logging
@@ -39,21 +40,27 @@ class API(base_api.API):
     KIND = "instance"
     PERSISTENT_ATTRIBUTES = ["id", "description"]
 
-    # NOTE(apavlov): Instance status. One of the following values:
-    # \"PROVISIONING\", \"STAGING\", \"RUNNING\",
-    # \"STOPPING\", \"STOPPED\", \"TERMINATED\" (output only).
     _status_map = {
-        None: 'TERMINATED',
-        "active": 'RUNNING',
-        "building": 'PROVISIONING',
-        "deleted": 'TERMINATED',
-        "soft-delete": 'TERMINATED',
-        "stopped": 'STOPPED',
-        "paused": 'STOPPED',
-        "suspended": 'STOPPED',
-        "rescued": 'STOPPED',
-        "resized": 'STOPPED',
-        'error': 'TERMINATED'
+        "UNKNOWN": "STOPPED",
+        "ACTIVE": "RUNNING",
+        "REBOOT": "RUNNING",
+        "HARD_REBOOT": "RUNNING",
+        "PASSWORD": "RUNNING",
+        "REBUILD": "RUNNING",
+        "MIGRATING": "RUNNING",
+        "RESIZE": "RUNNING",
+        "BUILD": "PROVISIONING",
+        "SHUTOFF": "STOPPED",
+        "VERIFY_RESIZE": "RUNNING",
+        "REVERT_RESIZE": "RUNNING",
+        "PAUSED": "STOPPED",
+        "SUSPENDED": "STOPPED",
+        "RESCUE": "RUNNING",
+        "ERROR": "STOPPED",
+        "DELETED": "TERMINATED",
+        "SOFT_DELETED": "TERMINATED",
+        "SHELVED": "STOPPED",
+        "SHELVED_OFFLOADED": "STOPPED",
     }
 
     def __init__(self, *args, **kwargs):
@@ -120,7 +127,7 @@ class API(base_api.API):
     def _prepare_instance(self, client, context, instance):
         instance["statusMessage"] = instance["status"]
         instance["status"] = self._status_map.get(
-            instance["status"].lower(), instance["status"])
+            instance["status"], "STOPPED")
         instance["flavor"]["name"] = machine_type_api.API().get_item_by_id(
             context, instance["flavor"]["id"])["name"]
 
@@ -282,8 +289,12 @@ class API(base_api.API):
         #so we support this behaviour
         groups_names = set(['default'])
         for net_iface in body['networkInterfaces']:
-            net_name = utils._extract_name_from_url(net_iface["network"])
+            ac = net_iface.get("accessConfigs")
+            if ac and len(ac) > 1:
+                msg = _('At most one access config currently supported.')
+                raise exception.InvalidRequest(msg)
 
+            net_name = utils._extract_name_from_url(net_iface["network"])
             network = network_api.API().get_item(context, net_name, None)
             nics.append({"net-id": network["id"]})
             for sg in firewall_api.API().get_network_firewalls(
@@ -306,37 +317,77 @@ class API(base_api.API):
         instance["description"] = body.get("description", "")
         instance = self._add_db_item(context, instance)
 
+        return instance
+
+    def post_add_item(self, context, body, operation, scope):
+        acs = dict()
         for net_iface in body['networkInterfaces']:
             ac = net_iface.get("accessConfigs")
-            if not ac:
-                continue
-            if len(ac) > 1:
-                msg = _('At most one access config currently supported.')
-                raise exception.InvalidRequest(msg)
-            # NOTE(apavlov): only one access config(floating ip) is supported
-            ac = ac[0]
-            net_name = utils._extract_name_from_url(net_iface["network"])
-            instance_address_api.API().add_item(context, instance["name"],
-                net_name, ac.get("natIP"), ac.get("type"), ac.get("name"))
+            if ac:
+                net_name = utils._extract_name_from_url(net_iface["network"])
+                acs[net_name] = ac[0]
 
-        return instance
+        kwargs = {
+            "context": context,
+            "operation_name": operation["name"],
+            "scope": scope,
+            "acs": acs
+        }
+        threading.Timer(5, self._add_access_config, kwargs=kwargs).start()
+
+    def _add_access_config(self, **kwargs):
+        context = kwargs["context"]
+        operation_name = kwargs["operation_name"]
+        scope = kwargs["scope"]
+        acs = kwargs["acs"]
+
+        operation = operation_api.API().get_item(
+            context, operation_name, scope)
+        client = clients.nova(context)
+        try:
+            instance = client.servers.get(operation["item_id"])
+        except clients.novaclient.exceptions.NotFound:
+            return
+
+        status = self._status_map.get(instance.status, "STOPPED")
+        if status == "PROVISIONING":
+            threading.Timer(5, self._add_access_config, kwargs=kwargs).start()
+        if status != "RUNNING":
+            return
+
+        try:
+            for net in acs:
+                ac = acs[net]
+                instance_address_api.API().add_item(context, instance.name,
+                    net, ac.get("natIP"), ac.get("type"), ac.get("name"))
+        except Exception:
+            # TODO(apavlov): store error in operation
+            LOG.exception(_("Exception occured in add_access_config"))
+            pass
 
     def get_add_item_progress(self, context, name, instance_id, scope):
         client = clients.nova(context)
-        instances = client.servers.list(search_opts={"id": instance_id})
-        if (len(instances) == 0 or
-                instances[0].status not in ["building"]):
+        try:
+            instance = client.servers.get(instance_id)
+        except clients.novaclient.exceptions.NotFound:
+            return {"progress": 100}
+        status = self._status_map.get(instance.status, "STOPPED")
+        if status != "PROVISIONING":
             return {"progress": 100}
 
     def get_delete_item_progress(self, context, name, instance_id, scope):
         client = clients.nova(context)
-        instances = client.servers.list(search_opts={"id": instance_id})
-        if len(instances) == 0:
+        try:
+            client.servers.get(instance_id)
+        except clients.novaclient.exceptions.NotFound:
             return {"progress": 100}
 
     def get_reset_instance_progress(self, context, name, instance_id, scope):
         client = clients.nova(context)
-        instances = client.servers.list(search_opts={"id": instance_id})
-        if (len(instances) == 0 or
-                instances[0].status not in ["stopped", "paused", "suspended"]):
+        try:
+            instance = client.servers.get(instance_id)
+        except clients.novaclient.exceptions.NotFound:
+            return {"progress": 100}
+        status = self._status_map.get(instance.status, "STOPPED")
+        if status not in ["STOPPED", "STOPPING"]:
             return {"progress": 100}

@@ -108,6 +108,12 @@ class Controller(gce_common.Controller):
 
         return self._format_item(request, result_dict, scope)
 
+    def create(self, req, body, scope_id):
+        operation = super(Controller, self).create(req, body, scope_id)
+        scope = self._get_scope(req, scope_id)
+        self._api.post_add_item(self._get_context(req), body, operation, scope)
+        return operation
+
     def reset_instance(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
