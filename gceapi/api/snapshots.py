@@ -32,14 +32,14 @@ class Controller(gce_common.Controller):
             "diskSizeGb": snapshot["size"],
             "name": snapshot["name"],
             "description": snapshot["display_description"],
-            # TODO(apavlov): return hashed from qualify as ID
-            "sourceDiskId": snapshot["volume_id"],
             }
         disk = snapshot.get("disk")
         if disk is not None:
             result_dict["sourceDisk"] = self._qualify(
                 request, "disks", disk["display_name"],
                 scopes.ZoneScope(disk["availability_zone"]))
+            result_dict["sourceDiskId"] = self._get_id(
+                result_dict["sourceDisk"])
 
         return self._format_item(request, result_dict, scope)
 

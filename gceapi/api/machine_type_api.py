@@ -15,7 +15,6 @@
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import utils
-from gceapi.api import scopes
 from gceapi.api import zone_api
 from gceapi import exception
 

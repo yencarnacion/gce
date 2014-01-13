@@ -29,7 +29,6 @@ class Controller(gce_common.Controller):
         result_dict = {
             "creationTimestamp": floating_ip.get("creationTimestamp", ""),
             "status": floating_ip["status"],
-            "region": scope.get_name(),
             "name": floating_ip["name"],
             "address": floating_ip["floating_ip_address"],
         }

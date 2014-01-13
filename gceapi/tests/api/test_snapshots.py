@@ -29,7 +29,7 @@ EXPECTED_SNAPSHOTS = [{
         "fake_project/zones/nova/disks/fake-disk-3",
     "name": "fake-snapshot",
     "description": "full description of snapshot 1",
-    "sourceDiskId": "fc0d5c01-dc3b-450d-aaed-de028bb832b1"
+    "sourceDiskId": "9202387718698825406"
 }]
 
 

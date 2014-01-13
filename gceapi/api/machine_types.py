@@ -26,7 +26,6 @@ class Controller(gce_common.Controller):
 
     def format_item(self, request, flavor, scope):
         result_dict = {
-            #"creationTimestamp": self._format_date(flavor["created_at"]),
             "name": flavor["name"],
             "description": "",
             "guestCpus": flavor["vcpus"],
@@ -42,14 +41,6 @@ class Controller(gce_common.Controller):
             size = flavor["OS-FLV-EXT-DATA:ephemeral"]
             if size > 0:
                 result_dict["scratchDisks"] = [{"diskGb": size}]
-
-        # NOTE(Alex): The following code is written but disabled because
-        # it seems "deleted" is deprecated now (see comment in
-        # db/sqlalchemy/api instance_type_get_all()).
-        # And Disabled flag cannot be normally set up via existing APIs.
-        #if flavor["deleted"] != 0:
-        #    result_dict["deprecated"] = {
-        #        "state": "DELETED", "deleted": flavor["deleted_at"]}
 
         return self._format_item(request, result_dict, scope)
 
