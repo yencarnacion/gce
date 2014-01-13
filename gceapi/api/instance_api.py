@@ -326,6 +326,8 @@ class API(base_api.API):
             if ac:
                 net_name = utils._extract_name_from_url(net_iface["network"])
                 acs[net_name] = ac[0]
+        if not acs:
+            return
 
         kwargs = {
             "context": context,
@@ -341,8 +343,14 @@ class API(base_api.API):
         scope = kwargs["scope"]
         acs = kwargs["acs"]
 
-        operation = operation_api.API().get_item(
-            context, operation_name, scope)
+        try:
+            operation = operation_api.API().get_item(
+                context, operation_name, scope)
+        except exception.NotFound:
+            # TODO(apavlov): make useful message
+            LOG.exception(_("Operation not found"))
+            return
+
         client = clients.nova(context)
         try:
             instance = client.servers.get(operation["item_id"])
@@ -351,7 +359,7 @@ class API(base_api.API):
 
         status = self._status_map.get(instance.status, "STOPPED")
         if status == "PROVISIONING":
-            threading.Timer(5, self._add_access_config, kwargs=kwargs).start()
+            threading.Timer(2, self._add_access_config, kwargs=kwargs).start()
         if status != "RUNNING":
             return
 

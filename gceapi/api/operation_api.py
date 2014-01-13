@@ -55,6 +55,8 @@ class API(base_api.API):
 
     def get_item(self, context, name, scope=None):
         operation = self._get_db_item_by_name(context, name)
+        if not operation:
+            raise exception.NotFound
         operation = self._update_operation(context, scope, operation)
         return operation
 

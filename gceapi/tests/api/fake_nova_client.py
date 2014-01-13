@@ -328,7 +328,7 @@ FAKE_INSTANCES = [{
         "name": "default"
     }],
     "name": "i1",
-    "status": "active",
+    "status": "ACTIVE",
     "created": "2013-08-14T13:45:32Z",
     "updated": "2013-08-14T13:46:23Z",
     "user_id": "0ed9ed7b2004443f802142ecf364738b",
@@ -376,7 +376,7 @@ FAKE_INSTANCES = [{
         "name": "default"
     }],
     "name": "i2",
-    "status": "suspended",
+    "status": "SUSPENDED",
     "created": "2013-08-14T13:46:36Z",
     "updated": "2013-08-14T13:47:11Z",
     "user_id": "0ed9ed7b2004443f802142ecf364738b",
@@ -422,7 +422,7 @@ FAKE_NEW_INSTANCE = {
         "name": "default"
     }],
     "name": "i2",
-    "status": "active",
+    "status": "ACTIVE",
     "created": "2013-08-14T13:46:36Z",
     "updated": "2013-08-14T13:47:11Z",
     "user_id": "0ed9ed7b2004443f802142ecf364738b",

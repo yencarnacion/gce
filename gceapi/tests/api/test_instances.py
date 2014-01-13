@@ -23,7 +23,7 @@ EXPECTED_INSTANCES = [{
     "zone":
         "http://localhost/compute/v1beta15/projects/fake_project/zones/nova",
     "status": "RUNNING",
-    "statusMessage": "active",
+    "statusMessage": "ACTIVE",
     "name": "i1",
     "description": "i1 description",
     "machineType": "http://localhost/compute/v1beta15/projects/fake_project"
@@ -63,7 +63,7 @@ EXPECTED_INSTANCES = [{
     "zone": "http://localhost/compute/v1beta15/projects/fake_project"
         "/zones/nova",
     "status": "STOPPED",
-    "statusMessage": "suspended",
+    "statusMessage": "SUSPENDED",
     "name": "i2",
     "description": "i2 description",
     "machineType": "http://localhost/compute/v1beta15/projects/fake_project"
