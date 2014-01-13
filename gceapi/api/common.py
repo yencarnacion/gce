@@ -53,6 +53,11 @@ class Controller(object):
         self._aggregated_kind = utils.get_aggregated_kind(self._type_name)
         self._operation_api = operation_api.API()
 
+    def format_result(self, request, action, action_result):
+        if isinstance(action_result, Exception):
+            return self._format_error(action_result)
+        return self._format_output(request, action, action_result), 200
+
     # Base methods, should be overriden
 
     def format_item(self, request, image, scope):
@@ -76,8 +81,8 @@ class Controller(object):
             "scope": scope,
             "item": self.format_item(req, i, scope)
         } for i in items]
-        items = self._filter_result(req, items)
-        items, next_page_token = self._page_result(req, items)
+        items = self._filter_items(req, items)
+        items, next_page_token = self._page_items(req, items)
         items = [i["item"] for i in items]
 
         return self._format_list(req, items, next_page_token, scope)
@@ -105,8 +110,8 @@ class Controller(object):
                     "scope": scope,
                     "item": self.format_item(req, item, scope)
                 })
-        items = self._filter_result(req, items)
-        items, next_page_token = self._page_result(req, items)
+        items = self._filter_items(req, items)
+        items, next_page_token = self._page_items(req, items)
 
         items_by_scopes = {}
         for item in items:
@@ -149,7 +154,7 @@ class Controller(object):
                                       self._api.add_item)
 
     # Filtering
-    def _filter_result(self, req, items):
+    def _filter_items(self, req, items):
         """Filtering result list
 
         Only one filter is supported(eg. by one field)
@@ -188,7 +193,7 @@ class Controller(object):
         return result_list
 
     # Paging
-    def _page_result(self, req, items):
+    def _page_items(self, req, items):
         if not items:
             return items, None
         if "maxResults" not in req.params:
@@ -336,3 +341,60 @@ class Controller(object):
         result_dict["selfLink"] = self._qualify(
                 request, self._collection_name, None, scope)
         return result_dict
+
+    def _format_error(self, ex_value):
+        if isinstance(ex_value, exception.NotAuthorized):
+            msg = _('Unauthorized')
+            code = 401
+        elif isinstance(ex_value, exc.HTTPException):
+            msg = ex_value.explanation
+            code = ex_value.code
+        elif isinstance(ex_value, exception.GceapiException):
+            msg = ex_value.args[0]
+            code = ex_value.code
+        else:
+            msg = _('Internal server error')
+            code = 500
+
+        return {
+            'error': {'errors': [{'message': msg}]},
+            'code': code,
+            'message': msg
+            }, code
+
+    def _format_output(self, request, action, action_result):
+        # TODO(ft): this metod must be safe ande ignore unknown fields
+        fields = request.params.get('fields', None)
+        if action not in ('index', 'show') or fields is None:
+            return action_result
+
+        if action == 'show':
+            action_result = utils.apply_template(fields, action_result)
+            return action_result
+        sp = utils.split_by_comma(fields)
+        top_level = []
+        items = []
+        for string in sp:
+            if 'items' in string:
+                items.append(string)
+            else:
+                top_level.append(string)
+        res = {}
+        if len(items) > 0:
+            res['items'] = []
+        for string in top_level:
+            dct = utils.apply_template(string, action_result)
+            for key, val in dct.items():
+                res[key] = val
+        for string in items:
+            if '(' in string:
+                dct = utils.apply_template(string, action_result)
+                for key, val in dct.items():
+                    res[key] = val
+            elif string.startswith('items/'):
+                string = string[len('items/'):]
+                for element in action_result['items']:
+                    dct = utils.apply_template(string, element)
+                    res['items'].append(dct)
+
+        return res

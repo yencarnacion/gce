@@ -15,7 +15,6 @@
 import webob
 
 from gceapi import exception
-from gceapi.api import utils
 from gceapi import wsgi_ext as openstack_wsgi
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import jsonutils
@@ -112,9 +111,10 @@ class GCEResourceExceptionHandler(object):
         elif isinstance(ex_value, exception.GceapiException):
             LOG.info(_("Gceapi exception thrown: %s"), unicode(ex_value))
             raise GCEFault(ex_value)
-
-        # We didn't handle the exception
-        return False
+        else:
+            msg = unicode(ex_value)
+            raise GCEFault(exception.ConvertedException(
+                    code=500, title=ex_type.__name__, explanation=msg))
 
 
 class GCEResource(openstack_wsgi.Resource):
@@ -123,28 +123,6 @@ class GCEResource(openstack_wsgi.Resource):
     def __init__(self, *args, **kwargs):
         super(GCEResource, self).__init__(*args, **kwargs)
         self.default_serializers = dict(json=JSONDictSerializer)
-
-    def _format_error(self, ex_value):
-        msg = ''
-        code = 200
-        if isinstance(ex_value, exception.NotAuthorized):
-            msg = _('Unauthorized')
-            code = 401
-        elif isinstance(ex_value, webob.exc.HTTPException):
-            msg = ex_value.explanation
-            code = ex_value.code
-        elif isinstance(ex_value, exception.GceapiException):
-            msg = ex_value.args[0]
-            code = ex_value.code
-        else:
-            msg = _('Internal server error')
-            code = 500
-
-        return {
-            'error': {'errors': [{'message': msg}]},
-            'code': code,
-            'message': msg
-            }, code
 
     def _check_requested_project(self, project_id, context):
         if (not context or project_id is None
@@ -160,7 +138,6 @@ class GCEResource(openstack_wsgi.Resource):
                        content_type, body, accept):
         """Implement the processing stack."""
         method = None
-        return_code = 200
         try:
             # Get the implementing method
             try:
@@ -205,30 +182,24 @@ class GCEResource(openstack_wsgi.Resource):
                 with GCEResourceExceptionHandler():
                     action_result = self.dispatch(method, request, action_args)
 
-            # format output if 'fields' provided
-            try:
-                action_result = \
-                    self._format_output(request, action, action_result)
-            except ValueError:
-                msg = _("Invalid field selection %s")\
-                    % (request.params.get('fields', None))
-                raise GCEFault(webob.exc.HTTPBadRequest(
-                    explanation=msg))
         except GCEFault as ex:
-            # format error into action_result
-            action_result, return_code = self._format_error(ex.wrapped_exc)
+            action_result = ex.wrapped_exc
 
         response = None
         resp_obj = None
-        if type(action_result) is dict or action_result is None:
-            resp_obj = GCEResponse(action_result, code=return_code)
+        if action_result is None:
+            resp_obj = GCEResponse(None)
+        elif type(action_result) is dict:
+            action_result, result_code = self.controller.format_result(
+                    request, action, action_result)
+            resp_obj = GCEResponse(action_result, code=result_code)
         elif isinstance(action_result, GCEResponse):
             resp_obj = action_result
         else:
             response = action_result
 
+        # Serialize response object
         if resp_obj:
-            # Do a preserialize to set up the response object
             if method is not None:
                 serializers = getattr(method, 'wsgi_serializers', {})
             else:
@@ -249,39 +220,3 @@ class GCEResource(openstack_wsgi.Resource):
 
         LOG.info(msg)
         return response
-
-    def _format_output(self, request, action, action_result):
-        fields = request.params.get('fields', None)
-        if action not in ('index', 'show') or fields is None:
-            return action_result
-
-        if action == 'show':
-            action_result = utils.apply_template(fields, action_result)
-            return action_result
-        sp = utils.split_by_comma(fields)
-        top_level = []
-        items = []
-        for string in sp:
-            if 'items' in string:
-                items.append(string)
-            else:
-                top_level.append(string)
-        res = {}
-        if len(items) > 0:
-            res['items'] = []
-        for string in top_level:
-            dct = utils.apply_template(string, action_result)
-            for key, val in dct.items():
-                res[key] = val
-        for string in items:
-            if '(' in string:
-                dct = utils.apply_template(string, action_result)
-                for key, val in dct.items():
-                    res[key] = val
-            elif string.startswith('items/'):
-                string = string[len('items/'):]
-                for element in action_result['items']:
-                    dct = utils.apply_template(string, element)
-                    res['items'].append(dct)
-
-        return res
