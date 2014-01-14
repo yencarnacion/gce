@@ -22,7 +22,6 @@ from gceapi import exception
 from gceapi.openstack.common import log as logging
 
 
-DESCRIPTION_NETWORK_SEPARATOR = "-=#=-"
 PROTOCOL_MAP = {
     '1': 'icmp',
     '6': 'tcp',
@@ -31,13 +30,11 @@ PROTOCOL_MAP = {
 LOG = logging.getLogger(__name__)
 
 
-# TODO(apavlov): implement it through novaclient
-
-
 class API(base_api.API):
     """GCE Firewall API"""
 
     KIND = "firewall"
+    PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "network_name"]
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
@@ -48,6 +45,9 @@ class API(base_api.API):
     def _get_type(self):
         return self.KIND
 
+    def _get_persistent_attributes(self):
+        return self.PERSISTENT_ATTRIBUTES
+
     def get_item(self, context, name, scope=None):
         client = clients.nova(context)
         try:
@@ -55,20 +55,27 @@ class API(base_api.API):
         except (clients.novaclient.exceptions.NotFound,
                 clients.novaclient.exceptions.NoUniqueMatch):
             raise exception.NotFound()
-        return self._prepare_item(firewall)
+        firewall = self._prepare_firewall(utils.to_dict(firewall))
+        db_firewall = self._get_db_item_by_id(context, firewall["id"])
+        self._prepare_item(firewall, db_firewall)
+        return firewall
 
     def get_items(self, context, scope=None):
         client = clients.nova(context)
         firewalls = client.security_groups.list()
-        return [self._prepare_item(firewall)
-                for firewall in firewalls]
+        items = list()
+        gce_firewalls = self._get_db_items_dict(context)
+        for firewall in firewalls:
+            item = self._prepare_firewall(utils.to_dict(firewall))
+            self._prepare_item(item, gce_firewalls.get(item["id"]))
+            items.append(item)
+        self._purge_db(context, items, gce_firewalls)
+        return items
 
     def add_item(self, context, name, body, scope=None):
         network = self._get_network_by_url(context, body['network'])
         self._check_rules(body)
-        group_description = "".join([body.get("description", ""),
-                                     DESCRIPTION_NETWORK_SEPARATOR,
-                                     network["name"]])
+        group_description = body.get("description", "")
         client = clients.nova(context)
         sg = client.security_groups.create(body['name'], group_description)
         try:
@@ -81,10 +88,14 @@ class API(base_api.API):
         except Exception:
             client.security_groups.delete(sg)
             raise
-        sg = utils.to_dict(client.security_groups.get(sg.id))
+        new_firewall = utils.to_dict(client.security_groups.get(sg.id))
+        new_firewall = self._prepare_firewall(new_firewall)
+        new_firewall["creationTimestamp"] = 1
+        new_firewall["network_name"] = network["name"]
+        new_firewall = self._add_db_item(context, new_firewall)
         self._process_callbacks(
-            context, base_api._callback_reasons.post_add, sg)
-        return self._prepare_item(sg)
+            context, base_api._callback_reasons.post_add, new_firewall)
+        return new_firewall
 
     def delete_item(self, context, name, scope=None):
         firewall = self.get_item(context, name)
@@ -93,13 +104,12 @@ class API(base_api.API):
         client = clients.nova(context)
         try:
             client.security_groups.delete(firewall["id"])
+            self._delete_db_item(context, firewall)
         except clients.novaclient.exceptions.ClientException as ex:
             raise exception.GceapiException(message=ex.message, code=ex.code)
         return firewall
 
-    def _prepare_item(self, firewall):
-        firewall = utils.to_dict(firewall)
-
+    def _prepare_firewall(self, firewall):
         # NOTE(ft): OpenStack security groups are more powerful than
         # gce firewalls so when we cannot completely convert secgroup
         # we add prefixes to firewall description
@@ -180,10 +190,10 @@ class API(base_api.API):
             description = "".join(prefixes)
             firewall["description"] = description
 
-        firewall["network_name"] = self._get_firewall_network_name(firewall)
         return firewall
 
     def _get_network_by_url(self, context, url):
+        # NOTE(apavlov): Check existence of such network
         network_name = utils._extract_name_from_url(url)
         return network_api.API().get_item(context, network_name)
 
@@ -226,21 +236,10 @@ class API(base_api.API):
                         rules.append(copy.copy(rule))
         return rules
 
-    def _get_firewall_network_name(self, firewall):
-        description = firewall.get("description")
-        desc_parts = description.split(DESCRIPTION_NETWORK_SEPARATOR)
-        return desc_parts[1] if len(desc_parts) > 1 else None
-
-    def get_firewall_network(self, context, firewall):
-        network_name = self._get_firewall_network_name(firewall)
-        return (network_api.API().get_item(context, network_name)
-                if network_name else None)
-
     def get_network_firewalls(self, context, network_name):
-        client = clients.nova(context)
-        firewalls = [utils.to_dict(f) for f in client.security_groups.list()]
+        firewalls = self.get_items(context, None)
         return [f for f in firewalls
-                if self._get_firewall_network_name(f) == network_name]
+                if f.get("network_name", None) == network_name]
 
     def delete_network_firewalls(self, context, network):
         network_name = network["name"]

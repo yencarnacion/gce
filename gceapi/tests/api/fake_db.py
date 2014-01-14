@@ -76,6 +76,24 @@ ITEMS = [
         "id": "60ff30c2-64b6-4a97-9c17-322eebc8bd60",
         "description": "christmas-tree",
         "image_ref": "http://fake_url/fake_resource"
+    },
+    {
+        "kind": "firewall",
+        "id": "a4ab9c5f-f0b5-4952-8e76-6a8ca0d0a402",
+        "creationTimestamp": "2013-12-25T09:01:00.396957Z",
+        "network_name": "private"
+    },
+    {
+        "kind": "firewall",
+        "id": "b599598d-41b9-4075-a47e-019ba785c243",
+        "creationTimestamp": "2013-12-25T09:02:00.396957Z",
+        "network_name": "private"
+    },
+    {
+        "kind": "firewall",
+        "id": "1aaa637b-87f4-4e27-bc86-ff63d30264b2",
+        "creationTimestamp": "2013-12-25T09:03:00.396957Z",
+        "network_name": "private"
     }
 ]
 

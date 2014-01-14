@@ -26,24 +26,18 @@ class Controller(gce_common.Controller):
 
     def format_item(self, request, firewall, scope):
         result_dict = {
-                       # not stored in OpenStack
-                       # "creationTimestamp": string,
-                       "name": firewall["name"],
-                       "description": firewall["description"],
-                       "sourceRanges": firewall["sourceRanges"],
-                       # not stored in OpenStack
-                       # "sourceTags": [
-                       #   string
-                       # ],
-                       # "targetTags": [
-                       #   string
-                       # ],
-                       "allowed": firewall["allowed"]
-                       }
-        if firewall["network_name"] is not None:
+            "creationTimestamp": firewall.get("creationTimestamp", ""),
+            "name": firewall["name"],
+            "description": firewall["description"],
+            "sourceRanges": firewall["sourceRanges"],
+            "allowed": firewall["allowed"],
+        }
+
+        network = firewall.get("network_name")
+        if network:
             result_dict["network"] = self._qualify(request,
-                "networks", firewall["network_name"],
-                scopes.GlobalScope())
+                "networks", network, scopes.GlobalScope())
+
         return self._format_item(request, result_dict, scope)
 
 

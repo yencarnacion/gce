@@ -164,7 +164,7 @@ FAKE_SECURITY_GROUPS = [
         "project_id": "6678c02984ce4df8b26912db30481637",
         "id": "a4ab9c5f-f0b5-4952-8e76-6a8ca0d0a402",
         "name": "fake-firewall-1",
-        "description": "simple firewall-=#=-private",
+        "description": "simple firewall",
     }),
     utils.FakeObject({
         "rules": [],
@@ -200,8 +200,7 @@ FAKE_SECURITY_GROUPS = [
         "project_id": "6678c02984ce4df8b26912db30481637",
         "id": "b599598d-41b9-4075-a47e-019ba785c243",
         "name": "fake-firewall-3",
-        "description": ("openstack sg with cidr & secgroup rules"
-                        "-=#=-private"),
+        "description": ("openstack sg with cidr & secgroup rules"),
     }),
     utils.FakeObject({
         "rules": [
@@ -290,7 +289,7 @@ FAKE_SECURITY_GROUPS = [
         "project_id": "6678c02984ce4df8b26912db30481637",
         "id": "1aaa637b-87f4-4e27-bc86-ff63d30264b2",
         "name": "to-delete-firewall",
-        "description": "firewall to delete test-=#=-private",
+        "description": "firewall to delete test",
     }),
 ]
 

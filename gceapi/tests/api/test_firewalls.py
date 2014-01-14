@@ -21,6 +21,7 @@ from gceapi.tests.api import common
 DEFAULT_FIREWALL = {
     "kind": "compute#firewall",
     "name": "default",
+    "creationTimestamp": "",
     "sourceRanges": [
         "0.0.0.0/0",
     ],
@@ -33,6 +34,7 @@ DEFAULT_FIREWALL = {
 FAKE_FIREWALL_1 = {
     "kind": "compute#firewall",
     "name": "fake-firewall-1",
+    "creationTimestamp": "2013-12-25T09:01:00.396957Z",
     "sourceRanges": [
         "55.0.0.0/24",
         "44.0.0.0/24",
@@ -59,11 +61,12 @@ FAKE_FIREWALL_1 = {
                 "/fake_project/global/networks/private"),
     "selfLink": ("http://localhost/compute/v1beta15/projects"
                  "/fake_project/global/firewalls/fake-firewall-1"),
-    "description": "simple firewall-=#=-private",
+    "description": "simple firewall",
 }
 FAKE_FIREWALL_2 = {
     "kind": "compute#firewall",
     "name": "fake-firewall-2",
+    "creationTimestamp": "",
     "sourceRanges": [
         "0.0.0.0/0",
     ],
@@ -76,6 +79,7 @@ FAKE_FIREWALL_2 = {
 FAKE_FIREWALL_3 = {
     "kind": "compute#firewall",
     "name": "fake-firewall-3",
+    "creationTimestamp": "2013-12-25T09:02:00.396957Z",
     "sourceRanges": [
         "77.0.0.0/24",
         "78.0.0.0/24",
@@ -93,11 +97,12 @@ FAKE_FIREWALL_3 = {
                 "fake_project/global/networks/private"),
     "selfLink": ("http://localhost/compute/v1beta15/projects"
                  "/fake_project/global/firewalls/fake-firewall-3"),
-    "description": "[+]openstack sg with cidr & secgroup rules-=#=-private",
+    "description": "[+]openstack sg with cidr & secgroup rules",
 }
 FAKE_FIREWALL_4 = {
     "kind": "compute#firewall",
     "name": "fake-firewall-4",
+    "creationTimestamp": "",
     "sourceRanges": [],
     "allowed": [],
     "id": "5486539087303205172",
@@ -108,6 +113,7 @@ FAKE_FIREWALL_4 = {
 FAKE_FIREWALL_5 = {
     "kind": "compute#firewall",
     "name": "fake-firewall-5",
+    "creationTimestamp": "",
     "sourceRanges": [],
     "allowed": [],
     "id": "5486539087303205171",
@@ -118,6 +124,7 @@ FAKE_FIREWALL_5 = {
 FAKE_FIREWALL_6 = {
     "kind": "compute#firewall",
     "name": "fake-firewall-6",
+    "creationTimestamp": "",
     "sourceRanges": [],
     "allowed": [],
     "id": "5486539087303205170",
@@ -128,6 +135,7 @@ FAKE_FIREWALL_6 = {
 NEW_FIREWALL = {
     "kind": "compute#firewall",
     "name": "new-firewall",
+    "creationTimestamp": "2013-12-25T09:03:00.396957Z",
     "sourceRanges": [
         "42.0.0.0/24",
         "41.0.0.0/24",
@@ -154,7 +162,7 @@ NEW_FIREWALL = {
                 "/fake_project/global/networks/private"),
     "selfLink": ("http://localhost/compute/v1beta15/projects"
                  "/fake_project/global/firewalls/new-firewall"),
-    "description": "new fake firewall-=#=-private",
+    "description": "new fake firewall",
 }
 
 

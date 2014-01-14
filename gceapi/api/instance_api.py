@@ -175,21 +175,21 @@ class API(base_api.API):
             if network["name"] in instance.networks:
                 raise exception.NetworkInUse(network_id=network["id"])
 
-    def _get_instances_with_network(self, context, network, scope):
+    def _get_instances_with_network(self, context, network_name, scope):
         affected_instances = []
         client = clients.nova(context)
         instances = client.servers.list(search_opts=None)
         for instance in instances:
-            if network["name"] in instance.networks:
+            if network_name in instance.networks:
                 affected_instances.append(instance)
         return affected_instances
 
     def _add_secgroup_to_instances(self, context, secgroup, **kwargs):
-        network = firewall_api.API().get_firewall_network(context, secgroup)
-        if not network:
+        network_name = secgroup.get("network_name")
+        if not network_name:
             return
         affected_instances = self._get_instances_with_network(
-                context, network, kwargs.get("scope"))
+                context, network_name, kwargs.get("scope"))
         # TODO(ft): implement common safe method
         # to run add/remove with exception logging
         for instance in affected_instances:
@@ -201,11 +201,11 @@ class API(base_api.API):
                               instance.id, secgroup["name"])
 
     def _remove_secgroup_from_instances(self, context, secgroup, **kwargs):
-        network = firewall_api.API().get_firewall_network(context, secgroup)
-        if not network:
+        network_name = secgroup.get("network_name")
+        if not network_name:
             return
         affected_instances = self._get_instances_with_network(
-                context, network, kwargs.get("scope"))
+                context, network_name, kwargs.get("scope"))
         # TODO(ft): implement common safe method
         # to run add/remove with exception logging
         for instance in affected_instances:
