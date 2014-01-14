@@ -12,6 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+try:
+    from glanceclient import exc as glanceclient_exc
+except ImportError:
+    glanceclient_exc = None
+
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import operation_api
@@ -23,6 +28,8 @@ class API(base_api.API):
     """GCE Image API"""
 
     KIND = "image"
+    PERSISTENT_ATTRIBUTES = ["id", "description", "image_ref"]
+
     _status_map = {
         "queued": "PENDING",
         "saving": "PENDING",
@@ -46,16 +53,23 @@ class API(base_api.API):
     def _get_type(self):
         return self.KIND
 
+    def _get_persistent_attributes(self):
+        return self.PERSISTENT_ATTRIBUTES
+
     def get_item(self, context, name, scope=None):
         image_service = clients.glance(context).images
         images = image_service.list(
             filters={"name": name, "disk_format": "raw"})
         result = None
         for image in images:
+            if image.status == "deleted":
+                continue
             if result:
-                msg = _("Image resource '%s' could not be found" % name)
+                msg = _("Image resource '%s' found more than once" % name)
                 raise exception.NotFound(msg)
-            result = self._prepare_item(utils.to_dict(image))
+            result = self._prepare_image(utils.to_dict(image))
+            db_image = self._get_db_item_by_id(context, result["id"])
+            self._prepare_item(result, db_image)
         if not result:
             msg = _("Image resource '%s' could not be found" % name)
             raise exception.NotFound(msg)
@@ -65,11 +79,15 @@ class API(base_api.API):
         image_service = clients.glance(context).images
         images = image_service.list(filters={"disk_format": "raw"})
         items = list()
+        gce_images = self._get_db_items_dict(context)
         for image in images:
-            items.append(self._prepare_item(utils.to_dict(image)))
+            result = self._prepare_image(utils.to_dict(image))
+            self._prepare_item(result, gce_images.get(result["id"]))
+            items.append(result)
+        self._purge_db(context, items, gce_images)
         return items
 
-    def _prepare_item(self, item):
+    def _prepare_image(self, item):
         item["status"] = self._status_map.get(item["status"], item["status"])
         return item
 
@@ -78,6 +96,7 @@ class API(base_api.API):
         image = self.get_item(context, name, scope)
         image_service = clients.glance(context).images
         image_service.delete(image["id"])
+        self._delete_db_item(context, image)
         return image
 
     def add_item(self, context, name, body, scope=None):
@@ -94,19 +113,26 @@ class API(base_api.API):
         image_service = clients.glance(context).images
         image = image_service.create(**meta)
 
-        return self._prepare_item(utils.to_dict(image))
+        new_image = self._prepare_image(utils.to_dict(image))
+        new_image["description"] = body.get("description", "")
+        new_image["image_ref"] = image_ref
+        new_image = self._add_db_item(context, new_image)
+        return new_image
 
     def get_add_item_progress(self, context, name, image_id, scope):
         image_service = clients.glance(context).images
-        images = image_service.list(
-            filters={"id": image_id})
-        if (len(images) == 0 or
-                images[0].status not in ["queued", "saving"]):
-            return {"progress": 100}
+        try:
+            image = image_service.get(image_id)
+            if image.status not in ["queued", "saving"]:
+                return {"progress": 100}
+        except glanceclient_exc.HTTPNotFound:
+            pass
 
     def get_delete_item_progress(self, context, name, image_id, scope):
         image_service = clients.glance(context).images
-        images = image_service.list(
-            filters={"id": image_id})
-        if len(images) == 0:
+        try:
+            image = image_service.get(image_id)
+            if image.status == "deleted":
+                return {"progress": 100}
+        except glanceclient_exc.HTTPNotFound:
             return {"progress": 100}

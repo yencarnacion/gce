@@ -30,10 +30,11 @@ class Controller(gce_common.Controller):
             "sourceType": image["disk_format"].upper(),
             "rawDisk": {
                 "containerType": "TAR",
-                "source": "",
+                "source": image.get("image_ref", ""),
             },
             "status": image["status"],
             "archiveSizeBytes": image["size"],
+            "description": image.get("description", "")
         }
 
         return self._format_item(request, result_dict, scope)

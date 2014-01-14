@@ -23,10 +23,11 @@ EXPECTED_IMAGE_1 = {
     "id": "5721131091780319465",
     "creationTimestamp": "2013-08-01T11:30:25Z",
     "name": "fake-image-1",
+    "description": "christmas-tree",
     "sourceType": "RAW",
     "rawDisk": {
         "containerType": "TAR",
-        "source": "",
+        "source": "http://fake_url/fake_resource",
     },
     "status": "READY",
     "archiveSizeBytes": 1
@@ -38,6 +39,7 @@ EXPECTED_IMAGE_2 = {
     "id": "5721131091780319468",
     "creationTimestamp": "2013-08-01T11:30:25Z",
     "name": "fake-image-2",
+    "description": "",
     "sourceType": "RAW",
     "rawDisk": {
         "containerType": "TAR",
@@ -53,10 +55,11 @@ NEW_IMAGE = {
     "id": "7252430471608041491",
     "creationTimestamp": "2013-08-02T11:30:25Z",
     "name": "new-image",
+    "description": "new-description",
     "sourceType": "RAW",
     "rawDisk": {
         "containerType": "TAR",
-        "source": "",
+        "source": "http://example.com/image.tar",
     },
     "status": "READY",
     "archiveSizeBytes": 5,
@@ -122,6 +125,7 @@ class ImagesControllerTest(common.GCEControllerTest):
                 'source': 'http://example.com/image.tar',
             },
             'sourceType': 'RAW',
+            'description': 'new-description'
         }
         response = self.request_gce('/fake_project/global/images',
                                     method="POST",

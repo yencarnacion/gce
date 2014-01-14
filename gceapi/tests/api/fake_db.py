@@ -70,6 +70,12 @@ ITEMS = [
         "instance_name": "i1",
         "name": "christmas-tree",
         "volume_id": "ab8829ad-eec1-44a2-8068-d7f00c53ee90"
+    },
+    {
+        "kind": "image",
+        "id": "60ff30c2-64b6-4a97-9c17-322eebc8bd60",
+        "description": "christmas-tree",
+        "image_ref": "http://fake_url/fake_resource"
     }
 ]
 
