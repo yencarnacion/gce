@@ -138,7 +138,6 @@ class API(base_api.API):
         """Get id of public network appointed to GCE in config"""
         client = clients.neutron(context)
         search_opts = {"name": self._public_network_name,
-                       "router:external": True,
-                       "tenant_id": context.project_id}
+                       "router:external": True}
         networks = client.list_networks(**search_opts)["networks"]
         return networks[0]["id"]
