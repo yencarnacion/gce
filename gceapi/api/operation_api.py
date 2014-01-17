@@ -146,6 +146,7 @@ def gef_final_progress(exception=None):
     progress = {"progress": 100}
     if exception is not None:
         progress.update(_error_from_exception(exception))
+    return progress
 
 
 def is_final_progress(progress):
