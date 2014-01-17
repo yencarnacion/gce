@@ -63,6 +63,8 @@ class Controller(object):
 
         if isinstance(action_result, Exception):
             return self._format_error(action_result)
+        if action_result is None:
+            return None, 204
         return self._format_output(request, action, action_result), 200
 
     # Base methods, should be overriden
