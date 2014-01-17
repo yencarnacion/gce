@@ -74,8 +74,8 @@ class Controller(gce_common.Controller):
 
     def set_common_instance_metadata(self, req, body):
         context = self._get_context(req)
-        operation_util.init_operation(context, "setMetadata",
-                                      self._type_name, None, None)
+        operation_util.init_operation(context, "setMetadata", self._type_name,
+                                      None, scopes.GlobalScope())
         try:
             self._api.set_common_instance_metadata(
                 context, body.get("items", []))

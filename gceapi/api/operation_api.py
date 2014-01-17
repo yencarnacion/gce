@@ -50,16 +50,11 @@ class API(base_api.API):
         self._get_progress_methods[method_key] = method
 
     def get_scopes(self, context, item):
-        if "scope_type" in item:
-            return [scopes.construct(item["scope_type"], item["scope_name"])]
-        else:
-            return [None]
+        return [scopes.construct(item["scope_type"], item["scope_name"])]
 
     def get_item(self, context, name, scope=None):
         operation = self._get_db_item_by_name(context, name)
         if (operation is None or
-                "scope_type" not in operation and
-                        not isinstance(scope, scopes.GlobalScope) or
                 operation["scope_type"] != scope.get_type() or
                 operation["scope_name"] != scope.get_name()):
             raise exception.NotFound
@@ -69,11 +64,8 @@ class API(base_api.API):
     def get_items(self, context, scope=None):
         operations = self._get_db_items(context)
         if scope is not None:
-            in_global_scope = isinstance(scope, scopes.GlobalScope)
             operations = [operation for operation in operations
-                          if ("scope_type" not in operation and
-                                    in_global_scope or
-                              operation["scope_type"] == scope.get_type() and
+                          if (operation["scope_type"] == scope.get_type() and
                               operation["scope_name"] == scope.get_name())]
         for operation in operations:
             operation = self._update_operation_progress(context, operation)
@@ -111,10 +103,9 @@ class API(base_api.API):
             "type": op_type,
             "target_type": target_type,
             "target_name": target_name,
+            "scope_type": scope.get_type(),
+            "scope_name": scope.get_name(),
         }
-        if scope is not None:
-            operation["scope_type"] = scope.get_type()
-            operation["scope_name"] = scope.get_name()
         return operation
 
     def save_operation(self, context, operation, start_time,

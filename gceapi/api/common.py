@@ -257,9 +257,9 @@ class Controller(object):
 
         result = os.path.join(
             request.application_url, self._get_context(request).project_name)
-        if scope:
-            result = os.path.join(result, scope.get_path())
         if controller:
+            if scope:
+                result = os.path.join(result, scope.get_path())
             result = os.path.join(result, controller)
             if identifier:
                 result = os.path.join(result, identifier)
@@ -291,8 +291,6 @@ class Controller(object):
                 "httpErrorMessage": operation["error_message"],
                 "error": {"errors": operation["errors"]},
             })
-        if scope is None:
-            scope = scopes.GlobalScope()
         type_name = self._operation_api._get_type()
         return self._add_item_header(request, result_dict, scope,
                                      utils.get_type_kind(type_name),
@@ -302,7 +300,7 @@ class Controller(object):
                          _type_kind, _collection_name):
         if scope is not None and scope.get_name() is not None:
             result_dict[scope.get_type()] = self._qualify(
-                    request, None, None, scope)
+                    request, scope.get_collection(), scope.get_name(), None)
         result_dict["kind"] = _type_kind
         result_dict["selfLink"] = self._qualify(
                 request, _collection_name, result_dict.get("name"), scope)
