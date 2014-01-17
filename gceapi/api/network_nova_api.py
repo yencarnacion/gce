@@ -16,6 +16,7 @@ import netaddr
 
 from gceapi.api import base_api
 from gceapi.api import clients
+from gceapi.api import operation_util
 from gceapi.api import utils
 from gceapi import exception
 
@@ -54,12 +55,12 @@ class API(base_api.API):
         network = self.get_item(context, name)
         self._process_callbacks(
             context, base_api._callback_reasons.check_delete, network)
+        operation_util.start_operation(context)
         self._delete_db_item(context, network)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
         client = clients.nova(context)
         client.networks.delete(network["id"])
-        return network
 
     def add_item(self, context, name, body, scope=None):
         ip_range = body['IPv4Range']
@@ -77,6 +78,7 @@ class API(base_api.API):
             raise exception.DuplicateVlan
         kwargs = {'label': name, 'cidr': ip_range, 'gateway': gateway}
         client = clients.nova(context)
+        operation_util.start_operation(context)
         network = client.networks.create(**kwargs)
         network = self._prepare_network(utils.to_dict(network))
         if "description" in body:

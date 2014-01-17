@@ -17,6 +17,7 @@ from oslo.config import cfg
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import network_api
+from gceapi.api import operation_util
 from gceapi.api import region_api
 from gceapi.api import scopes
 from gceapi import exception
@@ -54,9 +55,9 @@ class API(base_api.API):
 
     def delete_item(self, context, name, scope=None):
         floating_ip = self._get_floating_ips(context, scope, name)[0]
+        operation_util.start_operation(context)
         self._delete_db_item(context, floating_ip)
         clients.neutron(context).delete_floatingip(floating_ip["id"])
-        return floating_ip
 
     def add_item(self, context, name, body, scope=None):
         if any(x["name"] == name
@@ -64,6 +65,7 @@ class API(base_api.API):
             raise exception.InvalidInput(
                     _("The resource '%s' already exists.") % name)
         public_network_id = network_api.API().get_public_network_id(context)
+        operation_util.start_operation(context)
         floating_ip = clients.neutron(context).create_floatingip(
             {"floatingip": {"floating_network_id": public_network_id}})
         floating_ip = self._prepare_floating_ip(

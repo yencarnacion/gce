@@ -17,6 +17,7 @@ import copy
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import network_api
+from gceapi.api import operation_util
 from gceapi.api import utils
 from gceapi import exception
 from gceapi.openstack.common import log as logging
@@ -77,6 +78,7 @@ class API(base_api.API):
         self._check_rules(body)
         group_description = body.get("description", "")
         client = clients.nova(context)
+        operation_util.start_operation(context)
         sg = client.security_groups.create(body['name'], group_description)
         try:
             rules = self._convert_to_secgroup_rules(body)
@@ -99,6 +101,7 @@ class API(base_api.API):
 
     def delete_item(self, context, name, scope=None):
         firewall = self.get_item(context, name)
+        operation_util.start_operation(context)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, firewall)
         client = clients.nova(context)
@@ -107,7 +110,6 @@ class API(base_api.API):
             self._delete_db_item(context, firewall)
         except clients.novaclient.exceptions.ClientException as ex:
             raise exception.GceapiException(message=ex.message, code=ex.code)
-        return firewall
 
     def _prepare_firewall(self, firewall):
         # NOTE(ft): OpenStack security groups are more powerful than

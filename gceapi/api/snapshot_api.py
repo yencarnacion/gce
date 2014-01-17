@@ -15,6 +15,7 @@
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import operation_api
+from gceapi.api import operation_util
 from gceapi.api import utils
 from gceapi import exception
 
@@ -34,14 +35,12 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        operation_api.API().register_deferred_operation_method(
+        operation_api.API().register_get_progress_method(
                 "snapshot-add",
-                self.add_item,
-                self.get_add_item_progress)
-        operation_api.API().register_deferred_operation_method(
+                self._get_add_item_progress)
+        operation_api.API().register_get_progress_method(
                 "snapshot-delete",
-                self.delete_item,
-                self.get_delete_item_progress)
+                self._get_delete_item_progress)
 
     def _get_type(self):
         return self.KIND
@@ -67,8 +66,10 @@ class API(base_api.API):
         snapshots = client.list(search_opts={"display_name": name})
         if not snapshots or len(snapshots) != 1:
             raise exception.NotFound
+        operation_util.start_operation(context,
+                                       self._get_delete_item_progress,
+                                       snapshots[0].id)
         client.delete(snapshots[0])
-        return self._prepare_item(client, utils.to_dict(snapshots[0]))
 
     def add_item(self, context, body, scope=None):
         name = body["name"]
@@ -78,8 +79,10 @@ class API(base_api.API):
         if not volumes or len(volumes) != 1:
             raise exception.NotFound
 
+        operation_util.start_operation(context, self._get_add_item_progress)
         snapshot = client.volume_snapshots.create(
             volumes[0].id, True, name, body["description"])
+        operation_util.set_item_id(context, snapshot.id)
 
         return self._prepare_item(client, utils.to_dict(snapshot))
 
@@ -92,17 +95,17 @@ class API(base_api.API):
         item["status"] = self._status_map.get(item["status"], item["status"])
         return item
 
-    def get_add_item_progress(self, context, name, snapshot_id, scope):
+    def _get_add_item_progress(self, context, snapshot_id):
         client = clients.cinder(context)
         snapshots = client.volume_snapshots.list(
             search_opts={"id": snapshot_id})
         if (len(snapshots) == 0 or
                 snapshots[0].status not in ["new", "creating"]):
-            return {"progress": 100}
+            return operation_api.gef_final_progress()
 
-    def get_delete_item_progress(self, context, name, snapshot_id, scope):
+    def _get_delete_item_progress(self, context, snapshot_id):
         client = clients.cinder(context)
         snapshots = client.volume_snapshots.list(
             search_opts={"id": snapshot_id})
         if len(snapshots) == 0:
-            return {"progress": 100}
+            return operation_api.gef_final_progress()

@@ -14,7 +14,7 @@
 
 from gceapi.api import base_api
 from gceapi.api import clients
-from gceapi.api import operation_api
+from gceapi.api import operation_util
 from gceapi import exception
 from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
@@ -33,14 +33,6 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        operation_api.API().register_deferred_operation_method(
-                "access_config-add",
-                self.add_item,
-                self.get_add_item_progress)
-        operation_api.API().register_deferred_operation_method(
-                "access_config-delete",
-                self.delete_item,
-                self.get_delete_item_progress)
 
     def _get_type(self):
         return self.KIND
@@ -116,6 +108,7 @@ class API(base_api.API):
                 msg = _("There is no such floating ip '%s'." % addr)
                 raise exception.InvalidRequest(msg)
 
+        operation_util.start_operation(context)
         instance.add_floating_ip(addr, fixed_ip)
 
         return self.register_item(context, instance_name,
@@ -160,16 +153,10 @@ class API(base_api.API):
 
         item = self.get_item(context, instance_name, name)
         floating_ip = item["addr"]
+        operation_util.start_operation(context)
         instance.remove_floating_ip(floating_ip)
         self._delete_db_item(context, item)
-        return item
 
     def unregister_item(self, context, instance_name, name):
         item = self.get_item(context, instance_name, name)
         self._delete_db_item(context, item)
-
-    def get_add_item_progress(self, context, name, dummy_id, scope):
-        return {"progress": 100}
-
-    def get_delete_item_progress(self, context, name, dummy_id, scope):
-        return {"progress": 100}

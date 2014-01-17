@@ -15,10 +15,11 @@
 import netaddr
 from oslo.config import cfg
 
-from gceapi.openstack.common.gettextutils import _
 from gceapi import exception
 from gceapi.api import clients
 from gceapi.api import base_api
+from gceapi.api import operation_util
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 
 
@@ -77,12 +78,12 @@ class API(base_api.API):
 
         self._process_callbacks(
             context, base_api._callback_reasons.check_delete, network)
+        operation_util.start_operation(context)
         self._delete_db_item(context, network)
         self._process_callbacks(
             context, base_api._callback_reasons.pre_delete, network)
 
         client.delete_network(network["id"])
-        return network
 
     def add_item(self, context, name, body, scope=None):
         ip_range = body['IPv4Range']
@@ -101,6 +102,7 @@ class API(base_api.API):
             raise exception.DuplicateVlan
         network_body = {}
         network_body["network"] = {"name": name}
+        operation_util.start_operation(context)
         network = client.create_network(network_body)
         network = network["network"]
         if ip_range:

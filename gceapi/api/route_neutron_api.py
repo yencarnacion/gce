@@ -19,6 +19,7 @@ import netaddr
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import network_api
+from gceapi.api import operation_util
 from gceapi.api import utils
 from gceapi import exception
 
@@ -71,6 +72,7 @@ class API(base_api.API):
         # NOTE(ft): delete OS route only if it doesn't have aliases
         # at the moment
         client = clients.neutron(context)
+        operation_util.start_operation(context)
         if self._get_route_key(route) not in aliased_routes:
             dummy, router = self._get_network_objects(client,
                                                       route["network"])
@@ -84,7 +86,6 @@ class API(base_api.API):
                         router["id"],
                         {"router": {"routes": routes, }, })
         self._delete_db_item(context, route)
-        return route
 
     def add_item(self, context, name, body, scope=None):
         routes, dummy = self._sync_routes(context)
@@ -102,10 +103,12 @@ class API(base_api.API):
                  "default-internet-gateway") and
                 # NOTE(ft): OS doesn't support IP mask for external gateway
                 body.get("destRange") == ALL_IP_CIDR):
+            operation_util.start_operation(context)
             return self._create_internet_route(context, network, body)
 
         nexthop = body.get("nextHopIp")
         if nexthop is not None:
+            operation_util.start_operation(context)
             return self._create_custom_route(context, network, body)
 
         raise exception.InvalidInput(_("Unsupported route."))

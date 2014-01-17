@@ -22,6 +22,7 @@ from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import disk_api
 from gceapi.api import operation_api
+from gceapi.api import operation_util
 from gceapi.api import utils
 
 LOG = logging.getLogger(__name__)
@@ -35,14 +36,12 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        operation_api.API().register_deferred_operation_method(
+        operation_api.API().register_get_progress_method(
                 "attached_disk-add",
-                self.add_item,
-                self.get_add_item_progress)
-        operation_api.API().register_deferred_operation_method(
+                self._get_add_item_progress)
+        operation_api.API().register_get_progress_method(
                 "attached_disk-delete",
-                self.delete_item,
-                self.get_delete_item_progress)
+                self._get_delete_item_progress)
 
     def _get_type(self):
         return self.KIND
@@ -95,10 +94,12 @@ class API(base_api.API):
         else:
             raise exception.OverQuota
 
+        operation_util.start_operation(context, self._get_add_item_progress)
         volumes_client.create_server_volume(
             instance.id, volume["id"], "/dev/" + device_name)
 
-        return self.register_item(context, instance_name, volume["id"], name)
+        item = self.register_item(context, instance_name, volume["id"], name)
+        operation_util.set_item_id(context, item["id"])
 
     def register_item(self, context, instance_name, volume_id, name):
         if not name:
@@ -128,17 +129,19 @@ class API(base_api.API):
             raise exception.NotFound
         instance = instances[0]
 
+        operation_util.start_operation(context,
+                                       self._get_delete_item_progress,
+                                       item["id"])
         nova_client.volumes.delete_server_volume(instance.id, volume_id)
 
         self._delete_db_item(context, item)
-        return item
 
     def unregister_item(self, context, instance_name, name):
         item = self.get_item(context, instance_name, name)
         self._delete_db_item(context, item)
 
-    def get_add_item_progress(self, context, name, dummy_id, scope):
-        return {"progress": 100}
+    def _get_add_item_progress(self, context, dummy_id):
+        return operation_api.gef_final_progress()
 
-    def get_delete_item_progress(self, context, name, dummy_id, scope):
-        return {"progress": 100}
+    def _get_delete_item_progress(self, context, dummy_id):
+        return operation_api.gef_final_progress()

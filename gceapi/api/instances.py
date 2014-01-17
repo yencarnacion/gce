@@ -18,12 +18,12 @@ from gceapi.api import common as gce_common
 from gceapi.api import instance_address_api
 from gceapi.api import instance_api
 from gceapi.api import instance_disk_api
+from gceapi.api import operation_util
 from gceapi.api import scopes
 from gceapi.api import wsgi as gce_wsgi
 from gceapi import exception
 
 from gceapi.openstack.common import log as logging
-from gceapi.openstack.common import timeutils
 
 logger = logging.getLogger(__name__)
 
@@ -108,73 +108,49 @@ class Controller(gce_common.Controller):
 
         return self._format_item(request, result_dict, scope)
 
-    def create(self, req, body, scope_id):
-        operation = super(Controller, self).create(req, body, scope_id)
-        scope = self._get_scope(req, scope_id)
-        self._api.post_add_item(self._get_context(req), body, operation, scope)
-        return operation
-
     def reset_instance(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
-        start_time = timeutils.isotime(None, True)
-
+        operation_util.init_operation(context, "reset",
+                                      self._type_name, id, scope)
         try:
-            instance = self._api.reset_instance(context, scope, id)
+            self._api.reset_instance(context, scope, id)
         except (exception.NotFound, KeyError, IndexError):
             msg = _("Instance %s could not be found" % id)
             raise webob.exc.HTTPNotFound(explanation=msg)
 
-        return self._create_operation(req, "reset", scope,
-                                      start_time, id, instance["id"],
-                                      self._api.reset_instance)
-
     def add_access_config(self, req, body, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
-        start_time = timeutils.isotime(None, True)
-        access_config = self._instance_address_api.add_item(context, id,
+        operation_util.init_operation(context, "addAccessConfig",
+                                      self._type_name, id, scope)
+        self._instance_address_api.add_item(context, id,
             req.params.get('networkInterface'), body.get("natIP"),
             body.get("type"), body.get("name"))
-
-        return self._create_operation(req, "addAccessConfig", scope,
-                                      start_time, id, access_config["id"],
-                                      self._instance_address_api.add_item)
 
     def delete_access_config(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
-        start_time = timeutils.isotime(None, True)
-        access_config = self._instance_address_api.delete_item(context, id,
+        operation_util.init_operation(context, "deleteAccessConfig",
+                                      self._type_name, id, scope)
+        self._instance_address_api.delete_item(context, id,
            req.params.get('accessConfig'))
-
-        return self._create_operation(req, "deleteAccessConfig", scope,
-                                      start_time, id, access_config["id"],
-                                      self._instance_address_api.delete_item)
 
     def attach_disk(self, req, body, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
-        start_time = timeutils.isotime(None, True)
-
-        disk = self._instance_disk_api.add_item(context, id,
+        operation_util.init_operation(context, "attachDisk",
+                                      self._type_name, id, scope)
+        self._instance_disk_api.add_item(context, id,
             body["source"], body.get("deviceName"))
-
-        return self._create_operation(req, "attachDisk", scope,
-                                      start_time, id, disk["id"],
-                                      self._instance_disk_api.add_item)
 
     def detach_disk(self, req, scope_id, id):
         context = self._get_context(req)
         scope = self._get_scope(req, scope_id)
-        start_time = timeutils.isotime(None, True)
-
-        disk = self._instance_disk_api.delete_item(context, id,
+        operation_util.init_operation(context, "detachDisk",
+                                      self._type_name, id, scope)
+        self._instance_disk_api.delete_item(context, id,
             req.params.get('deviceName'))
-
-        return self._create_operation(req, "detachDisk", scope,
-                                      start_time, id, disk["id"],
-                                      self._instance_disk_api.delete_item)
 
 
 def create_resource():

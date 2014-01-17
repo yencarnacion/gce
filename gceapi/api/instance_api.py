@@ -13,10 +13,6 @@
 #    under the License.
 
 import string
-import threading
-
-from gceapi import exception
-from gceapi.openstack.common import log as logging
 
 from gceapi.api import base_api
 from gceapi.api import clients
@@ -27,9 +23,12 @@ from gceapi.api import instance_disk_api
 from gceapi.api import machine_type_api
 from gceapi.api import network_api
 from gceapi.api import operation_api
+from gceapi.api import operation_util
 from gceapi.api import project_api
 from gceapi.api import scopes
 from gceapi.api import utils
+from gceapi import exception
+from gceapi.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
@@ -74,18 +73,15 @@ class API(base_api.API):
         firewall_api.API()._register_callback(
             base_api._callback_reasons.pre_delete,
             self._remove_secgroup_from_instances)
-        operation_api.API().register_deferred_operation_method(
+        operation_api.API().register_get_progress_method(
                 "instance-add",
-                self.add_item,
-                self.get_add_item_progress)
-        operation_api.API().register_deferred_operation_method(
+                self._get_add_item_progress)
+        operation_api.API().register_get_progress_method(
                 "instance-delete",
-                self.delete_item,
-                self.get_delete_item_progress)
-        operation_api.API().register_deferred_operation_method(
+                self._get_delete_item_progress)
+        operation_api.API().register_get_progress_method(
                 "instance-reset",
-                self.reset_instance,
-                self.get_reset_instance_progress)
+                self._get_reset_instance_progress)
 
     def _get_type(self):
         return self.KIND
@@ -222,10 +218,10 @@ class API(base_api.API):
         if not instances or len(instances) != 1:
             raise exception.NotFound
         instance = instances[0]
+        operation_util.start_operation(context,
+                                       self._get_reset_instance_progress,
+                                       instance.id)
         instance.reboot("HARD")
-        instance = utils.to_dict(instance)
-        instance = self._prepare_instance(client, context, instance)
-        return instance
 
     def delete_item(self, context, name, scope=None):
         client = clients.nova(context)
@@ -233,6 +229,9 @@ class API(base_api.API):
         if not instances or len(instances) != 1:
             raise exception.NotFound
         instance = instances[0]
+        operation_util.start_operation(context,
+                                       self._get_delete_item_progress,
+                                       instance.id)
         instance.delete()
         instance = utils.to_dict(instance)
         instance = self._prepare_instance(client, context, instance)
@@ -247,8 +246,6 @@ class API(base_api.API):
         for ac in acs:
             ac = instance_address_api.API().unregister_item(context,
                 instance["name"], ac["name"])
-
-        return instance
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']
@@ -288,13 +285,17 @@ class API(base_api.API):
         #all outgoing traffic permitted
         #so we support this behaviour
         groups_names = set(['default'])
+        acs = dict()
         for net_iface in body['networkInterfaces']:
-            ac = net_iface.get("accessConfigs")
-            if ac and len(ac) > 1:
-                msg = _('At most one access config currently supported.')
-                raise exception.InvalidRequest(msg)
-
             net_name = utils._extract_name_from_url(net_iface["network"])
+            ac = net_iface.get("accessConfigs")
+            if ac:
+                if len(ac) > 1:
+                    msg = _('At most one access config currently supported.')
+                    raise exception.InvalidRequest(msg)
+                else:
+                    acs[net_name] = ac[0]
+
             network = network_api.API().get_item(context, net_name, None)
             nics.append({"net-id": network["id"]})
             for sg in firewall_api.API().get_network_firewalls(
@@ -302,11 +303,14 @@ class API(base_api.API):
                 groups_names.add(sg["name"])
         groups_names = list(groups_names)
 
+        operation_util.start_operation(context, self._get_add_item_progress)
         instance = client.servers.create(name, None, flavor_id,
             meta=instance_metadata, min_count=1, max_count=1,
             security_groups=groups_names, key_name=key_name,
             availability_zone=scope.get_name(), block_device_mapping=bdm,
             nics=nics)
+        if not acs:
+            operation_util.set_item_id(context, instance.id)
 
         for disk in disks:
             instance_disk_api.API().register_item(context, name,
@@ -314,88 +318,58 @@ class API(base_api.API):
 
         instance = utils.to_dict(client.servers.get(instance.id))
         instance = self._prepare_instance(client, context, instance)
-        instance["description"] = body.get("description", "")
+        if "descripton" in body:
+            instance["description"] = body["description"]
         instance = self._add_db_item(context, instance)
+
+        if acs:
+            operation_util.continue_operation(
+                    context,
+                    lambda: self._add_access_config(context, instance,
+                                                    scope, acs))
 
         return instance
 
-    def post_add_item(self, context, body, operation, scope):
-        acs = dict()
-        for net_iface in body['networkInterfaces']:
-            ac = net_iface.get("accessConfigs")
-            if ac:
-                net_name = utils._extract_name_from_url(net_iface["network"])
-                acs[net_name] = ac[0]
-        if not acs:
-            return
-
-        kwargs = {
-            "context": context,
-            "operation_name": operation["name"],
-            "scope": scope,
-            "acs": acs
-        }
-        threading.Timer(5, self._add_access_config, kwargs=kwargs).start()
-
-    def _add_access_config(self, **kwargs):
-        context = kwargs["context"]
-        operation_name = kwargs["operation_name"]
-        scope = kwargs["scope"]
-        acs = kwargs["acs"]
-
-        try:
-            operation = operation_api.API().get_item(
-                context, operation_name, scope)
-        except exception.NotFound:
-            # TODO(apavlov): make useful message
-            LOG.exception(_("Operation not found"))
-            return
+    def _add_access_config(self, context, instance, scope, acs):
+        progress = self._get_add_item_progress(context, instance["id"])
+        if progress is None or not operation_api.is_final_progress(progress):
+            return progress
 
         client = clients.nova(context)
         try:
-            instance = client.servers.get(operation["item_id"])
+            instance = client.servers.get(instance["id"])
         except clients.novaclient.exceptions.NotFound:
-            return
+            return operation_api.gef_final_progress()
 
-        status = self._status_map.get(instance.status, "STOPPED")
-        if status == "PROVISIONING":
-            threading.Timer(2, self._add_access_config, kwargs=kwargs).start()
-        if status != "RUNNING":
-            return
+        for net in acs:
+            ac = acs[net]
+            instance_address_api.API().add_item(context, instance.name,
+                net, ac.get("natIP"), ac.get("type"), ac.get("name"))
+        return operation_api.gef_final_progress()
 
-        try:
-            for net in acs:
-                ac = acs[net]
-                instance_address_api.API().add_item(context, instance.name,
-                    net, ac.get("natIP"), ac.get("type"), ac.get("name"))
-        except Exception:
-            # TODO(apavlov): store error in operation
-            LOG.exception(_("Exception occured in add_access_config"))
-            pass
-
-    def get_add_item_progress(self, context, name, instance_id, scope):
+    def _get_add_item_progress(self, context, instance_id):
         client = clients.nova(context)
         try:
             instance = client.servers.get(instance_id)
         except clients.novaclient.exceptions.NotFound:
-            return {"progress": 100}
+            return operation_api.gef_final_progress()
         status = self._status_map.get(instance.status, "STOPPED")
         if status != "PROVISIONING":
-            return {"progress": 100}
+            return operation_api.gef_final_progress()
 
-    def get_delete_item_progress(self, context, name, instance_id, scope):
+    def _get_delete_item_progress(self, context, instance_id):
         client = clients.nova(context)
         try:
             client.servers.get(instance_id)
         except clients.novaclient.exceptions.NotFound:
-            return {"progress": 100}
+            return operation_api.gef_final_progress()
 
-    def get_reset_instance_progress(self, context, name, instance_id, scope):
+    def _get_reset_instance_progress(self, context, instance_id):
         client = clients.nova(context)
         try:
             instance = client.servers.get(instance_id)
         except clients.novaclient.exceptions.NotFound:
-            return {"progress": 100}
+            return operation_api.gef_final_progress()
         status = self._status_map.get(instance.status, "STOPPED")
         if status not in ["STOPPED", "STOPPING"]:
-            return {"progress": 100}
+            return operation_api.gef_final_progress()

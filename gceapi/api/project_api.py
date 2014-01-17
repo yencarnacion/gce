@@ -12,9 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from gceapi.api import clients
 from gceapi import exception
 from gceapi.api import base_api
+from gceapi.api import clients
+from gceapi.api import operation_util
 from gceapi.api import utils
 
 
@@ -61,6 +62,7 @@ class API(base_api.API):
     def set_common_instance_metadata(self, context, metadata_list):
         instance_metadata = dict(
             [(x['key'], x['value']) for x in metadata_list])
+        operation_util.start_operation(context)
         ssh_keys = instance_metadata.pop('sshKeys', None)
         if ssh_keys:
             nova_client = clients.nova(context)

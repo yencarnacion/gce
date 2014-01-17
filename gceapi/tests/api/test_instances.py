@@ -224,10 +224,6 @@ class InstancesTest(common.GCEControllerTest):
                 "kind": "compute#instanceNetworkInterface",
                 "network": ("http://localhost/compute/v1beta15/projects"
                     "/admin/fake_project/global/private"),
-                "accessConfigs": [{
-                    "name": "ip for i3",
-                    "type": "ONE_TO_ONE_NAT"
-                }]
             }],
         }
         response = self.request_gce("/fake_project/zones/nova/instances",
@@ -259,7 +255,7 @@ class InstancesTest(common.GCEControllerTest):
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/instances/i2",
         }
-        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
+        expected.update(common.COMMON_ZONE_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 
@@ -275,7 +271,7 @@ class InstancesTest(common.GCEControllerTest):
             "targetLink": "http://localhost/compute/v1beta15/projects/"
                           "fake_project/zones/nova/instances/i1",
         }
-        expected.update(common.COMMON_ZONE_PENDING_OPERATION)
+        expected.update(common.COMMON_ZONE_FINISHED_OPERATION)
         self.assertEqual(200, response.status_int)
         self.assertDictEqual(expected, response.json_body)
 

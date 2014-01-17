@@ -26,5 +26,6 @@ class Controller(gce_common.Controller):
     def format_item(self, request, operation, scope):
         return self._format_operation(request, operation, scope)
 
+
 def create_resource():
     return gce_wsgi.GCEResource(Controller())

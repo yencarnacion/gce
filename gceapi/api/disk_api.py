@@ -16,6 +16,7 @@ from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import image_api
 from gceapi.api import operation_api
+from gceapi.api import operation_util
 from gceapi.api import scopes
 from gceapi.api import utils
 from gceapi import exception
@@ -44,14 +45,12 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        operation_api.API().register_deferred_operation_method(
+        operation_api.API().register_get_progress_method(
                 "disk-add",
-                self.add_item,
-                self.get_add_item_progress)
-        operation_api.API().register_deferred_operation_method(
+                self._get_add_item_progress)
+        operation_api.API().register_get_progress_method(
                 "disk-delete",
-                self.delete_item,
-                self.get_delete_item_progress)
+                self._get_delete_item_progress)
 
     def _get_type(self):
         return self.KIND
@@ -102,8 +101,10 @@ class API(base_api.API):
         volumes = client.list(search_opts={"display_name": name})
         if not volumes or len(volumes) != 1:
             raise exception.NotFound
+        operation_util.start_operation(context,
+                                       self._get_delete_item_progress,
+                                       volumes[0].id)
         client.delete(volumes[0])
-        return self._prepare_item(client, utils.to_dict(volumes[0]))
 
     def add_item(self, context, name, body, scope=None):
         sizeGb = int(body['sizeGb']) if 'sizeGb' in body else None
@@ -130,25 +131,27 @@ class API(base_api.API):
             if not sizeGb or sizeGb < image_size_in_gb:
                 sizeGb = image_size_in_gb
 
+        operation_util.start_operation(context, self._get_add_item_progress)
         volume = client.volumes.create(
             sizeGb, snapshot_id=snapshot_id,
             display_name=body.get('name'),
             display_description=body.get('description'),
             imageRef=image_id,
             availability_zone=scope.get_name())
+        operation_util.set_item_id(context, volume.id)
 
         return self._prepare_item(client, utils.to_dict(volume))
 
-    def get_add_item_progress(self, context, name, volume_id, scope):
+    def _get_add_item_progress(self, context, volume_id):
         client = clients.cinder(context)
         volumes = client.volumes.list(search_opts={"id": volume_id})
         if (len(volumes) == 0 or
                 volumes[0].status not in ["creating", "downloading"]):
-            return {"progress": 100}
+            return operation_api.gef_final_progress()
 
-    def get_delete_item_progress(self, context, name, volume_id, scope):
+    def _get_delete_item_progress(self, context, volume_id):
         client = clients.cinder(context)
         volumes = client.volumes.list(search_opts={"id": volume_id})
         if (len(volumes) == 0 or
                 volumes[0].status == "error_deleting"):
-            return {"progress": 100}
+            return operation_api.gef_final_progress()

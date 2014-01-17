@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
 import uuid
 
 from gceapi.api import base_api
@@ -29,7 +28,8 @@ class API(base_api.API):
                              "name", "type", "user", "status", "progress",
                              "scope_type", "scope_name",
                              "target_type", "target_name",
-                             "method_key", "item_id", "item_name"]
+                             "method_key", "item_id",
+                             "error_code", "error_message", "errors"]
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
@@ -42,32 +42,41 @@ class API(base_api.API):
     def _get_persistent_attributes(self):
         return self.PERSISTENT_ATTRIBUTES
 
-    def register_deferred_operation_method(self, method_key, method,
-                                           get_progress_method):
+    def register_get_progress_method(self, method_key, method):
         if method_key in self._get_progress_methods:
             raise exception.Invalid()
-        # TODO(ft): check 'get_progress_method' formal arguments
+        # TODO(ft): check 'method' formal arguments
         self._method_keys[method] = method_key
-        self._get_progress_methods[method_key] = get_progress_method
+        self._get_progress_methods[method_key] = method
 
     def get_scopes(self, context, item):
-        return [scopes.construct(item["scope_type"], item["scope_name"])]
+        if "scope_type" in item:
+            return [scopes.construct(item["scope_type"], item["scope_name"])]
+        else:
+            return [None]
 
     def get_item(self, context, name, scope=None):
         operation = self._get_db_item_by_name(context, name)
-        if not operation:
+        if (operation is None or
+                "scope_type" not in operation and
+                        not isinstance(scope, scopes.GlobalScope) or
+                operation["scope_type"] != scope.get_type() or
+                operation["scope_name"] != scope.get_name()):
             raise exception.NotFound
-        operation = self._update_operation(context, scope, operation)
+        operation = self._update_operation_progress(context, operation)
         return operation
 
     def get_items(self, context, scope=None):
         operations = self._get_db_items(context)
         if scope is not None:
+            in_global_scope = isinstance(scope, scopes.GlobalScope)
             operations = [operation for operation in operations
-                          if (operation["scope_type"] == scope.get_type() and
+                          if ("scope_type" not in operation and
+                                    in_global_scope or
+                              operation["scope_type"] == scope.get_type() and
                               operation["scope_name"] == scope.get_name())]
         for operation in operations:
-            operation = self._update_operation(context, scope, operation)
+            operation = self._update_operation_progress(context, operation)
         return operations
 
     def delete_item(self, context, name, scope=None):
@@ -76,41 +85,84 @@ class API(base_api.API):
             raise exception.NotFound
         self._delete_db_item(context, item)
 
-    def _add_item(self, context, body, scope, method):
-        operation = copy.copy(body)
-        operation_id = str(uuid.uuid4())
-        operation.update(id=operation_id,
-                         name="operation-" + operation_id,
-                         insert_time=timeutils.isotime(context.timestamp,
-                                                       True),
-                         user=context.user_name)
-        if scope is not None:
-            operation.update(scope_type=scope.get_type(),
-                             scope_name=scope.get_name())
-        method_key = self._method_keys.get(method)
-        if method_key is None:
-            operation.update(status="DONE", progress=100,
-                             end_time=timeutils.isotime(None, True))
-        else:
-            operation.update(status="RUNNING", progress=0,
-                             method_key=method_key)
-        return self._add_db_item(context, operation)
-
-    def _update_operation(self, context, scope, operation):
-        if operation["status"] == "DONE":
+    def _update_operation_progress(self, context, operation):
+        if operation["status"] == "DONE" or not operation.get("item_id"):
             return operation
         method_key = operation["method_key"]
         get_progress = self._get_progress_methods[method_key]
-        operation_progress = get_progress(
-                context,
-                operation.get("item_name", operation["target_name"]),
-                operation["item_id"],
-                scope)
+        operation_progress = get_progress(context, operation["item_id"])
         if operation_progress is None:
             return operation
         operation.update(operation_progress)
         if operation["progress"] == 100:
-            operation.update(status="DONE",
-                             end_time=timeutils.isotime(None, True))
+            operation["status"] = "DONE"
+            operation["end_time"] = timeutils.isotime(None, True)
         self._update_db_item(context, operation)
         return operation
+
+    def construct_operation(self, context, op_type, target_type, target_name,
+                            scope):
+        operation_id = str(uuid.uuid4())
+        operation = {
+            "id": operation_id,
+            "name": "operation-" + operation_id,
+            "insert_time": timeutils.isotime(context.timestamp, True),
+            "user": context.user_name,
+            "type": op_type,
+            "target_type": target_type,
+            "target_name": target_name,
+        }
+        if scope is not None:
+            operation["scope_type"] = scope.get_type()
+            operation["scope_name"] = scope.get_name()
+        return operation
+
+    def save_operation(self, context, operation, start_time,
+                       get_progress_method, item_id, operation_result):
+        if isinstance(operation_result, Exception):
+            operation.update(_error_from_exception(operation_result))
+        operation["start_time"] = start_time
+        method_key = self._method_keys.get(get_progress_method)
+        if method_key is None or "error_code" in operation:
+            operation["progress"] = 100
+            operation["status"] = "DONE"
+            operation["end_time"] = timeutils.isotime(None, True)
+        else:
+            operation["progress"] = 0
+            operation["status"] = "RUNNING"
+            operation["method_key"] = method_key
+            if item_id is not None:
+                operation["item_id"] = item_id
+        return self._add_db_item(context, operation)
+
+    def update_operation(self, context, operation_id, operation_result):
+        operation = self._get_db_item_by_id(context, operation_id)
+        if operation is None:
+            # NOTE(ft): it may lead to hungup not finished operation in DB
+            return
+        if isinstance(operation_result, Exception):
+            operation.update(_error_from_exception(operation_result))
+        else:
+            operation.update(operation_result)
+        if operation["progress"] == 100 or "error_code" in operation:
+            operation["status"] = "DONE"
+            operation["end_time"] = timeutils.isotime(None, True)
+        operation.update(operation)
+        self._update_db_item(context, operation)
+
+
+def gef_final_progress(exception=None):
+    progress = {"progress": 100}
+    if exception is not None:
+        progress.update(_error_from_exception(exception))
+
+
+def is_final_progress(progress):
+    return progress is not None and (progress.get("progress") == 100 or
+                                     progress.get("error_code") is not None)
+
+
+def _error_from_exception(ex):
+    return {"errors": [dict(code=ex.__class__.__name__, message=str(ex))],
+            "error_code": 500,
+            "error_message": _('Internal server error')}

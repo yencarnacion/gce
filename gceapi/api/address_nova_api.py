@@ -14,6 +14,7 @@
 
 from gceapi.api import base_api
 from gceapi.api import clients
+from gceapi.api import operation_util
 from gceapi.api import region_api
 from gceapi.api import scopes
 from gceapi.api import utils
@@ -53,9 +54,9 @@ class API(base_api.API):
     def delete_item(self, context, name, scope=None):
         client = clients.nova(context)
         floating_ip = self._get_floating_ips(client, context, scope, name)[0]
+        operation_util.start_operation(context)
         self._delete_db_item(context, floating_ip)
         client.floating_ips.delete(floating_ip["id"])
-        return floating_ip
 
     def add_item(self, context, name, body, scope=None):
         client = clients.nova(context)
@@ -63,6 +64,7 @@ class API(base_api.API):
                for x in self._get_floating_ips(client, context, scope)):
             raise exception.InvalidInput(
                     _("The resource '%s' already exists.") % name)
+        operation_util.start_operation(context)
         result = client.floating_ips.create()
         floating_ip = self._prepare_floating_ip(client, context, result, scope)
         floating_ip["name"] = body["name"]

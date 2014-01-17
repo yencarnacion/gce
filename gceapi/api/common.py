@@ -19,6 +19,7 @@ import re
 from webob import exc
 
 from gceapi.api import operation_api
+from gceapi.api import operation_util
 from gceapi.api import scopes
 from gceapi.api import utils
 from gceapi import exception
@@ -53,7 +54,13 @@ class Controller(object):
         self._aggregated_kind = utils.get_aggregated_kind(self._type_name)
         self._operation_api = operation_api.API()
 
-    def format_result(self, request, action, action_result):
+    def process_result(self, request, action, action_result):
+        context = self._get_context(request)
+        operation = operation_util.save_operaton(context, action_result)
+        if operation is not None:
+            scope = self._operation_api.get_scopes(context, operation)[0]
+            action_result = self._format_operation(request, operation, scope)
+
         if isinstance(action_result, Exception):
             return self._format_error(action_result)
         return self._format_output(request, action, action_result), 200
@@ -126,32 +133,24 @@ class Controller(object):
     def delete(self, req, id, scope_id=None):
         """GCE delete requests."""
 
-        start_time = timeutils.isotime(None, True)
+        scope = self._get_scope(req, scope_id)
+        context = self._get_context(req)
+        operation_util.init_operation(context, "delete",
+                                      self._type_name, id, scope)
         try:
-            scope = self._get_scope(req, scope_id)
-            context = self._get_context(req)
-            item = self._api.delete_item(context, id, scope)
+            self._api.delete_item(context, id, scope)
         except (exception.NotFound, KeyError, IndexError):
             msg = _("Resource '%s' could not be found") % id
             raise exc.HTTPNotFound(explanation=msg)
 
-        if item is None:
-            return None
-        else:
-            return self._create_operation(req, "delete", scope, start_time,
-                                          item["name"], item["id"],
-                                          self._api.delete_item)
-
     def create(self, req, body, scope_id=None):
         """GCE add requests."""
 
-        start_time = timeutils.isotime(None, True)
         scope = self._get_scope(req, scope_id)
         context = self._get_context(req)
-        item = self._api.add_item(context, body['name'], body, scope)
-        return self._create_operation(req, "insert", scope, start_time,
-                                      item["name"], item["id"],
-                                      self._api.add_item)
+        operation_util.init_operation(context, "insert",
+                                      self._type_name, body["name"], scope)
+        self._api.add_item(context, body['name'], body, scope)
 
     # Filtering
     def _filter_items(self, req, items):
@@ -222,7 +221,7 @@ class Controller(object):
     def _get_scope(self, req, scope_id):
         scope = scopes.construct_from_path(req.path_info, scope_id)
         if scope is None:
-            return
+            return None
         scope_api = scope.get_scope_api()
         if scope_api is not None:
             try:
@@ -266,23 +265,9 @@ class Controller(object):
                 result = os.path.join(result, identifier)
         return result
 
-    def _create_operation(self, request, op_type, scope, start_time,
-                          target_name, item_id=None, method=None,
-                          item_name=None):
-        operation = {
-            "type": op_type,
-            "start_time": start_time,
-            "target_type": self._type_name,
-            "target_name": target_name,
-        }
-        if item_id is not None:
-            operation["item_id"] = item_id
-        if item_name is not None:
-            operation["item_name"] = item_name
-        operation = self._operation_api._add_item(self._get_context(request),
-                                                  operation, scope, method)
-        operation = self._format_operation(request, operation, scope)
-        return operation
+    def _format_item(self, request, result_dict, scope):
+        return self._add_item_header(request, result_dict, scope,
+                                     self._type_kind, self._collection_name)
 
     def _format_operation(self, request, operation, scope):
         result_dict = {
@@ -300,16 +285,18 @@ class Controller(object):
         result_dict["targetId"] = self._get_id(result_dict["targetLink"])
         if "end_time" in operation:
             result_dict["endTime"] = operation["end_time"]
+        if "error_code" in operation:
+            result_dict.update({
+                "httpErrorStatusCode": operation["error_code"],
+                "httpErrorMessage": operation["error_message"],
+                "error": {"errors": operation["errors"]},
+            })
         if scope is None:
             scope = scopes.GlobalScope()
         type_name = self._operation_api._get_type()
         return self._add_item_header(request, result_dict, scope,
                                      utils.get_type_kind(type_name),
                                      utils.get_collection_name(type_name))
-
-    def _format_item(self, request, result_dict, scope):
-        return self._add_item_header(request, result_dict, scope,
-                                     self._type_kind, self._collection_name)
 
     def _add_item_header(self, request, result_dict, scope,
                          _type_kind, _collection_name):
@@ -363,8 +350,9 @@ class Controller(object):
             }, code
 
     def _format_output(self, request, action, action_result):
-        # TODO(ft): this metod must be safe ande ignore unknown fields
+        # TODO(ft): this metod must be safe and ignore unknown fields
         fields = request.params.get('fields', None)
+        # TODO(ft): GCE can also format results of other action
         if action not in ('index', 'show') or fields is None:
             return action_result
 

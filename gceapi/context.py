@@ -85,6 +85,10 @@ class RequestContext(object):
         #    self.is_admin = policy.check_is_admin(self)
         if overwrite or not hasattr(local.store, 'context'):
             self.update_store()
+        self.operation = None
+        self.operation_start_time = None
+        self.operation_get_progress_method = None
+        self.operation_item_id = None
 
     def _get_read_deleted(self):
         return self._read_deleted

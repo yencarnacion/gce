@@ -20,6 +20,7 @@ except ImportError:
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import operation_api
+from gceapi.api import operation_util
 from gceapi.api import utils
 from gceapi import exception
 
@@ -41,14 +42,12 @@ class API(base_api.API):
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)
-        operation_api.API().register_deferred_operation_method(
+        operation_api.API().register_get_progress_method(
                 "image-add",
-                self.add_item,
-                self.get_add_item_progress)
-        operation_api.API().register_deferred_operation_method(
+                self._get_add_item_progress)
+        operation_api.API().register_get_progress_method(
                 "image-delete",
-                self.delete_item,
-                self.get_delete_item_progress)
+                self._get_delete_item_progress)
 
     def _get_type(self):
         return self.KIND
@@ -95,9 +94,11 @@ class API(base_api.API):
         """Delete an image, if allowed."""
         image = self.get_item(context, name, scope)
         image_service = clients.glance(context).images
+        operation_util.start_operation(context,
+                                       self._get_delete_item_progress,
+                                       image["id"])
         image_service.delete(image["id"])
         self._delete_db_item(context, image)
-        return image
 
     def add_item(self, context, name, body, scope=None):
         name = body['name']
@@ -111,7 +112,9 @@ class API(base_api.API):
             'copy_from': image_ref,
         }
         image_service = clients.glance(context).images
+        operation_util.start_operation(context, self._get_add_item_progress)
         image = image_service.create(**meta)
+        operation_util.set_item_id(context, image.id)
 
         new_image = self._prepare_image(utils.to_dict(image))
         new_image["description"] = body.get("description", "")
@@ -119,20 +122,20 @@ class API(base_api.API):
         new_image = self._add_db_item(context, new_image)
         return new_image
 
-    def get_add_item_progress(self, context, name, image_id, scope):
+    def _get_add_item_progress(self, context, image_id):
         image_service = clients.glance(context).images
         try:
             image = image_service.get(image_id)
             if image.status not in ["queued", "saving"]:
-                return {"progress": 100}
+                return operation_api.gef_final_progress()
         except glanceclient_exc.HTTPNotFound:
             pass
 
-    def get_delete_item_progress(self, context, name, image_id, scope):
+    def _get_delete_item_progress(self, context, image_id):
         image_service = clients.glance(context).images
         try:
             image = image_service.get(image_id)
             if image.status == "deleted":
-                return {"progress": 100}
+                return operation_api.gef_final_progress()
         except glanceclient_exc.HTTPNotFound:
-            return {"progress": 100}
+            return operation_api.gef_final_progress()

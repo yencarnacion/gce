@@ -187,11 +187,9 @@ class GCEResource(openstack_wsgi.Resource):
 
         response = None
         resp_obj = None
-        if action_result is None:
-            resp_obj = GCEResponse(None)
-        elif (type(action_result) is dict or
-                    isinstance(action_result, Exception)):
-            action_result, result_code = self.controller.format_result(
+        if (action_result is None or type(action_result) is dict or
+                isinstance(action_result, Exception)):
+            action_result, result_code = self.controller.process_result(
                     request, action, action_result)
             resp_obj = GCEResponse(action_result, code=result_code)
         elif isinstance(action_result, GCEResponse):

@@ -17,9 +17,10 @@ import webob
 from gceapi import exception
 
 from gceapi.api import common as gce_common
+from gceapi.api import operation_util
 from gceapi.api import project_api
+from gceapi.api import scopes
 from gceapi.api import wsgi as gce_wsgi
-from gceapi.openstack.common import timeutils
 
 
 class Controller(gce_common.Controller):
@@ -73,8 +74,8 @@ class Controller(gce_common.Controller):
 
     def set_common_instance_metadata(self, req, body):
         context = self._get_context(req)
-        start_time = timeutils.isotime(None, True)
-
+        operation_util.init_operation(context, "setMetadata",
+                                      self._type_name, None, None)
         try:
             self._api.set_common_instance_metadata(
                 context, body.get("items", []))
@@ -89,8 +90,6 @@ class Controller(gce_common.Controller):
         except exception.KeyPairExists:
             msg = _("Key pair already exists.")
             raise webob.exc.HTTPConflict(explanation=msg)
-
-        return self._create_operation(req, "setMetadata", None, start_time, "")
 
     def _add_quota(self, quotas, metric, limit, usage):
         quotas.append({
