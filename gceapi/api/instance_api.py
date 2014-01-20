@@ -353,16 +353,18 @@ class API(base_api.API):
             instance = client.servers.get(instance_id)
         except clients.novaclient.exceptions.NotFound:
             return operation_api.gef_final_progress()
-        status = self._status_map.get(instance.status, "STOPPED")
-        if status != "PROVISIONING":
-            return operation_api.gef_final_progress()
+        if instance.status != "BUILD":
+            return operation_api.gef_final_progress(instance.status == "ERROR")
 
     def _get_delete_item_progress(self, context, instance_id):
         client = clients.nova(context)
         try:
-            client.servers.get(instance_id)
+            instance = client.servers.get(instance_id)
         except clients.novaclient.exceptions.NotFound:
             return operation_api.gef_final_progress()
+        if getattr(instance, "OS-EXT-STS:task_state") != "deleting":
+            return operation_api.gef_final_progress(
+                    instance.status != "DELETED")
 
     def _get_reset_instance_progress(self, context, instance_id):
         client = clients.nova(context)
@@ -370,6 +372,5 @@ class API(base_api.API):
             instance = client.servers.get(instance_id)
         except clients.novaclient.exceptions.NotFound:
             return operation_api.gef_final_progress()
-        status = self._status_map.get(instance.status, "STOPPED")
-        if status not in ["STOPPED", "STOPPING"]:
+        if instance.status != "HARD_REBOOT":
             return operation_api.gef_final_progress()

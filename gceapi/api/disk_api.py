@@ -144,14 +144,18 @@ class API(base_api.API):
 
     def _get_add_item_progress(self, context, volume_id):
         client = clients.cinder(context)
-        volumes = client.volumes.list(search_opts={"id": volume_id})
-        if (len(volumes) == 0 or
-                volumes[0].status not in ["creating", "downloading"]):
+        try:
+            volume = client.volumes.get(volume_id)
+        except clients.cinderclient.exceptions.NotFound:
             return operation_api.gef_final_progress()
+        if (volume.status not in ["creating", "downloading"]):
+            return operation_api.gef_final_progress(volume.status == "error")
 
     def _get_delete_item_progress(self, context, volume_id):
         client = clients.cinder(context)
-        volumes = client.volumes.list(search_opts={"id": volume_id})
-        if (len(volumes) == 0 or
-                volumes[0].status == "error_deleting"):
+        try:
+            volume = client.volumes.get(volume_id)
+        except clients.cinderclient.exceptions.NotFound:
             return operation_api.gef_final_progress()
+        if volume.status not in ["deleting", "deleted"]:
+            return operation_api.gef_final_progress(True)

@@ -72,7 +72,8 @@ class API(base_api.API):
         return operations
 
     def delete_item(self, context, name, scope=None):
-        item = self.get_item(context, name, scope)
+        # NOTE(ft): Google deletes operation with no check it's scope
+        item = self._get_db_item_by_name(context, name)
         if item is None:
             raise exception.NotFound
         self._delete_db_item(context, item)
@@ -142,10 +143,16 @@ class API(base_api.API):
         self._update_db_item(context, operation)
 
 
-def gef_final_progress(exception=None):
+def gef_final_progress(with_error=False):
     progress = {"progress": 100}
-    if exception is not None:
-        progress.update(_error_from_exception(exception))
+    if with_error:
+        progress["error_code"] = 500
+        progress["error_message"] = _('Internal server error')
+        progress["errors"] = [{
+           "code": "UNKNOWN_OS_ERROR",
+           "message": _("Operation finished with unknown error. "
+                        "See OpenStack logs.")
+        }]
     return progress
 
 
@@ -155,6 +162,6 @@ def is_final_progress(progress):
 
 
 def _error_from_exception(ex):
-    return {"errors": [dict(code=ex.__class__.__name__, message=str(ex))],
+    return {"errors": [{"code": ex.__class__.__name__, "message": str(ex)}],
             "error_code": 500,
             "error_message": _('Internal server error')}
