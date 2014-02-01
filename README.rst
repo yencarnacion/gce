@@ -1,40 +1,11 @@
 OpenStack Nova GCE API README
 -----------------------------
 
-Packages
-=========
-
-Changed Nova with the following changes:
-
-* ``nova/api/gce`` GCE API engine
-* ``nova/tests/api/gce`` Unit-tests
-* ``etc/nova/api-paste.ini`` Additional section for GCE API
-* ``etc/nova/nova.conf.sample`` Sample parameters for GCE API
-* ``nova/cmd/api.py`` Changes for running GCE API as one of enabled api
-* ``nova/cmd/api_gce.py`` Service binary
-* ``nova/service.py`` Services configuration file
-* ``setup.cfg`` GCE API binary setup
-
-Configuration
-==============
-
-Configuration for ``/etc/nova/nova.conf``::
-
-    keystone_gce_url=http://127.0.0.1:5000/v2.0
-
-Keep in mind that devstack scrpits can rewrite the changes so it should be done after
-each ``./stack.sh``. Alternatively ``/opt/stack/...`` files can be changed instead.
+Support of GCE-API for OpenStack. 
 
 Usage
 =====
 
-Server side.
-Make sure that the service is running.
-(For example you can test this by cmd "curl http://localhost:8777")
-Or run ``/usr/local/bin/nova-api-gce``,
-or add ``gce`` to parameter ``enabled_apis`` in nova.conf and restart nova-api
-
-Client side.
 Download gcloud from Google and install it.
 There are two ways for using it:
 
@@ -96,7 +67,6 @@ Supported resource types
 * Firewalls
 * Images
 * Instances
-* Kernels
 * MachineTypes
 * Networks
 * Projects
@@ -106,18 +76,12 @@ Supported resource types
 Unsupported resource types
 
 * ForwardingRules
-* GlobalOperations
 * HttpHealthChecks
-* Routes
-* Snapshots
 * TargetPools
-* ZoneOperations
-* RegionOperations
 
 In the lists below:
 "+" means supported
 "-" unsupported
-"=" stubbed
 
 +Addresses
 
@@ -154,12 +118,12 @@ In the lists below:
 -list  GET  /project/regions/region/forwardingRules
 -setTarget  POST  /project/regions/region/forwardingRules/forwardingRule/setTarget
 
--GlobalOperations
++GlobalOperations
 
--aggregatedList  GET  /project/aggregated/operations
--delete  DELETE  /project/global/operations/operation
--get  GET  /project/global/operations/operation
--list  GET  /project/global/operations
++aggregatedList  GET  /project/aggregated/operations
++delete  DELETE  /project/global/operations/operation
++get  GET  /project/global/operations/operation
++list  GET  /project/global/operations
 
 -HttpHealthChecks
 
@@ -195,11 +159,6 @@ In the lists below:
 -setTags  POST  /project/zones/zone/instances/instance/setTags
 -setScheduling  POST  /project/zones/zone/instances/instance/setScheduling
 
-+Kernels
-
-+get  GET  /project/global/kernels/kernel
-+list  GET  /project/global/kernels
-
 +MachineTypes
 
 +aggregatedList  GET  /project/aggregated/machineTypes
@@ -220,23 +179,23 @@ In the lists below:
 
 -RegionOperations
 
--delete  DELETE  /project/regions/region/operations/operation
--get  GET  /project/regions/region/operations/operation
--list  GET  /project/regions/region/operations
++delete  DELETE  /project/regions/region/operations/operation
++get  GET  /project/regions/region/operations/operation
++list  GET  /project/regions/region/operations
 
 +Regions
 
 +get  GET  /project/regions/region
 +list  GET  /project/regions
 
--Routes
++Routes
 
--delete  DELETE  /project/global/routes/route
--get  GET  /project/global/routes/route
--insert  POST  /project/global/routes
--list  GET  /project/global/routes
++delete  DELETE  /project/global/routes/route
++get  GET  /project/global/routes/route
++insert  POST  /project/global/routes
++list  GET  /project/global/routes
 
--Snapshots
++Snapshots
 
 +delete  DELETE  /project/global/snapshots/snapshot
 +get  GET  /project/global/snapshots/snapshot
@@ -256,11 +215,11 @@ In the lists below:
 -removeInstance  POST /project/regions/region/targetPools/targetPool/removeInstance
 -setBackup  POST  /project/regions/region/targetPools/targetPool/setBackup
 
--ZoneOperations
++ZoneOperations
 
--delete  DELETE  /project/zones/zone/operations/operation
--get  GET  /project/zones/zone/operations/operation
--list  GET  /project/zones/zone/operations
++delete  DELETE  /project/zones/zone/operations/operation
++get  GET  /project/zones/zone/operations/operation
++list  GET  /project/zones/zone/operations
 
 +Zones
 
