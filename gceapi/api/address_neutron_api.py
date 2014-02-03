@@ -21,6 +21,7 @@ from gceapi.api import operation_util
 from gceapi.api import region_api
 from gceapi.api import scopes
 from gceapi import exception
+from gceapi.openstack.common.gettextutils import _
 
 CONF = cfg.CONF
 

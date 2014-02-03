@@ -27,6 +27,7 @@ import greenlet
 from oslo.config import cfg
 
 from gceapi.openstack.common import eventlet_backdoor
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import importutils
 from gceapi.openstack.common import log as logging
 from gceapi import wsgi
@@ -137,9 +138,10 @@ class ServiceLauncher(Launcher):
             # should use secret flag when switch over to openstack-common
             if ("_password" in flag or "_key" in flag or
                     (flag == "sql_connection" and "mysql:" in flag_get)):
-                LOG.debug(_('%(flag)s : FLAG SET ') % locals())
+                LOG.debug(_('%(flag)s : FLAG SET ') % {'flag': flag})
             else:
-                LOG.debug('%(flag)s : %(flag_get)s' % locals())
+                LOG.debug('%(flag)s : %(flag_get)s' % {'flag': flag,
+                                                       'flag_get': flag_get})
 
         status = None
         try:

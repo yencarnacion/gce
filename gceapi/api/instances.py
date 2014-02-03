@@ -22,7 +22,7 @@ from gceapi.api import operation_util
 from gceapi.api import scopes
 from gceapi.api import wsgi as gce_wsgi
 from gceapi import exception
-
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 
 logger = logging.getLogger(__name__)

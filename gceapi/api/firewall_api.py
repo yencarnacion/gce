@@ -20,6 +20,7 @@ from gceapi.api import network_api
 from gceapi.api import operation_util
 from gceapi.api import utils
 from gceapi import exception
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 
 

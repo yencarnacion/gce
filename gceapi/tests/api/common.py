@@ -21,7 +21,6 @@ from keystoneclient.v2_0 import client as kc
 from neutronclient.v2_0 import client as neutronclient
 from novaclient import client as novaclient
 from novaclient import shell as novashell
-from oslo.config import cfg
 
 import gceapi.api
 from gceapi.openstack.common import timeutils

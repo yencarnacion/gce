@@ -16,9 +16,10 @@ import copy
 import inspect
 import uuid
 
-from novaclient.client import exceptions as nova_exc
+from novaclient import client as novaclient
 
 from gceapi.api import base_api
+from gceapi.openstack.common.gettextutils import _
 from gceapi.tests.api import fake_request
 from gceapi.tests.api import utils
 
@@ -484,9 +485,9 @@ class FakeClassWithFind(object):
         num_matches = len(matches)
         if num_matches == 0:
             msg = "No %s matching %s." % (self.__class__.__name__, kwargs)
-            raise nova_exc.NotFound(404, msg)
+            raise novaclient.exceptions.NotFound(404, msg)
         elif num_matches > 1:
-            raise nova_exc.NoUniqueMatch
+            raise novaclient.exceptions.NoUniqueMatch
         else:
             return matches[0]
 
@@ -544,18 +545,21 @@ class FakeFlavors(FakeClassWithFind):
         for flavor in FAKE_FLAVORS:
             if flavor.id == flavor_id:
                 return flavor
-        raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+        raise novaclient.exceptions.NotFound(
+            novaclient.exceptions.NotFound.http_status)
 
 
 class FakeKeypairs(object):
     def get(self, keypair):
-        raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+        raise novaclient.exceptions.NotFound(
+            novaclient.exceptions.NotFound.http_status)
 
     def create(self, name, public_key=None):
         pass
 
     def delete(self, key):
-        raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+        raise novaclient.exceptions.NotFound(
+            novaclient.exceptions.NotFound.http_status)
 
     def list(self):
         return []
@@ -600,7 +604,8 @@ class FakeServers(object):
         for server in self._fake_instances:
             if server.id == server_id:
                 return server
-        raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+        raise novaclient.exceptions.NotFound(
+            novaclient.exceptions.NotFound.http_status)
 
     def list(self, detailed=True, search_opts=None,
              marker=None, limit=None):
@@ -647,7 +652,7 @@ class FakeServers(object):
     def reboot(self, server, reboot_type):
         if reboot_type != "HARD":
             msg = _("Argument 'type' for reboot is not HARD or SOFT")
-            raise nova_exc.BadRequest(message=msg)
+            raise novaclient.exceptions.BadRequest(message=msg)
         self.get(server)
 
 
@@ -662,7 +667,7 @@ class FakeSecurityGroups(FakeClassWithFind):
                          for secgroup in self._secgroups
                          if secgroup.id == sg_id), None)
         if secgroup is None:
-            raise nova_exc.NotFound(
+            raise novaclient.exceptions.NotFound(
                     404, "Security group %s not found" % sg_id)
         return secgroup
 
@@ -721,14 +726,16 @@ class FakeVolumes(object):
         volumes = getattr(instance, "os-extended-volumes:volumes_attached")
         volumes = [v["id"] for v in volumes]
         if volume_id in volumes:
-            raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+            raise novaclient.exceptions.NotFound(
+                novaclient.exceptions.NotFound.http_status)
 
     def delete_server_volume(self, instance_id, volume_id):
         instance = FakeServers().get(instance_id)
         volumes = getattr(instance, "os-extended-volumes:volumes_attached")
         volumes = [v["id"] for v in volumes]
         if volume_id not in volumes:
-            raise nova_exc.NotFound(nova_exc.NotFound.http_status)
+            raise novaclient.exceptions.NotFound(
+                novaclient.exceptions.NotFound.http_status)
 
 
 class FakeNovaClient(object):

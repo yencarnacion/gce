@@ -15,9 +15,10 @@
 import webob
 
 from gceapi import exception
-from gceapi import wsgi_ext as openstack_wsgi
-from gceapi.openstack.common import log as logging
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import jsonutils
+from gceapi.openstack.common import log as logging
+from gceapi import wsgi_ext as openstack_wsgi
 
 LOG = logging.getLogger(__name__)
 

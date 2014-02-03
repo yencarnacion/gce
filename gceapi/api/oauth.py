@@ -23,6 +23,7 @@ from oslo.config import cfg
 import webob
 
 from gceapi import wsgi_ext as openstack_wsgi
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import timeutils
 

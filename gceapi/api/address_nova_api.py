@@ -19,6 +19,7 @@ from gceapi.api import region_api
 from gceapi.api import scopes
 from gceapi.api import utils
 from gceapi import exception
+from gceapi.openstack.common.gettextutils import _
 
 
 class API(base_api.API):

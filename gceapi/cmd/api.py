@@ -25,13 +25,13 @@ Gceapi API Server
 import eventlet
 import sys
 
-eventlet.patcher.monkey_patch(os=False, thread=False)
+eventlet.patcher.monkey_patch(os=False)
 
 from oslo.config import cfg
 
 from gceapi import config
-from gceapi import service
 from gceapi.openstack.common import log as logging
+from gceapi import service
 
 CONF = cfg.CONF
 CONF.import_opt('use_ssl', 'gceapi.service')

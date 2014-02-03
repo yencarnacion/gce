@@ -34,6 +34,7 @@ import webob.exc
 
 from gceapi import exception
 from gceapi.openstack.common import excutils
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 
 wsgi_opts = [
@@ -366,16 +367,16 @@ class Debug(Middleware):
 
     @webob.dec.wsgify(RequestClass=Request)
     def __call__(self, req):
-        print ('*' * 40) + ' REQUEST ENVIRON'
+        print(('*' * 40) + ' REQUEST ENVIRON')
         for key, value in req.environ.items():
-            print key, '=', value
-        print
+            print(key, '=', value)
+        print()
         resp = req.get_response(self.application)
 
-        print ('*' * 40) + ' RESPONSE HEADERS'
+        print(('*' * 40) + ' RESPONSE HEADERS')
         for (key, value) in resp.headers.iteritems():
-            print key, '=', value
-        print
+            print(key, '=', value)
+        print()
 
         resp.app_iter = self.print_generator(resp.app_iter)
 

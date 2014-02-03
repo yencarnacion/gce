@@ -94,24 +94,24 @@ def update_item(context, kind, item):
 @require_context
 def get_items(context, kind):
     return [_unpack_item_data(item)
-            for item in model_query(context, models.Item).\
-                    filter_by(kind=kind).\
+            for item in model_query(context, models.Item).
+                    filter_by(kind=kind).
                     all()]
 
 
 @require_context
 def get_item_by_id(context, kind, item_id):
-    return _unpack_item_data(model_query(context, models.Item).\
+    return _unpack_item_data(model_query(context, models.Item).
             filter_by(kind=kind,
-                      id=item_id).\
+                      id=item_id).
             first())
 
 
 @require_context
 def get_item_by_name(context, kind, name):
-    return _unpack_item_data(model_query(context, models.Item).\
+    return _unpack_item_data(model_query(context, models.Item).
             filter_by(kind=kind,
-                      name=name).\
+                      name=name).
             first())
 
 

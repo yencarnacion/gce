@@ -12,8 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from gceapi.tests.api import utils
 from gceapi.tests.api import fake_request
+from gceapi.tests.api import utils
 
 
 FAKE_PROJECTS = [utils.FakeObject({

@@ -17,6 +17,7 @@
 from oslo.config import cfg
 
 from gceapi import exception
+from gceapi.openstack.common.gettextutils import _
 
 CONF = cfg.CONF
 
@@ -70,4 +71,3 @@ def db_sync(version=None):
 def db_version():
     """Display the current database version."""
     return IMPL.db_version(INIT_VERSION)
-

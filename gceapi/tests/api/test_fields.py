@@ -17,12 +17,10 @@ from gceapi import test
 
 
 class FieldsTest(test.TestCase):
-    """
-    Test for parsing fields params
-    """
+    """Test for parsing fields params."""
 
     def setUp(self):
-        """Run before each test"""
+        """Run before each test."""
         super(FieldsTest, self).setUp()
 
     def test_apply_template(self):

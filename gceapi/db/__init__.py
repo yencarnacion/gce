@@ -15,5 +15,3 @@
 """
 DB abstraction for Gceapi
 """
-
-from gceapi.db.api import *

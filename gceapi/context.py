@@ -22,6 +22,7 @@
 import uuid
 
 from gceapi import exception
+from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import local
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import timeutils

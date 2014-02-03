@@ -16,8 +16,8 @@ import copy
 
 from cinderclient import exceptions as exc
 
-from gceapi.tests.api import utils
 from gceapi.tests.api import fake_request
+from gceapi.tests.api import utils
 
 
 FAKE_DISKS = [utils.FakeObject({

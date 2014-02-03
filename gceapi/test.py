@@ -25,7 +25,6 @@ inline callbacks.
 
 import os
 import shutil
-import sys
 
 import eventlet
 import fixtures
@@ -35,7 +34,6 @@ import stubout
 import testtools
 
 from gceapi.openstack.common import log as logging
-from gceapi.openstack.common import timeutils
 from gceapi import paths
 
 
@@ -58,7 +56,7 @@ CONF.set_override('use_stderr', False)
 logging.setup('gceapi')
 LOG = logging.getLogger(__name__)
 
-eventlet.monkey_patch(os=False, thread=False)
+eventlet.monkey_patch(os=False)
 
 _DB_CACHE = None
 
