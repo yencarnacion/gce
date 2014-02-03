@@ -15,10 +15,10 @@
 import netaddr
 from oslo.config import cfg
 
-from gceapi import exception
-from gceapi.api import clients
 from gceapi.api import base_api
+from gceapi.api import clients
 from gceapi.api import operation_util
+from gceapi import exception
 from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 
@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 
 class API(base_api.API):
-    """GCE Network API - neutron implementation"""
+    """GCE Network API - neutron implementation."""
 
     KIND = "network"
     PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "description"]
@@ -48,13 +48,13 @@ class API(base_api.API):
         networks = client.list_networks(
             tenant_id=context.project_id, name=name)["networks"]
         if not networks:
-            msg = _("Network resource '%s' could not be found." % name)
+            msg = _("Network resource '%s' could not be found.") % name
             raise exception.NotFound(msg)
         else:
             # NOTE(Alex) There might be more than one network with this name.
-            # TODO: We have to decide if we should support IDs as parameters
-            # for names as well and return error if we have multi-results
-            # when addressed by name.
+            # TODO(Alex) We have to decide if we should support IDs as
+            # parameters for names as well and return error if we have
+            # multi-results when addressed by name.
             network = networks[0]
             gce_network = self._get_db_item_by_id(context, network["id"])
             return self._prepare_network(client, network, gce_network)
@@ -135,7 +135,7 @@ class API(base_api.API):
         return self._prepare_item(network, db_network)
 
     def get_public_network_id(self, context):
-        """Get id of public network appointed to GCE in config"""
+        """Get id of public network appointed to GCE in config."""
         client = clients.neutron(context)
         search_opts = {"name": self._public_network_name,
                        "router:external": True}

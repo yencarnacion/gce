@@ -18,7 +18,7 @@ from gceapi.api import route_nova_api
 
 
 class API(base_api.API):
-    """GCE Route API"""
+    """GCE Route API."""
 
     NEUTRON_API_MODULE = route_neutron_api
     NOVA_API_MODULE = route_nova_api

@@ -87,7 +87,7 @@ class Controller(gce_common.Controller):
                     })
                     continue
                 logger.warn(_("Unexpected address for instance '%(i)' in "
-                    "network '%(n)", {"i": instance["name"], "n": network}))
+                    "network '%(n)") % {"i": instance["name"], "n": network})
             result_dict["networkInterfaces"].append(ni)
 
         disk_index = 0
@@ -116,7 +116,7 @@ class Controller(gce_common.Controller):
         try:
             self._api.reset_instance(context, scope, id)
         except (exception.NotFound, KeyError, IndexError):
-            msg = _("Instance %s could not be found" % id)
+            msg = _("Instance %s could not be found") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
 
     def add_access_config(self, req, body, scope_id, id):

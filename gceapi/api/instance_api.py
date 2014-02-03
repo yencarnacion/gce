@@ -35,7 +35,7 @@ LOG = logging.getLogger(__name__)
 
 
 class API(base_api.API):
-    """GCE Instance API"""
+    """GCE Instance API."""
 
     KIND = "instance"
     PERSISTENT_ATTRIBUTES = ["id", "description"]

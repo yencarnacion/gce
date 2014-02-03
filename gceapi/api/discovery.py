@@ -17,8 +17,8 @@ import os
 import threading
 import webob
 
-from gceapi import wsgi_ext as openstack_wsgi
 from gceapi.openstack.common import log as logging
+from gceapi import wsgi_ext as openstack_wsgi
 
 LOG = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class Controller(object):
     _files = {}
 
     def discovery(self, req, version):
-        """Returns appropriate json by its version"""
+        """Returns appropriate json by its version."""
 
         if version in self._files:
             return self._files[version]

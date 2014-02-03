@@ -12,15 +12,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from gceapi import exception
 from gceapi.api import base_api
 from gceapi.api import clients
 from gceapi.api import operation_util
 from gceapi.api import utils
+from gceapi import exception
 
 
 class API(base_api.API):
-    """GCE Projects API"""
+    """GCE Projects API."""
 
     KIND = "project"
 

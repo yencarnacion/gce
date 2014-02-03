@@ -33,7 +33,7 @@ LOG = logging.getLogger(__name__)
 
 
 class API(base_api.API):
-    """GCE Firewall API"""
+    """GCE Firewall API."""
 
     KIND = "firewall"
     PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "network_name"]

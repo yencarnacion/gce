@@ -13,9 +13,6 @@
 #    under the License.
 
 from oslo.config import cfg
-import webob
-import webob.dec
-import webob.exc
 
 from gceapi.api import addresses
 from gceapi.api import discovery
@@ -32,8 +29,6 @@ from gceapi.api import regions
 from gceapi.api import routes
 from gceapi.api import snapshots
 from gceapi.api import zones
-from gceapi import config
-from gceapi import context
 from gceapi.openstack.common import log as logging
 from gceapi import wsgi
 from gceapi import wsgi_ext as openstack_api

@@ -135,7 +135,7 @@ def to_dict(obj, recursive=False, classkey=None):
 
 
 def _extract_name_from_url(url):
-    """Get object name from fully qualified link"""
+    """Get object name from fully qualified link."""
     return url.split('/')[-1]
 
 

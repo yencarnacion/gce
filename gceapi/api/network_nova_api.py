@@ -22,7 +22,7 @@ from gceapi import exception
 
 
 class API(base_api.API):
-    """GCE Network API - nova-network implementation"""
+    """GCE Network API - nova-network implementation."""
 
     KIND = "network"
     PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "description"]

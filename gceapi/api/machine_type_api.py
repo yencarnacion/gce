@@ -20,7 +20,7 @@ from gceapi import exception
 
 
 class API(base_api.API):
-    """GCE Machine types API"""
+    """GCE Machine types API."""
 
     KIND = "machineType"
 

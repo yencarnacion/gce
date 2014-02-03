@@ -22,7 +22,7 @@ from gceapi.openstack.common import timeutils
 
 
 class API(base_api.API):
-    """GCE operation API"""
+    """GCE operation API."""
 
     KIND = "operation"
     PERSISTENT_ATTRIBUTES = ["id", "insert_time", "start_time", "end_time",

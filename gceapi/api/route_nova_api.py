@@ -21,7 +21,7 @@ NOT_SUPPORTED_MESSAGE = _("Routes are not supported with nova network")
 
 
 class API(base_api.API):
-    """GCE Address API - nova-network implementation"""
+    """GCE Address API - nova-network implementation."""
 
     KIND = "route"
 

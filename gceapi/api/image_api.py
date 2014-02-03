@@ -27,7 +27,7 @@ from gceapi.openstack.common.gettextutils import _
 
 
 class API(base_api.API):
-    """GCE Image API"""
+    """GCE Image API."""
 
     KIND = "image"
     PERSISTENT_ATTRIBUTES = ["id", "description", "image_ref"]
@@ -65,13 +65,13 @@ class API(base_api.API):
             if image.status == "deleted":
                 continue
             if result:
-                msg = _("Image resource '%s' found more than once" % name)
+                msg = _("Image resource '%s' found more than once") % name
                 raise exception.NotFound(msg)
             result = self._prepare_image(utils.to_dict(image))
             db_image = self._get_db_item_by_id(context, result["id"])
             self._prepare_item(result, db_image)
         if not result:
-            msg = _("Image resource '%s' could not be found" % name)
+            msg = _("Image resource '%s' could not be found") % name
             raise exception.NotFound(msg)
         return result
 

@@ -23,7 +23,7 @@ from gceapi.openstack.common.gettextutils import _
 
 
 class API(base_api.API):
-    """GCE Address API - nova-network implementation"""
+    """GCE Address API - nova-network implementation."""
 
     KIND = "address"
     PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "name", "description"]

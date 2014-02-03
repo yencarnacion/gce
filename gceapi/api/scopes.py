@@ -23,7 +23,8 @@ from gceapi.api import utils
 class Scope(object):
     """Scope that contains resource.
 
-    The following scopes exists: global, aggregated, zones, regions."""
+    The following scopes exists: global, aggregated, zones, regions.
+    """
 
     _type = None
     _collection = None

@@ -13,13 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.config import cfg
+from keystoneclient.v2_0 import client as kc
 from novaclient import client as novaclient
 from novaclient import shell as novashell
-from keystoneclient.v2_0 import client as kc
+from oslo.config import cfg
 
-from gceapi.openstack.common import log as logging
 from gceapi.openstack.common.gettextutils import _
+from gceapi.openstack.common import log as logging
 
 logger = logging.getLogger(__name__)
 

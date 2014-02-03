@@ -12,9 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from string import maketrans
-
 import netaddr
+import string
 
 from gceapi.api import base_api
 from gceapi.api import clients
@@ -29,12 +28,12 @@ ALL_IP_CIDR = "0.0.0.0/0"
 
 
 class API(base_api.API):
-    """GCE Address API - neutron implementation"""
+    """GCE Address API - neutron implementation."""
 
     KIND = "route"
     PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "description",
                              "is_default"]
-    TRANS_TABLE = maketrans("./", "--")
+    TRANS_TABLE = string.maketrans("./", "--")
 
     def __init__(self, *args, **kwargs):
         super(API, self).__init__(*args, **kwargs)

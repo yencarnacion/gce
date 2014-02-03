@@ -65,7 +65,8 @@ class GCEFault(webob.exc.HTTPException):
     """Wrap webob.exc.HTTPException to provide API friendly response."""
 
     def __init__(self, exception):
-        """Create a Fault for the given webob.exc.exception or gceapi.exception.
+        """
+        Create a Fault for the given webob.exc.exception or gceapi.exception.
         """
         self.wrapped_exc = exception
         for key, value in self.wrapped_exc.headers.items():
@@ -128,7 +129,7 @@ class GCEResource(openstack_wsgi.Resource):
     def _check_requested_project(self, project_id, context):
         if (not context or project_id is None
         or (project_id not in [context.project_id, context.project_name])):
-            msg = _("Project '%s' could not be found" % project_id) \
+            msg = _("Project '%s' could not be found") % project_id \
                 if project_id is not None \
                 else _("Project hasn`t been provided")
 
@@ -214,7 +215,7 @@ class GCEResource(openstack_wsgi.Resource):
         try:
             msg_dict = dict(url=request.url, status=response.status_int)
             msg = _("%(url)s returned with HTTP %(status)d") % msg_dict
-        except AttributeError, e:
+        except AttributeError as e:
             msg_dict = dict(url=request.url, e=e)
             msg = _("%(url)s returned a fault: %(e)s") % msg_dict
 

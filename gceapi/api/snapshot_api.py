@@ -21,7 +21,7 @@ from gceapi import exception
 
 
 class API(base_api.API):
-    """GCE Snapshot API"""
+    """GCE Snapshot API."""
 
     KIND = "snapshot"
     _status_map = {
@@ -89,7 +89,7 @@ class API(base_api.API):
         item["name"] = item["display_name"]
         try:
             item["disk"] = utils.to_dict(client.volumes.get(item["volume_id"]))
-        except:
+        except Exception:
             pass
         item["status"] = self._status_map.get(item["status"], item["status"])
         return item

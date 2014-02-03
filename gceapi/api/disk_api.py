@@ -26,7 +26,7 @@ GB = 1024 ** 3
 
 
 class API(base_api.API):
-    """GCE Disk API"""
+    """GCE Disk API."""
 
     KIND = "disk"
     _status_map = {

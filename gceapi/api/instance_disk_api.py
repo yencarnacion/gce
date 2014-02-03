@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 
 class API(base_api.API):
-    """GCE Attached disk API"""
+    """GCE Attached disk API."""
 
     KIND = "attached_disk"
     PERSISTENT_ATTRIBUTES = ["id", "instance_name", "volume_id", "name"]

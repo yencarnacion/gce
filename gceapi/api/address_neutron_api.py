@@ -27,7 +27,7 @@ CONF = cfg.CONF
 
 
 class API(base_api.API):
-    """GCE Address API - neutron implementation"""
+    """GCE Address API - neutron implementation."""
 
     KIND = "address"
     PERSISTENT_ATTRIBUTES = ["id", "creationTimestamp", "name", "description"]

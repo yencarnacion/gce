@@ -23,7 +23,7 @@ LOG = logging.getLogger(__name__)
 
 
 class API(base_api.API):
-    """GCE Access config API"""
+    """GCE Access config API."""
 
     KIND = "access_config"
     PERSISTENT_ATTRIBUTES = ["id", "instance_name",
@@ -60,8 +60,8 @@ class API(base_api.API):
         if addr_type is None:
             addr_type = self.DEFAULT_ACCESS_CONFIG_TYPE
         elif addr_type != self.DEFAULT_ACCESS_CONFIG_TYPE:
-            msg = _("Only '%s' type of access config currently supported."
-                    % self.DEFAULT_ACCESS_CONFIG_TYPE)
+            msg = _("Only '%s' type of access config currently supported.")\
+                    % self.DEFAULT_ACCESS_CONFIG_TYPE
             raise exception.InvalidRequest(msg)
 
         client = clients.nova(context)
@@ -102,10 +102,10 @@ class API(base_api.API):
                     continue
                 if floating_ip.instance_id is None:
                     break
-                msg = _("Floating ip '%s' is already associated" % floating_ip)
+                msg = _("Floating ip '%s' is already associated") % floating_ip
                 raise exception.InvalidRequest(msg)
             else:
-                msg = _("There is no such floating ip '%s'." % addr)
+                msg = _("There is no such floating ip '%s'.") % addr
                 raise exception.InvalidRequest(msg)
 
         operation_util.start_operation(context)
@@ -123,8 +123,8 @@ class API(base_api.API):
         if addr_type is None:
             addr_type = self.DEFAULT_ACCESS_CONFIG_TYPE
         elif addr_type != self.DEFAULT_ACCESS_CONFIG_TYPE:
-            msg = _("Only '%s' type of access config currently supported."
-                    % self.DEFAULT_ACCESS_CONFIG_TYPE)
+            msg = _("Only '%s' type of access config currently supported.")\
+                % self.DEFAULT_ACCESS_CONFIG_TYPE
             raise exception.InvalidRequest(msg)
 
         if name is None:

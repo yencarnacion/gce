@@ -22,10 +22,10 @@ from keystoneclient.v2_0 import client as keystone_client
 from oslo.config import cfg
 import webob
 
-from gceapi import wsgi_ext as openstack_wsgi
 from gceapi.openstack.common.gettextutils import _
 from gceapi.openstack.common import log as logging
 from gceapi.openstack.common import timeutils
+from gceapi import wsgi_ext as openstack_wsgi
 
 FLAGS = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ class Controller(object):
             msg = _("redirect_uri should be present")
             raise webob.exc.HTTPBadRequest(explanation=msg)
         if "localhost" not in uri and uri != self.INTERNAL_REDIRECT_URI:
-            msg = _("redirect_uri has invalid format."\
+            msg = _("redirect_uri has invalid format."
                     "it must confirms installed application uri of GCE")
             json_body = {"error": "invalid_request",
                          "error_description": msg}
