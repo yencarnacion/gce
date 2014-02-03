@@ -18,8 +18,8 @@
 '''
 find_unused_options.py
 
-Compare the gceapi.conf file with the gceapi.conf.sample file to find any unused
-options or default values in gceapi.conf
+Compare the nova.conf file with the nova.conf.sample file to find any unused
+options or default values in nova.conf
 '''
 import argparse
 import os
@@ -44,8 +44,8 @@ class PropertyCollecter(iniparser.BaseParser):
     def collect_properties(cls, lineiter, sample_format=False):
         def clean_sample(f):
             for line in f:
-                if line.startswith("# ") and line != '# gceapi.conf sample #\n':
-                    line = line[2:]
+                if line.startswith("#") and not line.startswith("# "):
+                    line = line[1:]
                 yield line
         pc = cls()
         if sample_format:
@@ -55,17 +55,17 @@ class PropertyCollecter(iniparser.BaseParser):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='''Compare the gceapi.conf
-    file with the gceapi.conf.sample file to find any unused options or
-    default values in gceapi.conf''')
+    parser = argparse.ArgumentParser(description='''Compare the nova.conf
+    file with the nova.conf.sample file to find any unused options or
+    default values in nova.conf''')
 
     parser.add_argument('-c', action='store',
-                        default='/etc/gceapi/gceapi.conf',
-                        help='path to gceapi.conf\
-                        (defaults to /etc/gceapi/gceapi.conf)')
-    parser.add_argument('-s', default='./etc/gceapi/gceapi.conf.sample',
-                        help='path to gceapi.conf.sample\
-                        (defaults to ./etc/gceapi/gceapi.conf.sample')
+                        default='/etc/nova/nova.conf',
+                        help='path to nova.conf\
+                        (defaults to /etc/nova/nova.conf)')
+    parser.add_argument('-s', default='./etc/nova/nova.conf.sample',
+                        help='path to nova.conf.sample\
+                        (defaults to ./etc/nova/nova.conf.sample')
     options = parser.parse_args()
 
     conf_file_options = PropertyCollecter.collect_properties(open(options.c))
