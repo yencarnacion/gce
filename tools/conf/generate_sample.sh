@@ -17,13 +17,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-FILES=$(find nova -type f -name "*.py" ! -path "nova/tests/*" -exec \
+FILES=$(find gceapi -type f -name "*.py" ! -path "gceapi/tests/*" -exec \
     grep -l "Opt(" {} \; | sort -u)
-BINS=$(echo bin/nova-*)
+BINS=$(echo bin/gceapi-*)
 
 PYTHONPATH=./:${PYTHONPATH} \
     python $(dirname "$0")/extract_opts.py ${FILES} ${BINS} > \
-    etc/nova/nova.conf.sample
+    etc/gceapi/gceapi.conf.sample
 
 # Remove compiled files created by imp.import_source()
 for bin in ${BINS}; do

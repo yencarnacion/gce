@@ -113,7 +113,7 @@ def _get_db_driver_class(db_type):
 ### Migrate
 
 
-MIGRATE_REPO = os.path.join(os.getcwd(), "nova/db/sqlalchemy/migrate_repo")
+MIGRATE_REPO = os.path.join(os.getcwd(), "gceapi/db/sqlalchemy/migrate_repo")
 
 
 def migrate(db_driver, db_name, migration_version):

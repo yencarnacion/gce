@@ -29,7 +29,7 @@ import textwrap
 
 from oslo.config import cfg
 
-from nova.openstack.common import importutils
+from gceapi.openstack.common import importutils
 
 
 STROPT = "StrOpt"
@@ -213,7 +213,7 @@ def _sanitize_default(s):
     elif s == _get_my_ip():
         return '10.0.0.1'
     elif s == socket.getfqdn():
-        return 'nova'
+        return 'gceapi'
     elif s.strip() != s:
         return '"%s"' % s
     return s
