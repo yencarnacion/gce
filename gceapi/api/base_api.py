@@ -172,16 +172,16 @@ class API(object):
         return db.delete_item(context, self._get_type(), item["id"])
 
     def _update_db_item(self, context, item):
-        db_item = {key: item.get(key)
+        db_item = dict((key, item.get(key))
                    for key in self._get_persistent_attributes()
-                   if key in item}
+                   if key in item)
         db.update_item(context, self._get_type(), db_item)
 
     def _get_db_items(self, context):
         return db.get_items(context, self._get_type())
 
     def _get_db_items_dict(self, context):
-        return {item["id"]: item for item in self._get_db_items(context)}
+        return dict((item["id"], item) for item in self._get_db_items(context))
 
     def _get_db_item_by_id(self, context, item_id):
         return db.get_item_by_id(context, self._get_type(), item_id)
