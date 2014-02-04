@@ -155,9 +155,9 @@ class API(object):
         return item
 
     def _add_db_item(self, context, item):
-        db_item = {key: item.get(key)
+        db_item = dict((key, item.get(key))
                    for key in self._get_persistent_attributes()
-                   if key in item}
+                   if key in item)
         if ("creationTimestamp" in self._get_persistent_attributes() and
                 "creationTimestamp" not in db_item):
             # TODO(ft): Google not returns microseconds but returns
