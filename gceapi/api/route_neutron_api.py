@@ -209,14 +209,14 @@ class API(base_api.API):
     def _get_os_routes(self, context):
         client = clients.neutron(context)
         routers = client.list_routers(tenant_id=context.project_id)["routers"]
-        routers = {r["id"]: r for r in routers}
+        routers = dict((r["id"], r) for r in routers)
         ports = client.list_ports(
                 tenant_id=context.project_id,
                 device_owner="network:router_interface")["ports"]
-        ports = {p["network_id"]: p for p in ports}
+        ports = dict((p["network_id"], p) for p in ports)
         gateway_ports = client.list_ports(
                 device_owner="network:router_gateway")["ports"]
-        gateway_ports = {p["device_id"]: p for p in gateway_ports}
+        gateway_ports = dict((p["device_id"], p) for p in gateway_ports)
         routes = {}
         networks = network_api.API().get_items(context)
         for network in networks:

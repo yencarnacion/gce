@@ -39,7 +39,8 @@ class API(base_api.API):
         project_id = project.id
 
         nova_limits = clients.nova(context).limits.get(tenant_id=project_id)
-        result["nova_limits"] = {l.name: l.value for l in nova_limits.absolute}
+        result["nova_limits"] = dict((l.name, l.value)
+                                     for l in nova_limits.absolute)
 
         cinder_client = clients.cinder(context)
         result["cinder_quotas"] = utils.to_dict(

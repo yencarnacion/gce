@@ -37,7 +37,7 @@ class API(base_api.API):
         raise exception.NotFound
 
     def get_items(self, context, scope=None):
-        return [{"name": region for region in self._REGIONS}]
+        return [dict(("name", region) for region in self._REGIONS)]
 
     def get_items_as_scopes(self, context):
         return [scopes.RegionScope(region) for region in self._REGIONS]

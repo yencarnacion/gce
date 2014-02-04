@@ -133,7 +133,7 @@ class API(base_api.API):
         instance["volumes"] = [utils.to_dict(
             cinder_client.volumes.get(v["id"])) for v in volumes]
         ads = instance_disk_api.API().get_items(context, instance["name"])
-        ads = {ad["volume_id"]: ad for ad in ads}
+        ads = dict((ad["volume_id"], ad) for ad in ads)
         for volume in instance["volumes"]:
             ad = ads.pop(volume["id"], None)
             if not ad:
@@ -147,7 +147,7 @@ class API(base_api.API):
                 instance["name"], ads[ad]["name"])
 
         acs = instance_address_api.API().get_items(context, instance["name"])
-        acs = {ac["addr"]: ac for ac in acs}
+        acs = dict((ac["addr"], ac) for ac in acs)
         for network in instance["addresses"]:
             for address in instance["addresses"][network]:
                 if address["OS-EXT-IPS:type"] == "floating":

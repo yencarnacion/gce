@@ -26,6 +26,7 @@ inline callbacks.
 import os
 import shutil
 
+import collections
 import eventlet
 import fixtures
 import mox
@@ -163,3 +164,17 @@ class TestCase(testtools.TestCase):
         group = kw.pop('group', None)
         for k, v in kw.iteritems():
             CONF.set_override(k, v, group)
+
+    def assertDictEqual(self, d1, d2, msg=None):
+        for k, v1 in d1.iteritems():
+            self.assertIn(k, d2)
+            v2 = d2[k]
+            if(isinstance(v1, collections.Iterable) and
+               not isinstance(v1, basestring)):
+                self.assertItemsEqual(v1, v2, msg)
+            else:
+                self.assertEqual(v1, v2, msg)
+        return True
+
+    def assertItemsEqual(self, expected_seq, actual_seq, msg=None):
+        self.assertEqual(sorted(expected_seq), sorted(actual_seq), msg)
